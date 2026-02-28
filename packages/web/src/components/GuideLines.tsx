@@ -112,6 +112,32 @@ export function GuideLines({
   const dash = `${4 / zoom},${4 / zoom}`;
   const fontSize = 10 / zoom;
   const labelPad = 4 / zoom;
+  const labelMargin = 8 / zoom; // gap between bounding box edge and label
+
+  // Compute bounding box of all nodes so labels sit outside the content area
+  const bbox = nodes.reduce(
+    (acc, n) => {
+      const w = n.width ?? n.measured?.width ?? 160;
+      const h = n.height ?? n.measured?.height ?? 50;
+      return {
+        minX: Math.min(acc.minX, n.position.x),
+        minY: Math.min(acc.minY, n.position.y),
+        maxX: Math.max(acc.maxX, n.position.x + w),
+        maxY: Math.max(acc.maxY, n.position.y + h),
+      };
+    },
+    { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
+  );
+  const hasBbox = isFinite(bbox.minX);
+  const bboxPad = 12 / zoom;
+  const bboxLeft = hasBbox ? bbox.minX - bboxPad : 0;
+  const bboxTop = hasBbox ? bbox.minY - bboxPad : 0;
+  const bboxRight = hasBbox ? bbox.maxX + bboxPad : canvasWidth;
+  const bboxBottom = hasBbox ? bbox.maxY + bboxPad : canvasHeight;
+
+  // Row labels sit to the left of the bounding box; column labels sit above
+  const rowLabelX = bboxLeft - labelMargin;
+  const colLabelY = bboxTop - labelMargin;
 
   return (
     <svg
@@ -122,33 +148,52 @@ export function GuideLines({
         width: "100%",
         height: "100%",
         pointerEvents: "none",
-        zIndex: 1,
+        zIndex: 5,
       }}
     >
       <g transform={`translate(${panX}, ${panY}) scale(${zoom})`}>
+        {/* Bounding box outline */}
+        {hasBbox && (
+          <rect
+            x={bboxLeft}
+            y={bboxTop}
+            width={bboxRight - bboxLeft}
+            height={bboxBottom - bboxTop}
+            fill="none"
+            stroke="#90CAF9"
+            strokeWidth={strokeW}
+            strokeDasharray={`${2 / zoom},${4 / zoom}`}
+            opacity={0.4}
+            rx={4 / zoom}
+          />
+        )}
+
         {guides.map((guide) => {
           const labelText = guide.label ?? (guide.direction === "horizontal" ? `R${guide.index}` : `C${guide.index}`);
+          const labelWidth = labelText.length * fontSize * 0.65 + labelPad * 2;
+          const labelHeight = fontSize + labelPad * 2;
 
           if (guide.direction === "horizontal") {
             const y = guide.position * canvasHeight;
+            const lx = rowLabelX - labelWidth;
             return (
               <g key={guide.id}>
                 <line
-                  x1={0}
+                  x1={bboxLeft}
                   y1={y}
-                  x2={canvasWidth}
+                  x2={bboxRight}
                   y2={y}
                   stroke="#1976d2"
                   strokeWidth={strokeW}
                   strokeDasharray={dash}
                   opacity={0.5}
                 />
-                {/* Draggable label */}
+                {/* Draggable label — left of bounding box */}
                 <rect
-                  x={0}
-                  y={y - fontSize - labelPad}
-                  width={labelText.length * fontSize * 0.65 + labelPad * 2}
-                  height={fontSize + labelPad * 2}
+                  x={lx}
+                  y={y - labelHeight / 2}
+                  width={labelWidth}
+                  height={labelHeight}
                   fill="rgba(25, 118, 210, 0.08)"
                   rx={2 / zoom}
                   style={{ pointerEvents: "auto", cursor: "ns-resize" }}
@@ -157,8 +202,8 @@ export function GuideLines({
                   onPointerUp={onPointerUp}
                 />
                 <text
-                  x={labelPad}
-                  y={y - labelPad}
+                  x={lx + labelPad}
+                  y={y + fontSize / 3}
                   fontSize={fontSize}
                   fill="#1976d2"
                   opacity={0.7}
@@ -173,24 +218,25 @@ export function GuideLines({
             );
           } else {
             const x = guide.position * canvasWidth;
+            const ly = colLabelY - labelHeight;
             return (
               <g key={guide.id}>
                 <line
                   x1={x}
-                  y1={0}
+                  y1={bboxTop}
                   x2={x}
-                  y2={canvasHeight}
+                  y2={bboxBottom}
                   stroke="#1976d2"
                   strokeWidth={strokeW}
                   strokeDasharray={dash}
                   opacity={0.5}
                 />
-                {/* Draggable label */}
+                {/* Draggable label — above bounding box */}
                 <rect
-                  x={x + labelPad / 2}
-                  y={0}
-                  width={labelText.length * fontSize * 0.65 + labelPad * 2}
-                  height={fontSize + labelPad * 2}
+                  x={x - labelWidth / 2}
+                  y={ly}
+                  width={labelWidth}
+                  height={labelHeight}
                   fill="rgba(25, 118, 210, 0.08)"
                   rx={2 / zoom}
                   style={{ pointerEvents: "auto", cursor: "ew-resize" }}
@@ -199,8 +245,8 @@ export function GuideLines({
                   onPointerUp={onPointerUp}
                 />
                 <text
-                  x={x + labelPad}
-                  y={fontSize + labelPad / 2}
+                  x={x - labelWidth / 2 + labelPad}
+                  y={ly + fontSize + labelPad / 2}
                   fontSize={fontSize}
                   fill="#1976d2"
                   opacity={0.7}
