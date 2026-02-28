@@ -165,13 +165,30 @@ export function CommandBar({ nodes, edges, setNodes, setEdges, guides, setGuides
         const isHorizontal = guide.direction === "horizontal";
         const canvasDim = isHorizontal ? canvasHeight : canvasWidth;
         const sign = (cmd.direction === "down" || cmd.direction === "right") ? 1 : -1;
-        const delta = (sign * cmd.amount) / canvasDim;
+        const pixelDelta = sign * cmd.amount;
+        const delta = pixelDelta / canvasDim;
         setGuides((gs) =>
           gs.map((g) =>
             g.id === cmd.guideId
               ? { ...g, position: Math.max(0, Math.min(1, g.position + delta)) }
               : g
           )
+        );
+        // Move all nodes snapped to this guide
+        const guideField = isHorizontal ? "guideRow" : "guideColumn";
+        setNodes((nds) =>
+          nds.map((n) => {
+            if ((n.data as Record<string, unknown>)?.[guideField] === cmd.guideId) {
+              return {
+                ...n,
+                position: {
+                  x: n.position.x + (isHorizontal ? 0 : pixelDelta),
+                  y: n.position.y + (isHorizontal ? pixelDelta : 0),
+                },
+              };
+            }
+            return n;
+          })
         );
         break;
       }

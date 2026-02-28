@@ -101,6 +101,67 @@ export function FlowDiagram({
     [setEdges]
   );
 
+  // Bidirectional snap: when a node is dragged, move its guide(s) and siblings
+  const onNodeDragStop = useCallback(
+    (_event: React.MouseEvent, draggedNode: Node) => {
+      if (guides.length === 0) return;
+
+      const data = draggedNode.data as Record<string, unknown>;
+      const rowId = data?.guideRow as string | undefined;
+      const colId = data?.guideColumn as string | undefined;
+      if (!rowId && !colId) return;
+
+      const nodeW = draggedNode.width ?? draggedNode.measured?.width ?? 160;
+      const nodeH = draggedNode.height ?? draggedNode.measured?.height ?? 50;
+      const centerX = draggedNode.position.x + nodeW / 2;
+      const centerY = draggedNode.position.y + nodeH / 2;
+
+      // Update guides to match the dragged node's new center
+      setGuides((gs) =>
+        gs.map((g) => {
+          if (g.id === rowId) {
+            return { ...g, position: Math.max(0, Math.min(1, centerY / canvasHeight)) };
+          }
+          if (g.id === colId) {
+            return { ...g, position: Math.max(0, Math.min(1, centerX / canvasWidth)) };
+          }
+          return g;
+        })
+      );
+
+      // Move sibling nodes on the same guides to align with the new position
+      setNodes((nds) =>
+        nds.map((n) => {
+          if (n.id === draggedNode.id) return n; // skip the dragged node itself
+
+          const nd = n.data as Record<string, unknown>;
+          const nRow = nd?.guideRow as string | undefined;
+          const nCol = nd?.guideColumn as string | undefined;
+          const nW = n.width ?? n.measured?.width ?? 160;
+          const nH = n.height ?? n.measured?.height ?? 50;
+
+          let newX = n.position.x;
+          let newY = n.position.y;
+
+          // If sibling shares the same row, align Y center
+          if (rowId && nRow === rowId) {
+            newY = centerY - nH / 2;
+          }
+          // If sibling shares the same column, align X center
+          if (colId && nCol === colId) {
+            newX = centerX - nW / 2;
+          }
+
+          if (newX !== n.position.x || newY !== n.position.y) {
+            return { ...n, position: { x: newX, y: newY } };
+          }
+          return n;
+        })
+      );
+    },
+    [guides, canvasWidth, canvasHeight, setGuides, setNodes]
+  );
+
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
@@ -168,6 +229,7 @@ export function FlowDiagram({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeDragStop={onNodeDragStop}
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
         onPaneContextMenu={onPaneContextMenu}
@@ -196,6 +258,9 @@ export function FlowDiagram({
             canvasWidth={canvasWidth}
             canvasHeight={canvasHeight}
             visible={showGuides}
+            setGuides={setGuides}
+            setNodes={setNodes}
+            nodes={nodes}
           />
         )}
         <Panel position="top-right">

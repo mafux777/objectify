@@ -162,7 +162,7 @@
           "labelPosition": "center",
           "orderHint": 4,
           "guideRow": "row-0",
-          "guideColumn": "col-4"
+          "guideColumn": "col-5"
         },
         {
           "id": "trading-strategy",
@@ -188,9 +188,9 @@
           "sizeId": "output-table",
           "semanticTypeId": "output-data",
           "labelPosition": "center",
-          "orderHint": 6,
+          "orderHint": 7,
           "guideRow": "row-1",
-          "guideColumn": "col-5"
+          "guideColumn": "col-6"
         }
       ],
       "edges": [
@@ -308,7 +308,8 @@
         { "id": "col-2", "index": 2, "direction": "vertical", "position": 0.38, "label": "Prices" },
         { "id": "col-3", "index": 3, "direction": "vertical", "position": 0.52, "label": "Signal" },
         { "id": "col-4", "index": 4, "direction": "vertical", "position": 0.67, "label": "Buy/Sell" },
-        { "id": "col-5", "index": 5, "direction": "vertical", "position": 0.85, "label": "Output" }
+        { "id": "col-5", "index": 5, "direction": "vertical", "position": 0.78, "label": "Strategy" },
+        { "id": "col-6", "index": 6, "direction": "vertical", "position": 0.93, "label": "Output" }
       ]
     }
   ]

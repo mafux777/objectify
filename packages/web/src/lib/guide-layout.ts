@@ -16,6 +16,32 @@ const DEFAULT_NODE_HEIGHT = 50;
 const CELL_STACK_GAP = 10;
 
 /**
+ * Validate that no two nodes share the same (guideRow, guideColumn) pair.
+ * Returns an array of warning strings for any duplicates found.
+ */
+export function validateGuideCoordinates(
+  nodes: DiagramNode[]
+): string[] {
+  const seen = new Map<string, string>(); // cellKey → first node id
+  const warnings: string[] = [];
+
+  for (const node of nodes) {
+    if (!node.guideRow || !node.guideColumn) continue;
+    const key = `${node.guideRow}::${node.guideColumn}`;
+    const existing = seen.get(key);
+    if (existing) {
+      warnings.push(
+        `Duplicate grid cell (${node.guideRow}, ${node.guideColumn}): "${node.id}" conflicts with "${existing}"`
+      );
+    } else {
+      seen.set(key, node.id);
+    }
+  }
+
+  return warnings;
+}
+
+/**
  * Guide-based layout: positions nodes at the intersections of their assigned
  * row (horizontal guide) and column (vertical guide). This makes guides
  * structural — the grid skeleton that determines node placement.
@@ -29,6 +55,12 @@ export function guideLayoutDiagram(
   const imgH = diagram.imageDimensions?.height ?? REFERENCE_CANVAS_HEIGHT;
   const canvasWidth = REFERENCE_CANVAS_WIDTH;
   const canvasHeight = canvasWidth * (imgH / imgW);
+
+  // Validate unique grid coordinates
+  const warnings = validateGuideCoordinates(diagram.nodes);
+  for (const w of warnings) {
+    console.warn(`[Guide Layout] ${w}`);
+  }
 
   // Build lookup maps
   const guideMap = new Map<string, GuideLine>();

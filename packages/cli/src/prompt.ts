@@ -212,6 +212,7 @@ Identify the implicit alignment grid in the diagram:
    - "label": optional descriptive label (e.g., "Input Data", "Processing")
 4. On each node, set "guideRow" to the ID of the horizontal guide it aligns with, and "guideColumn" to the ID of the vertical guide it aligns with.
 5. Include guides in each diagram's "guides" array.
+6. IMPORTANT: Each (guideRow, guideColumn) pair must be unique — no two nodes may share the same grid cell. If two nodes appear to overlap in the same cell, create additional guide lines to separate them (e.g., add a new row or column).
 
 ## Label Positioning
 
