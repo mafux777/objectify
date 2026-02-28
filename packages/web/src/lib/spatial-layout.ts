@@ -1,6 +1,7 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { SingleDiagram, DiagramNode, ShapePaletteEntry } from "@objectify/schema";
 import { specEdgesToFlowEdges } from "./spec-to-flow.js";
+import { migrateNodeLabels } from "./label-migration.js";
 
 const DEFAULT_CANVAS_WIDTH = 1200;
 
@@ -70,13 +71,13 @@ export function spatialLayoutDiagram(
         position: { x, y },
         data: {
           label: node.label,
+          labels: migrateNodeLabels(node),
           style: node.style,
           font: node.font,
           ...(shapeEntry ? { shapeKind: shapeEntry.kind, ...(shapeEntry.aspectRatio ? { aspectRatio: shapeEntry.aspectRatio } : {}) } : {}),
           ...(node.shapeId ? { shapeId: node.shapeId } : {}),
           ...(node.sizeId ? { sizeId: node.sizeId } : {}),
           ...(node.semanticTypeId ? { semanticTypeId: node.semanticTypeId } : {}),
-          ...(node.labelPosition ? { labelPosition: node.labelPosition } : {}),
           ...(node.guideRow ? { guideRow: node.guideRow } : {}),
           ...(node.guideColumn ? { guideColumn: node.guideColumn } : {}),
         },

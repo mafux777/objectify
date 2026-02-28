@@ -10,6 +10,7 @@ import type {
   SizePaletteEntry,
 } from "@objectify/schema";
 import { specEdgesToFlowEdges } from "./spec-to-flow.js";
+import { migrateNodeLabels } from "./label-migration.js";
 
 const REFERENCE_CANVAS_WIDTH = 1200;
 const REFERENCE_CANVAS_HEIGHT = 800;
@@ -146,13 +147,13 @@ function flattenElkResult(
       position: { x: child.x ?? 0, y: child.y ?? 0 },
       data: {
         label: specNode.label,
+        labels: migrateNodeLabels(specNode),
         style: specNode.style,
         ...(specNode.font ? { font: specNode.font } : {}),
         ...(shapeEntry ? { shapeKind: shapeEntry.kind, ...(shapeEntry.aspectRatio ? { aspectRatio: shapeEntry.aspectRatio } : {}) } : {}),
         ...(specNode.shapeId ? { shapeId: specNode.shapeId } : {}),
         ...(specNode.sizeId ? { sizeId: specNode.sizeId } : {}),
         ...(specNode.semanticTypeId ? { semanticTypeId: specNode.semanticTypeId } : {}),
-        ...(specNode.labelPosition ? { labelPosition: specNode.labelPosition } : {}),
         ...(specNode.guideRow ? { guideRow: specNode.guideRow } : {}),
         ...(specNode.guideColumn ? { guideColumn: specNode.guideColumn } : {}),
       },

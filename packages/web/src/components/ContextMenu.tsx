@@ -13,6 +13,7 @@ interface ContextMenuProps {
   setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
   onClose: () => void;
+  saveSnapshot: () => void;
 }
 
 let nodeCounter = 0;
@@ -24,22 +25,25 @@ export function ContextMenu({
   setNodes,
   setEdges,
   onClose,
+  saveSnapshot,
 }: ContextMenuProps) {
   const deleteNode = useCallback(
     (nodeId: string) => {
+      saveSnapshot();
       setNodes((nds) => nds.filter((n) => n.id !== nodeId));
       setEdges((eds) =>
         eds.filter((e) => e.source !== nodeId && e.target !== nodeId)
       );
       onClose();
     },
-    [setNodes, setEdges, onClose]
+    [setNodes, setEdges, onClose, saveSnapshot]
   );
 
   const duplicateNode = useCallback(
     (nodeId: string) => {
       const original = nodes.find((n) => n.id === nodeId);
       if (!original) return;
+      saveSnapshot();
       nodeCounter++;
       const newNode: Node = {
         ...original,
@@ -53,19 +57,21 @@ export function ContextMenu({
       setNodes((nds) => [...nds, newNode]);
       onClose();
     },
-    [nodes, setNodes, onClose]
+    [nodes, setNodes, onClose, saveSnapshot]
   );
 
   const deleteEdge = useCallback(
     (edgeId: string) => {
+      saveSnapshot();
       setEdges((eds) => eds.filter((e) => e.id !== edgeId));
       onClose();
     },
-    [setEdges, onClose]
+    [setEdges, onClose, saveSnapshot]
   );
 
   const toggleEdgeStyle = useCallback(
     (edgeId: string) => {
+      saveSnapshot();
       setEdges((eds) =>
         eds.map((e) => {
           if (e.id !== edgeId) return e;
@@ -82,10 +88,11 @@ export function ContextMenu({
       );
       onClose();
     },
-    [setEdges, onClose]
+    [setEdges, onClose, saveSnapshot]
   );
 
   const addNodeAtPosition = useCallback(() => {
+    saveSnapshot();
     nodeCounter++;
     const newNode: Node = {
       id: `node-new-${nodeCounter}`,
@@ -103,7 +110,7 @@ export function ContextMenu({
     };
     setNodes((nds) => [...nds, newNode]);
     onClose();
-  }, [state, setNodes, onClose]);
+  }, [state, setNodes, onClose, saveSnapshot]);
 
   return (
     <div

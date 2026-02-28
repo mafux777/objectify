@@ -1,15 +1,15 @@
 import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
-import type { NodeStyle, NodeFont, ShapeKind } from "@objectify/schema";
-
-type LabelPosition = "center" | "top-left" | "top-center" | "bottom-center" | "above" | "below";
+import type { NodeStyle, NodeFont, ShapeKind, NodeLabel } from "@objectify/schema";
+import { fontStack } from "../../lib/fonts";
+import { NodeLabels } from "./NodeLabels";
 
 type ShapeNodeData = {
   label: string;
+  labels?: NodeLabel[];
   style: NodeStyle;
   font?: NodeFont;
   shapeKind?: ShapeKind;
   aspectRatio?: number;
-  labelPosition?: LabelPosition;
 };
 
 function getShapeStyles(kind: ShapeKind | undefined): React.CSSProperties {
@@ -48,8 +48,10 @@ export function ShapeNode({
   data,
   selected,
 }: NodeProps & { data: ShapeNodeData }) {
-  const { label, style, font, shapeKind, aspectRatio, labelPosition = "center" } = data;
-  const isOutsideLabel = labelPosition === "above" || labelPosition === "below";
+  const { label, labels, style, font, shapeKind, aspectRatio } = data;
+
+  const centerLabel = labels?.find((l) => l.position === "center")?.text ?? label;
+  const hasOutsideLabels = labels?.some((l) => l.position !== "center");
   const shapeStyles = getShapeStyles(shapeKind);
   // Apply aspect ratio from shape palette (unless shape already enforces it, like circle)
   const aspectRatioStyle: React.CSSProperties =
@@ -59,24 +61,8 @@ export function ShapeNode({
 
   return (
     <>
-      {isOutsideLabel && (
-        <div
-          style={{
-            position: "absolute",
-            ...(labelPosition === "above" ? { bottom: "100%", marginBottom: 4 } : { top: "100%", marginTop: 4 }),
-            left: 0,
-            width: "100%",
-            textAlign: "center",
-            fontSize: font?.fontSize ?? 11,
-            fontFamily: font?.fontFamily ?? "sans-serif",
-            fontWeight: font?.fontWeight === "bold" ? 700 : 400,
-            color: style.textColor ?? "#000",
-            whiteSpace: "pre-line",
-            pointerEvents: "none",
-          }}
-        >
-          {label}
-        </div>
+      {hasOutsideLabels && labels && (
+        <NodeLabels labels={labels} defaultFont={font} defaultColor={style.textColor ?? "#000"} />
       )}
       <NodeResizer
         minWidth={60}
@@ -146,20 +132,20 @@ export function ShapeNode({
           padding: "10px 20px",
           fontWeight: font?.fontWeight === "bold" ? 700 : 500,
           fontSize: font?.fontSize ?? 13,
-          fontFamily: font?.fontFamily ?? "sans-serif",
+          fontFamily: fontStack(font?.fontFamily),
           minWidth: 60,
           textAlign: "center",
           whiteSpace: "pre-line",
           width: "100%",
           height: "100%",
           display: "flex",
-          alignItems: labelPosition === "top-left" ? "flex-start" : labelPosition === "bottom-center" ? "flex-end" : "center",
-          justifyContent: labelPosition === "top-left" ? "flex-start" : "center",
+          alignItems: "center",
+          justifyContent: "center",
           ...shapeStyles,
           ...aspectRatioStyle,
         }}
       >
-        {!isOutsideLabel && label}
+        {centerLabel}
       </div>
     </>
   );

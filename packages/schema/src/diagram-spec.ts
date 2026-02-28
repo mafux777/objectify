@@ -64,6 +64,30 @@ const NodeFontSchema = z.object({
     .describe("Detected font weight"),
 });
 
+// --- Label schemas ---
+
+const ClockPositionSchema = z
+  .enum([
+    "center",   // inside, centered (default for primary label)
+    "12:00",    // above, horizontally centered
+    "1:30",     // above-right
+    "3:00",     // right, vertically centered
+    "4:30",     // below-right
+    "6:00",     // below, horizontally centered
+    "7:30",     // below-left
+    "9:00",     // left, vertically centered
+    "10:30",    // above-left
+  ])
+  .describe("Clock-face position relative to the node");
+
+const NodeLabelSchema = z.object({
+  text: z.string().describe("Label text content"),
+  position: ClockPositionSchema.default("center")
+    .describe("Clock-face position relative to the node"),
+  font: NodeFontSchema.optional()
+    .describe("Per-label font override. Falls back to node-level font."),
+});
+
 const NodeSchema = z.object({
   id: z
     .string()
@@ -124,6 +148,14 @@ const NodeSchema = z.object({
     .string()
     .optional()
     .describe("ID of the vertical guide line this node snaps to"),
+  labels: z
+    .array(NodeLabelSchema)
+    .optional()
+    .describe(
+      "Multi-label array. labels[0] is the primary label (default: center). " +
+        "Additional labels are positioned at clock positions around the node. " +
+        "When present, supersedes the legacy 'label' + 'labelPosition' fields."
+    ),
 });
 
 // --- Edge schemas ---
@@ -166,6 +198,23 @@ const EdgeLabelStyleSchema = z.object({
     .describe("Where along the edge path the label is placed"),
 });
 
+const EdgeLabelSchema = z.object({
+  text: z.string().describe("Label text content"),
+  position: z
+    .enum(["center", "source", "target"])
+    .default("center")
+    .describe("Where along the edge path the label is placed"),
+  font: EdgeLabelStyleSchema.optional()
+    .describe("Per-label font/style override"),
+  ownerNodeId: z
+    .string()
+    .optional()
+    .describe(
+      "If set, this label semantically belongs to the referenced node rather than the edge. " +
+        "It still renders near the edge, but moves with the node and is styled accordingly in 'Show Labels' mode."
+    ),
+});
+
 const EdgeSchema = z.object({
   id: z.string().describe("Unique identifier, e.g. 'edge-1'"),
   source: z.string().describe("ID of the source node where the arrow starts"),
@@ -184,6 +233,12 @@ const EdgeSchema = z.object({
   labelStyle: EdgeLabelStyleSchema.optional().describe(
     "Styling for the edge label text. If omitted, renderer defaults apply."
   ),
+  labels: z
+    .array(EdgeLabelSchema)
+    .optional()
+    .describe(
+      "Multi-label array. When present, supersedes the legacy 'label' + 'labelStyle' fields."
+    ),
 });
 
 // --- Color palette schemas ---
@@ -380,7 +435,7 @@ const SingleDiagramSchema = z.object({
 });
 
 export const DiagramSpecSchema = z.object({
-  version: z.enum(["1.0", "2.0", "3.0"]).describe("Schema version. 2.0 includes spatial data. 3.0 adds guide lines and label positioning."),
+  version: z.enum(["1.0", "2.0", "3.0", "4.0"]).describe("Schema version. 2.0 includes spatial data. 3.0 adds guide lines and label positioning. 4.0 adds multi-label support."),
   palette: ColorPaletteSchema.optional().describe(
     "Color palette sampled from the source image. All node/edge colors should reference " +
       "hex values from this palette. Optional for backward compatibility with older specs."
@@ -426,3 +481,6 @@ export type SizePaletteEntry = z.infer<typeof SizePaletteEntrySchema>;
 export type SemanticTypeEntry = z.infer<typeof SemanticTypeEntrySchema>;
 export type GuideLine = z.infer<typeof GuideLineSchema>;
 export type EdgeLabelStyle = z.infer<typeof EdgeLabelStyleSchema>;
+export type ClockPosition = z.infer<typeof ClockPositionSchema>;
+export type NodeLabel = z.infer<typeof NodeLabelSchema>;
+export type EdgeLabel = z.infer<typeof EdgeLabelSchema>;

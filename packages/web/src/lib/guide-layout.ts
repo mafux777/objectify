@@ -7,6 +7,7 @@ import type {
   SizePaletteEntry,
 } from "@objectify/schema";
 import { specEdgesToFlowEdges } from "./spec-to-flow.js";
+import { migrateNodeLabels } from "./label-migration.js";
 
 const REFERENCE_CANVAS_WIDTH = 1200;
 const REFERENCE_CANVAS_HEIGHT = 800;
@@ -14,6 +15,7 @@ const REFERENCE_CANVAS_HEIGHT = 800;
 const DEFAULT_NODE_WIDTH = 160;
 const DEFAULT_NODE_HEIGHT = 50;
 const CELL_STACK_GAP = 10;
+const MIN_NODE_GAP = 20; // minimum pixels between adjacent nodes
 
 /**
  * Validate that no two nodes share the same (guideRow, guideColumn) pair.
@@ -42,6 +44,108 @@ export function validateGuideCoordinates(
 }
 
 /**
+ * Post-LLM validation: detect and fix overlapping nodes by adjusting guide
+ * positions. For each row, we sort nodes by column position and check that
+ * adjacent nodes don't overlap. If they do, we push column guides apart.
+ * Same logic applies to columns (checking row overlaps).
+ *
+ * Returns a new array of guides with adjusted positions.
+ */
+export function resolveGuideOverlaps(
+  guides: GuideLine[],
+  nodes: DiagramNode[],
+  getNodeSize: (node: DiagramNode) => { w: number; h: number },
+  canvasWidth: number,
+  canvasHeight: number,
+): GuideLine[] {
+  const adjusted = guides.map((g) => ({ ...g }));
+  const guideById = new Map(adjusted.map((g) => [g.id, g]));
+
+  // --- Fix column spacing (check horizontal overlaps per row) ---
+  const rows = adjusted.filter((g) => g.direction === "horizontal");
+  const cols = adjusted
+    .filter((g) => g.direction === "vertical")
+    .sort((a, b) => a.position - b.position);
+
+  for (const row of rows) {
+    // Collect nodes on this row, sorted by column position
+    const rowNodes = nodes
+      .filter((n) => n.guideRow === row.id && n.guideColumn)
+      .map((n) => ({
+        node: n,
+        col: guideById.get(n.guideColumn!)!,
+        size: getNodeSize(n),
+      }))
+      .filter((entry) => entry.col)
+      .sort((a, b) => a.col.position - b.col.position);
+
+    for (let i = 0; i < rowNodes.length - 1; i++) {
+      const left = rowNodes[i];
+      const right = rowNodes[i + 1];
+      const rightEdge = left.col.position * canvasWidth + left.size.w / 2;
+      const leftEdge = right.col.position * canvasWidth - right.size.w / 2;
+      const overlap = rightEdge + MIN_NODE_GAP - leftEdge;
+
+      if (overlap > 0) {
+        // Push the right column (and all subsequent columns) to the right
+        const shiftNorm = overlap / canvasWidth;
+        const rightColIdx = cols.indexOf(right.col);
+        if (rightColIdx >= 0) {
+          for (let j = rightColIdx; j < cols.length; j++) {
+            cols[j].position += shiftNorm;
+          }
+        }
+        console.warn(
+          `[Guide Validation] Row "${row.id}": nodes "${left.node.id}" and "${right.node.id}" ` +
+            `overlap by ${Math.round(overlap)}px — shifted column "${right.col.id}" right`
+        );
+      }
+    }
+  }
+
+  // --- Fix row spacing (check vertical overlaps per column) ---
+  const sortedRows = adjusted
+    .filter((g) => g.direction === "horizontal")
+    .sort((a, b) => a.position - b.position);
+
+  for (const col of cols) {
+    const colNodes = nodes
+      .filter((n) => n.guideColumn === col.id && n.guideRow)
+      .map((n) => ({
+        node: n,
+        row: guideById.get(n.guideRow!)!,
+        size: getNodeSize(n),
+      }))
+      .filter((entry) => entry.row)
+      .sort((a, b) => a.row.position - b.row.position);
+
+    for (let i = 0; i < colNodes.length - 1; i++) {
+      const top = colNodes[i];
+      const bottom = colNodes[i + 1];
+      const bottomEdge = top.row.position * canvasHeight + top.size.h / 2;
+      const topEdge = bottom.row.position * canvasHeight - bottom.size.h / 2;
+      const overlap = bottomEdge + MIN_NODE_GAP - topEdge;
+
+      if (overlap > 0) {
+        const shiftNorm = overlap / canvasHeight;
+        const bottomRowIdx = sortedRows.indexOf(bottom.row);
+        if (bottomRowIdx >= 0) {
+          for (let j = bottomRowIdx; j < sortedRows.length; j++) {
+            sortedRows[j].position += shiftNorm;
+          }
+        }
+        console.warn(
+          `[Guide Validation] Column "${col.id}": nodes "${top.node.id}" and "${bottom.node.id}" ` +
+            `overlap by ${Math.round(overlap)}px — shifted row "${bottom.row.id}" down`
+        );
+      }
+    }
+  }
+
+  return adjusted;
+}
+
+/**
  * Guide-based layout: positions nodes at the intersections of their assigned
  * row (horizontal guide) and column (vertical guide). This makes guides
  * structural — the grid skeleton that determines node placement.
@@ -63,11 +167,6 @@ export function guideLayoutDiagram(
   }
 
   // Build lookup maps
-  const guideMap = new Map<string, GuideLine>();
-  for (const g of diagram.guides ?? []) {
-    guideMap.set(g.id, g);
-  }
-
   const shapeMap = shapePalette
     ? new Map(shapePalette.map((e) => [e.id, e]))
     : undefined;
@@ -82,6 +181,20 @@ export function guideLayoutDiagram(
       w: sizeEntry ? Math.round(sizeEntry.width * REFERENCE_CANVAS_WIDTH) : DEFAULT_NODE_WIDTH,
       h: sizeEntry ? Math.round(sizeEntry.height * REFERENCE_CANVAS_HEIGHT) : DEFAULT_NODE_HEIGHT,
     };
+  }
+
+  // Post-LLM validation: resolve overlaps by adjusting guide positions
+  const resolvedGuides = resolveGuideOverlaps(
+    diagram.guides ?? [],
+    diagram.nodes,
+    getNodeSize,
+    canvasWidth,
+    canvasHeight,
+  );
+
+  const guideMap = new Map<string, GuideLine>();
+  for (const g of resolvedGuides) {
+    guideMap.set(g.id, g);
   }
 
   // Group nodes by their (guideRow, guideColumn) cell
@@ -170,6 +283,7 @@ function buildFlowNode(
     position: { x, y },
     data: {
       label: node.label,
+      labels: migrateNodeLabels(node),
       style: node.style,
       ...(node.font ? { font: node.font } : {}),
       ...(shapeEntry
@@ -181,7 +295,6 @@ function buildFlowNode(
       ...(node.shapeId ? { shapeId: node.shapeId } : {}),
       ...(node.sizeId ? { sizeId: node.sizeId } : {}),
       ...(node.semanticTypeId ? { semanticTypeId: node.semanticTypeId } : {}),
-      ...(node.labelPosition ? { labelPosition: node.labelPosition } : {}),
       ...(node.guideRow ? { guideRow: node.guideRow } : {}),
       ...(node.guideColumn ? { guideColumn: node.guideColumn } : {}),
     },

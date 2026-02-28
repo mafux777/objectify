@@ -10,23 +10,20 @@ import type {
   SizePaletteEntry,
   SemanticTypeEntry,
   GuideLine,
+  NodeLabel,
+  EdgeLabel,
 } from "@objectify/schema";
 
 /**
- * Convert React Flow nodes + edges back into a DiagramSpec JSON object.
- * This is the inverse of the layout pipeline: it reads the current interactive
- * state and serialises it so the user can save / re-import the diagram.
+ * Convert React Flow nodes + edges back into a SingleDiagram object.
+ * This is the core serialisation logic used by both auto-save and export.
  */
-export function flowToSpec(
+export function flowToDiagram(
   nodes: Node[],
   edges: Edge[],
   originalDiagram: SingleDiagram,
-  palette?: ColorPaletteEntry[],
-  shapePalette?: ShapePaletteEntry[],
-  sizePalette?: SizePaletteEntry[],
-  semanticTypes?: SemanticTypeEntry[],
   guides?: GuideLine[]
-): DiagramSpec {
+): SingleDiagram {
   const specNodes: DiagramNode[] = nodes.map((n) => {
     const isGroup = n.type === "groupNode";
     const data = n.data as Record<string, unknown>;
@@ -59,14 +56,18 @@ export function flowToSpec(
     if (data.semanticTypeId) {
       node.semanticTypeId = data.semanticTypeId as string;
     }
-    if (data.labelPosition && data.labelPosition !== "center") {
-      node.labelPosition = data.labelPosition as DiagramNode["labelPosition"];
-    }
     if (data.guideRow) {
       node.guideRow = data.guideRow as string;
     }
     if (data.guideColumn) {
       node.guideColumn = data.guideColumn as string;
+    }
+
+    // Export multi-label array; also set legacy label from labels[0]
+    if (data.labels) {
+      const labels = data.labels as NodeLabel[];
+      node.labels = labels;
+      node.label = labels[0]?.text ?? node.label;
     }
 
     // Preserve spatial data: convert absolute pixel positions back to
@@ -142,11 +143,19 @@ export function flowToSpec(
 
     edge.style = { lineStyle, color };
 
-    // Preserve edge label style if present in data
+    // Preserve edge label style and multi-labels if present in data
     if ((e as Record<string, unknown>).data) {
       const edgeData = (e as Record<string, unknown>).data as Record<string, unknown>;
       if (edgeData.labelStyle) {
         edge.labelStyle = edgeData.labelStyle as DiagramEdge["labelStyle"];
+      }
+      if (edgeData.labels) {
+        const labels = edgeData.labels as EdgeLabel[];
+        edge.labels = labels;
+        // Also set legacy label from first label text
+        if (labels.length > 0) {
+          edge.label = labels[0].text;
+        }
       }
     }
 
@@ -170,15 +179,38 @@ export function flowToSpec(
     diagram.guides = guides;
   }
 
+  return diagram;
+}
+
+/**
+ * Convert React Flow nodes + edges back into a full DiagramSpec JSON object.
+ * Wraps flowToDiagram with palette/version metadata for export.
+ */
+export function flowToSpec(
+  nodes: Node[],
+  edges: Edge[],
+  originalDiagram: SingleDiagram,
+  palette?: ColorPaletteEntry[],
+  shapePalette?: ShapePaletteEntry[],
+  sizePalette?: SizePaletteEntry[],
+  semanticTypes?: SemanticTypeEntry[],
+  guides?: GuideLine[]
+): DiagramSpec {
+  const diagram = flowToDiagram(nodes, edges, originalDiagram, guides);
+
   const hasGuides = guides && guides.length > 0;
-  const version = hasGuides
-    ? "3.0"
-    : originalDiagram.layoutMode === "spatial"
-      ? "2.0"
-      : "1.0";
+  const hasMultiLabels = diagram.nodes.some((n) => n.labels && n.labels.length > 0)
+    || diagram.edges.some((e) => e.labels && e.labels.length > 0);
+  const version = hasMultiLabels
+    ? "4.0"
+    : hasGuides
+      ? "3.0"
+      : originalDiagram.layoutMode === "spatial"
+        ? "2.0"
+        : "1.0";
 
   return {
-    version: version as "1.0" | "2.0" | "3.0",
+    version: version as "1.0" | "2.0" | "3.0" | "4.0",
     ...(palette && palette.length > 0 ? { palette } : {}),
     ...(shapePalette && shapePalette.length > 0 ? { shapePalette } : {}),
     ...(sizePalette && sizePalette.length > 0 ? { sizePalette } : {}),

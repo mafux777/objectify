@@ -75,7 +75,10 @@
           "shapeId": "diamond",
           "sizeId": "process-diamond",
           "semanticTypeId": "processing",
-          "labelPosition": "center",
+          "labels": [
+            { "text": "Prediction\nModel", "position": "center" },
+            { "text": "ML v2.3", "position": "6:00", "font": { "fontSize": 9, "fontFamily": "monospace", "fontWeight": "normal" } }
+          ],
           "orderHint": 1,
           "guideRow": "row-1",
           "guideColumn": "col-1"
@@ -159,7 +162,10 @@
           "shapeId": "parallelogram",
           "sizeId": "small-input",
           "semanticTypeId": "input-data",
-          "labelPosition": "center",
+          "labels": [
+            { "text": "Available\nFunds", "position": "center" },
+            { "text": "added label", "position": "12:00" }
+          ],
           "orderHint": 4,
           "guideRow": "row-0",
           "guideColumn": "col-5"
@@ -307,9 +313,9 @@
         { "id": "col-1", "index": 1, "direction": "vertical", "position": 0.27, "label": "Prediction" },
         { "id": "col-2", "index": 2, "direction": "vertical", "position": 0.38, "label": "Prices" },
         { "id": "col-3", "index": 3, "direction": "vertical", "position": 0.52, "label": "Signal" },
-        { "id": "col-4", "index": 4, "direction": "vertical", "position": 0.67, "label": "Buy/Sell" },
-        { "id": "col-5", "index": 5, "direction": "vertical", "position": 0.78, "label": "Strategy" },
-        { "id": "col-6", "index": 6, "direction": "vertical", "position": 0.93, "label": "Output" }
+        { "id": "col-4", "index": 4, "direction": "vertical", "position": 0.65, "label": "Buy/Sell" },
+        { "id": "col-5", "index": 5, "direction": "vertical", "position": 0.76, "label": "Strategy" },
+        { "id": "col-6", "index": 6, "direction": "vertical", "position": 0.95, "label": "Output" }
       ]
     }
   ]

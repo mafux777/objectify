@@ -1,23 +1,30 @@
 import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
-import type { NodeStyle, NodeFont } from "@objectify/schema";
-
-type LabelPosition = "center" | "top-left" | "top-center" | "bottom-center" | "above" | "below";
+import type { NodeStyle, NodeFont, NodeLabel } from "@objectify/schema";
+import { fontStack } from "../../lib/fonts";
+import { NodeLabels } from "./NodeLabels";
 
 type GroupNodeData = {
   label: string;
+  labels?: NodeLabel[];
   style: NodeStyle;
   font?: NodeFont;
-  labelPosition?: LabelPosition;
 };
 
 export function GroupNode({
   data,
   selected,
 }: NodeProps & { data: GroupNodeData }) {
-  const { label, style, font, labelPosition = "top-left" } = data;
+  const { label, labels, style, font } = data;
+
+  // For groups, primary label goes at top-left (inside the group header)
+  const primaryLabel = labels?.[0]?.text ?? label;
+  const hasOutsideLabels = labels?.some((l) => l.position !== "center" && l.position !== "10:30");
 
   return (
     <>
+      {hasOutsideLabels && labels && (
+        <NodeLabels labels={labels} defaultFont={font} defaultColor={style.textColor ?? "#333"} />
+      )}
       <NodeResizer
         minWidth={100}
         minHeight={80}
@@ -51,21 +58,18 @@ export function GroupNode({
         <div
           style={{
             position: "absolute",
-            ...(labelPosition === "top-left" ? { top: 8, left: 12 } :
-               labelPosition === "top-center" ? { top: 8, left: 0, width: "100%", textAlign: "center" as const } :
-               labelPosition === "center" ? { top: "50%", left: "50%", transform: "translate(-50%, -50%)" } :
-               labelPosition === "bottom-center" ? { bottom: 8, left: 0, width: "100%", textAlign: "center" as const } :
-               { top: 8, left: 12 }),
+            top: 8,
+            left: 12,
             color: style.textColor ?? "#333",
             padding: "2px 10px",
             borderRadius: 4,
             fontSize: font?.fontSize ?? 12,
             fontWeight: font?.fontWeight === "bold" ? 700 : 600,
-            fontFamily: font?.fontFamily ?? "sans-serif",
+            fontFamily: fontStack(font?.fontFamily),
             letterSpacing: 0.3,
           }}
         >
-          {label}
+          {primaryLabel}
         </div>
       </div>
     </>

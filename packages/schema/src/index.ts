@@ -18,4 +18,7 @@ export {
   type SemanticTypeEntry,
   type GuideLine,
   type EdgeLabelStyle,
+  type ClockPosition,
+  type NodeLabel,
+  type EdgeLabel,
 } from "./diagram-spec.js";

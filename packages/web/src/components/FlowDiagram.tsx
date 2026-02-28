@@ -13,9 +13,12 @@ import {
   type OnConnect,
   type Node,
   type Edge,
+  type NodeChange,
+  type EdgeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type {
+  DiagramSpec,
   SingleDiagram,
   ColorPaletteEntry,
   ShapePaletteEntry,
@@ -24,13 +27,17 @@ import type {
   GuideLine,
 } from "@objectify/schema";
 import { useLayoutedElements } from "../hooks/useLayoutedElements.js";
+import { useUndoHistory } from "../hooks/useUndoHistory.js";
 import { ColorBoxNode } from "./nodes/ColorBoxNode.js";
 import { GroupNode } from "./nodes/GroupNode.js";
 import { ShapeNode } from "./nodes/ShapeNode.js";
 import { ContextMenu, type ContextMenuState } from "./ContextMenu.js";
 import { CommandBar } from "./CommandBar.js";
-import { flowToSpec } from "../lib/flow-to-spec.js";
+import { flowToDiagram, flowToSpec } from "../lib/flow-to-spec.js";
 import { GuideLines } from "./GuideLines.js";
+import { LabelConnectors } from "./LabelConnectors.js";
+
+let detachGuideCounter = 200;
 
 const nodeTypes: NodeTypes = {
   colorBox: ColorBoxNode,
@@ -40,6 +47,9 @@ const nodeTypes: NodeTypes = {
 
 interface FlowDiagramProps {
   diagram: SingleDiagram;
+  spec: DiagramSpec;
+  activeTab: number;
+  specFilename: string | null;
   palette?: ColorPaletteEntry[];
   shapePalette?: ShapePaletteEntry[];
   sizePalette?: SizePaletteEntry[];
@@ -48,6 +58,9 @@ interface FlowDiagramProps {
 
 export function FlowDiagram({
   diagram,
+  spec,
+  activeTab,
+  specFilename,
   palette,
   shapePalette,
   sizePalette,
@@ -60,7 +73,16 @@ export function FlowDiagram({
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [guides, setGuides] = useState<GuideLine[]>(diagram.guides ?? []);
   const [showGuides, setShowGuides] = useState(true);
+  const [showLabelConnectors, setShowLabelConnectors] = useState(false);
   const flowRef = useRef<HTMLDivElement>(null);
+
+  const { saveSnapshot, undo, redo, canUndo, canRedo, clearHistory } =
+    useUndoHistory(nodes, edges, guides, setNodes, setEdges, setGuides);
+
+  // Auto-save state
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const isInitialMount = useRef(true);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved" | null>(null);
 
   // Compute canvas dimensions for guide rendering
   const canvasWidth = 1200;
@@ -73,16 +95,127 @@ export function FlowDiagram({
     if (!isLayouting && initialNodes.length > 0) {
       setNodes(initialNodes);
       setEdges(initialEdges);
+      clearHistory();
     }
-  }, [initialNodes, initialEdges, isLayouting, setNodes, setEdges]);
+  }, [initialNodes, initialEdges, isLayouting, setNodes, setEdges, clearHistory]);
 
   // Sync guides when diagram changes
   useEffect(() => {
     setGuides(diagram.guides ?? []);
   }, [diagram]);
 
+  // Reset isInitialMount and save status when diagram changes
+  useEffect(() => {
+    isInitialMount.current = true;
+    setSaveStatus(null);
+  }, [diagram.id]);
+
+  // Debounced auto-save: watches nodes/edges/guides, writes back to server
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (!specFilename) return;
+
+    setSaveStatus("unsaved");
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      setSaveStatus("saving");
+      try {
+        const updatedDiagram = flowToDiagram(nodes, edges, diagram, guides);
+        const updatedSpec: DiagramSpec = {
+          ...spec,
+          diagrams: spec.diagrams.map((d, i) => i === activeTab ? updatedDiagram : d),
+        };
+        await fetch(`/api/specs/${specFilename}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatedSpec, null, 2),
+        });
+        setSaveStatus("saved");
+      } catch {
+        setSaveStatus("unsaved");
+      }
+    }, 1000);
+
+    return () => clearTimeout(saveTimerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, edges, guides]);
+
+  // Manual save helper (used by Ctrl+S)
+  const saveNow = useCallback(async () => {
+    if (!specFilename) return;
+    clearTimeout(saveTimerRef.current);
+    setSaveStatus("saving");
+    try {
+      const updatedDiagram = flowToDiagram(nodes, edges, diagram, guides);
+      const updatedSpec: DiagramSpec = {
+        ...spec,
+        diagrams: spec.diagrams.map((d, i) => i === activeTab ? updatedDiagram : d),
+      };
+      await fetch(`/api/specs/${specFilename}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedSpec, null, 2),
+      });
+      setSaveStatus("saved");
+    } catch {
+      setSaveStatus("unsaved");
+    }
+  }, [specFilename, nodes, edges, diagram, guides, spec, activeTab]);
+
+  // Keyboard shortcuts: Ctrl/Cmd+Z = undo, Ctrl/Cmd+Shift+Z or Ctrl+Y = redo, Ctrl+S = save
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+
+      if (e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if ((e.key === "z" && e.shiftKey) || e.key === "y") {
+        e.preventDefault();
+        redo();
+      } else if (e.key === "s") {
+        e.preventDefault();
+        saveNow();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [undo, redo, saveNow]);
+
+  // Wrap onNodesChange to capture snapshot before deletions (Delete key)
+  const wrappedOnNodesChange = useCallback(
+    (changes: NodeChange<Node>[]) => {
+      if (changes.some((c) => c.type === "remove")) {
+        saveSnapshot();
+      }
+      onNodesChange(changes);
+    },
+    [onNodesChange, saveSnapshot]
+  );
+
+  // Wrap onEdgesChange to capture snapshot before deletions
+  const wrappedOnEdgesChange = useCallback(
+    (changes: EdgeChange<Edge>[]) => {
+      if (changes.some((c) => c.type === "remove")) {
+        saveSnapshot();
+      }
+      onEdgesChange(changes);
+    },
+    [onEdgesChange, saveSnapshot]
+  );
+
+  // Save snapshot at the start of every node drag
+  const onNodeDragStart = useCallback(() => {
+    saveSnapshot();
+  }, [saveSnapshot]);
+
   const onConnect: OnConnect = useCallback(
-    (params) =>
+    (params) => {
+      saveSnapshot();
       setEdges((eds) =>
         addEdge(
           {
@@ -97,24 +230,73 @@ export function FlowDiagram({
           },
           eds
         )
-      ),
-    [setEdges]
+      );
+    },
+    [setEdges, saveSnapshot]
   );
 
   // Bidirectional snap: when a node is dragged, move its guide(s) and siblings
+  // Alt+drag: detach node from shared guides by creating new personal guides
   const onNodeDragStop = useCallback(
-    (_event: React.MouseEvent, draggedNode: Node) => {
-      if (guides.length === 0) return;
-
+    (event: React.MouseEvent, draggedNode: Node) => {
       const data = draggedNode.data as Record<string, unknown>;
       const rowId = data?.guideRow as string | undefined;
       const colId = data?.guideColumn as string | undefined;
-      if (!rowId && !colId) return;
 
       const nodeW = draggedNode.width ?? draggedNode.measured?.width ?? 160;
       const nodeH = draggedNode.height ?? draggedNode.measured?.height ?? 50;
       const centerX = draggedNode.position.x + nodeW / 2;
       const centerY = draggedNode.position.y + nodeH / 2;
+
+      // Alt+drag: detach from shared guides and create new personal guides
+      if (event.altKey) {
+        // Derive a short label from the node's label (first line, spaces instead of newlines)
+        const rawLabel = (data?.label as string) ?? "Node";
+        const shortLabel = rawLabel.split("\n").join(" ").trim();
+
+        // Create new row guide
+        detachGuideCounter++;
+        const newRowId = `row-detach-${detachGuideCounter}`;
+        const newRowGuide: GuideLine = {
+          id: newRowId,
+          index: guides.filter((g) => g.direction === "horizontal").length,
+          direction: "horizontal",
+          position: Math.max(0, Math.min(1, centerY / canvasHeight)),
+          label: `${shortLabel} Row`,
+        };
+
+        // Create new column guide
+        detachGuideCounter++;
+        const newColId = `col-detach-${detachGuideCounter}`;
+        const newColGuide: GuideLine = {
+          id: newColId,
+          index: guides.filter((g) => g.direction === "vertical").length,
+          direction: "vertical",
+          position: Math.max(0, Math.min(1, centerX / canvasWidth)),
+          label: `${shortLabel} Col`,
+        };
+
+        // Add the new guides
+        setGuides((gs) => [...gs, newRowGuide, newColGuide]);
+
+        // Reassign the dragged node to the new guides
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === draggedNode.id
+              ? {
+                  ...n,
+                  data: { ...n.data, guideRow: newRowId, guideColumn: newColId },
+                }
+              : n
+          )
+        );
+
+        return; // Skip normal guide-snapping logic
+      }
+
+      // Normal drag behavior: move guides and siblings
+      if (guides.length === 0) return;
+      if (!rowId && !colId) return;
 
       // Update guides to match the dragged node's new center
       setGuides((gs) =>
@@ -226,9 +408,10 @@ export function FlowDiagram({
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
+        onNodesChange={wrappedOnNodesChange}
+        onEdgesChange={wrappedOnEdgesChange}
         onConnect={onConnect}
+        onNodeDragStart={onNodeDragStart}
         onNodeDragStop={onNodeDragStop}
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
@@ -261,9 +444,45 @@ export function FlowDiagram({
             setGuides={setGuides}
             setNodes={setNodes}
             nodes={nodes}
+            saveSnapshot={saveSnapshot}
           />
         )}
+        <LabelConnectors
+          nodes={nodes}
+          edges={edges}
+          visible={showLabelConnectors}
+        />
         <Panel position="top-right">
+          {saveStatus && (
+            <span style={{ opacity: 0.5, fontSize: 12, marginRight: 8 }}>
+              {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved" : "Unsaved"}
+            </span>
+          )}
+          <button
+            className="load-btn"
+            onClick={undo}
+            disabled={!canUndo}
+            title="Undo (Ctrl+Z)"
+            style={{ marginRight: 4, opacity: canUndo ? 1 : 0.4 }}
+          >
+            Undo
+          </button>
+          <button
+            className="load-btn"
+            onClick={redo}
+            disabled={!canRedo}
+            title="Redo (Ctrl+Shift+Z)"
+            style={{ marginRight: 8, opacity: canRedo ? 1 : 0.4 }}
+          >
+            Redo
+          </button>
+          <button
+            className="load-btn"
+            onClick={() => setShowLabelConnectors(!showLabelConnectors)}
+            style={{ marginRight: 8 }}
+          >
+            {showLabelConnectors ? "Hide Labels" : "Show Labels"}
+          </button>
           {guides.length > 0 && (
             <button
               className="load-btn"
@@ -287,6 +506,7 @@ export function FlowDiagram({
           setNodes={setNodes}
           setEdges={setEdges}
           onClose={closeContextMenu}
+          saveSnapshot={saveSnapshot}
         />
       )}
 
@@ -299,6 +519,7 @@ export function FlowDiagram({
         setGuides={setGuides}
         canvasWidth={canvasWidth}
         canvasHeight={canvasHeight}
+        saveSnapshot={saveSnapshot}
       />
     </div>
   );

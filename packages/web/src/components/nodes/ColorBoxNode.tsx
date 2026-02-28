@@ -1,43 +1,29 @@
 import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
-import type { NodeStyle, NodeFont } from "@objectify/schema";
-
-type LabelPosition = "center" | "top-left" | "top-center" | "bottom-center" | "above" | "below";
+import type { NodeStyle, NodeFont, NodeLabel } from "@objectify/schema";
+import { fontStack } from "../../lib/fonts";
+import { NodeLabels } from "./NodeLabels";
 
 type ColorBoxData = {
   label: string;
+  labels?: NodeLabel[];
   style: NodeStyle;
   font?: NodeFont;
-  labelPosition?: LabelPosition;
 };
 
 export function ColorBoxNode({
   data,
   selected,
 }: NodeProps & { data: ColorBoxData }) {
-  const { label, style, font, labelPosition = "center" } = data;
+  const { label, labels, style, font } = data;
 
-  const isOutsideLabel = labelPosition === "above" || labelPosition === "below";
+  // Primary center label text (from labels[0] if center, else legacy label)
+  const centerLabel = labels?.find((l) => l.position === "center")?.text ?? label;
+  const hasOutsideLabels = labels?.some((l) => l.position !== "center");
 
   return (
     <>
-      {isOutsideLabel && (
-        <div
-          style={{
-            position: "absolute",
-            ...(labelPosition === "above" ? { bottom: "100%", marginBottom: 4 } : { top: "100%", marginTop: 4 }),
-            left: 0,
-            width: "100%",
-            textAlign: "center",
-            fontSize: font?.fontSize ?? 11,
-            fontFamily: font?.fontFamily ?? "sans-serif",
-            fontWeight: font?.fontWeight === "bold" ? 700 : 400,
-            color: style.textColor ?? "#000",
-            whiteSpace: "pre-line",
-            pointerEvents: "none",
-          }}
-        >
-          {label}
-        </div>
+      {hasOutsideLabels && labels && (
+        <NodeLabels labels={labels} defaultFont={font} defaultColor={style.textColor ?? "#000"} />
       )}
       <NodeResizer
         minWidth={60}
@@ -68,18 +54,18 @@ export function ColorBoxNode({
           padding: "10px 20px",
           fontWeight: font?.fontWeight === "bold" ? 700 : 500,
           fontSize: font?.fontSize ?? 13,
-          fontFamily: font?.fontFamily ?? "sans-serif",
+          fontFamily: fontStack(font?.fontFamily),
           minWidth: 60,
           textAlign: "center",
           whiteSpace: "pre-line",
           width: "100%",
           height: "100%",
           display: "flex",
-          alignItems: labelPosition === "top-left" ? "flex-start" : labelPosition === "bottom-center" ? "flex-end" : "center",
-          justifyContent: labelPosition === "top-left" ? "flex-start" : "center",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        {!isOutsideLabel && label}
+        {centerLabel}
       </div>
     </>
   );

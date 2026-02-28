@@ -10,6 +10,7 @@ interface GuideLinesProps {
   setGuides: React.Dispatch<React.SetStateAction<GuideLine[]>>;
   setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
   nodes: Node[];
+  saveSnapshot: () => void;
 }
 
 export function GuideLines({
@@ -20,6 +21,7 @@ export function GuideLines({
   setGuides,
   setNodes,
   nodes,
+  saveSnapshot,
 }: GuideLinesProps) {
   const { getViewport } = useReactFlow();
   const dragState = useRef<{
@@ -35,6 +37,8 @@ export function GuideLines({
       e.preventDefault();
       (e.target as SVGElement).setPointerCapture(e.pointerId);
 
+      saveSnapshot();
+
       dragState.current = {
         guideId: guide.id,
         direction: guide.direction,
@@ -42,7 +46,7 @@ export function GuideLines({
         startPosition: guide.position,
       };
     },
-    []
+    [saveSnapshot]
   );
 
   const onPointerMove = useCallback(

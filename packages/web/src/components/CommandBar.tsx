@@ -15,9 +15,10 @@ interface CommandBarProps {
   setGuides: React.Dispatch<React.SetStateAction<GuideLine[]>>;
   canvasWidth: number;
   canvasHeight: number;
+  saveSnapshot: () => void;
 }
 
-export function CommandBar({ nodes, edges, setNodes, setEdges, guides, setGuides, canvasWidth, canvasHeight }: CommandBarProps) {
+export function CommandBar({ nodes, edges, setNodes, setEdges, guides, setGuides, canvasWidth, canvasHeight, saveSnapshot }: CommandBarProps) {
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -35,6 +36,8 @@ export function CommandBar({ nodes, edges, setNodes, setEdges, guides, setGuides
       setError("Unknown command. Try: add box \"Label\", delete \"Label\", connect \"A\" to \"B\"");
       return;
     }
+
+    saveSnapshot();
 
     switch (cmd.type) {
       case "add-node": {
@@ -218,7 +221,7 @@ export function CommandBar({ nodes, edges, setNodes, setEdges, guides, setGuides
     }
 
     setInput("");
-  }, [input, findNodeByLabel, setNodes, setEdges, guides, setGuides, canvasWidth, canvasHeight]);
+  }, [input, findNodeByLabel, setNodes, setEdges, guides, setGuides, canvasWidth, canvasHeight, saveSnapshot]);
 
   return (
     <div className="command-bar">

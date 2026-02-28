@@ -4,9 +4,10 @@ import { FlowDiagram } from "./FlowDiagram.js";
 
 interface DiagramViewerProps {
   spec: DiagramSpec;
+  specFilename: string | null;
 }
 
-export function DiagramViewer({ spec }: DiagramViewerProps) {
+export function DiagramViewer({ spec, specFilename }: DiagramViewerProps) {
   const [activeTab, setActiveTab] = useState(0);
   const [showDescription, setShowDescription] = useState(true);
 
@@ -48,6 +49,9 @@ export function DiagramViewer({ spec }: DiagramViewerProps) {
         <div className="flow-wrapper">
           <FlowDiagram
             diagram={spec.diagrams[activeTab]}
+            spec={spec}
+            activeTab={activeTab}
+            specFilename={specFilename}
             palette={spec.palette}
             shapePalette={spec.shapePalette}
             sizePalette={spec.sizePalette}

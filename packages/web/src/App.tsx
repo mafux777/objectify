@@ -1,20 +1,39 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { DiagramSpecSchema, type DiagramSpec } from "@objectify/schema";
 import { DiagramViewer } from "./components/DiagramViewer.js";
 import sampleData from "./data/sample.json";
 import lpConnectorData from "./data/lp-connector.json";
 import tradingPipelineData from "./data/trading-pipeline.json";
 
+interface SpecEntry {
+  slug: string;
+  title: string;
+  description: string;
+}
+
 function App() {
   const [spec, setSpec] = useState<DiagramSpec | null>(null);
+  const [specFilename, setSpecFilename] = useState<string | null>(null);
+  const [specList, setSpecList] = useState<SpecEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const loadSpec = useCallback((json: unknown) => {
+  // Fetch available specs from server on mount
+  useEffect(() => {
+    fetch("/api/specs")
+      .then((r) => r.json())
+      .then((list: SpecEntry[]) => setSpecList(list))
+      .catch(() => {
+        // Server might not be available — that's OK
+      });
+  }, []);
+
+  const loadSpec = useCallback((json: unknown, filename: string | null = null) => {
     try {
       const parsed = DiagramSpecSchema.parse(json);
       setSpec(parsed);
+      setSpecFilename(filename);
       setError(null);
     } catch (err) {
       setError(
@@ -23,13 +42,27 @@ function App() {
     }
   }, []);
 
+  const loadFromServer = useCallback(
+    async (slug: string) => {
+      try {
+        const res = await fetch(`/api/specs/${slug}`);
+        if (!res.ok) throw new Error(`Failed to load spec: ${res.statusText}`);
+        const json = await res.json();
+        loadSpec(json, slug);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load spec");
+      }
+    },
+    [loadSpec]
+  );
+
   const handleFile = useCallback(
     (file: File) => {
       const reader = new FileReader();
       reader.onload = () => {
         try {
           const json = JSON.parse(reader.result as string);
-          loadSpec(json);
+          loadSpec(json, null);
         } catch {
           setError("Could not parse JSON file");
         }
@@ -53,7 +86,7 @@ function App() {
     <div className="app">
       <div className="app-header">
         <h1>Objectify</h1>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button className="load-btn" onClick={() => loadSpec(sampleData)}>
             Sample 1
           </button>
@@ -63,6 +96,26 @@ function App() {
           <button className="load-btn" onClick={() => loadSpec(tradingPipelineData)}>
             Sample 3
           </button>
+          {specList.length > 0 && (
+            <>
+              <span style={{ color: "#999", fontSize: 13 }}>|</span>
+              {specList.map((entry) => (
+                <button
+                  key={entry.slug}
+                  className="load-btn"
+                  onClick={() => loadFromServer(entry.slug)}
+                  title={entry.description}
+                  style={
+                    specFilename === entry.slug
+                      ? { borderColor: "#1976d2", color: "#1976d2" }
+                      : undefined
+                  }
+                >
+                  {entry.title}
+                </button>
+              ))}
+            </>
+          )}
           <button
             className="load-btn"
             onClick={() => fileInputRef.current?.click()}
@@ -96,7 +149,7 @@ function App() {
       )}
 
       {spec ? (
-        <DiagramViewer spec={spec} />
+        <DiagramViewer spec={spec} specFilename={specFilename} />
       ) : (
         <div
           className={`drop-zone ${dragOver ? "drag-over" : ""}`}
