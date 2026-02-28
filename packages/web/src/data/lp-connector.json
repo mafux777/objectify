@@ -1,0 +1,116 @@
+{
+  "version": "1.0",
+  "description": "This diagram shows the message flow between the LP Gateway, Talos LP Connector, and TALOS Dealing API in a trading system. The LP Gateway sends new_order requests (both quote-based and RFQ-based) to the Talos LP Connector, which forwards them as QuoteRequest and NewOrderSingle messages to the TALOS Dealing API. Responses flow back via WebSocket streams: CustomerQuotes, CustomerExecutionReports, and CustomerTrades are sent from the TALOS Dealing API through the Talos LP Connector, which returns Quotes, reports, and trades to the LP Gateway. The TALOS Dealing API applies markup (commission and spread) before communicating with downstream liquidity providers.",
+  "diagrams": [
+    {
+      "id": "lp-connector-flow",
+      "title": "LP Gateway ↔ Talos LP Connector ↔ TALOS Dealing API",
+      "nodes": [
+        {
+          "id": "lp-gateway",
+          "label": "LP\nGateway",
+          "type": "box",
+          "style": { "backgroundColor": "#FFF9C4", "textColor": "#000000", "borderColor": "#C8B900" },
+          "orderHint": 0
+        },
+        {
+          "id": "talos-lp-connector",
+          "label": "Talos LP\nConnector",
+          "type": "box",
+          "style": { "backgroundColor": "#FFF9C4", "textColor": "#000000", "borderColor": "#C8B900" },
+          "orderHint": 1
+        },
+        {
+          "id": "talos-dealing-api-group",
+          "label": "TALOS Dealing API",
+          "type": "group",
+          "style": { "backgroundColor": "#B39DDB", "textColor": "#311B92" },
+          "orderHint": 2
+        },
+        {
+          "id": "apply-markup",
+          "label": "apply markup\n(commission, spread)",
+          "type": "box",
+          "parentId": "talos-dealing-api-group",
+          "style": { "backgroundColor": "#E8EAF6", "textColor": "#000000", "borderColor": "#9FA8DA" },
+          "orderHint": 0
+        },
+        {
+          "id": "lp-downstream",
+          "label": "LP",
+          "type": "box",
+          "style": { "backgroundColor": "#A5D6A7", "textColor": "#000000", "borderColor": "#66BB6A" },
+          "orderHint": 3
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-new-order-quote",
+          "source": "lp-gateway",
+          "target": "talos-lp-connector",
+          "label": "new_order (quote)"
+        },
+        {
+          "id": "e-quotes",
+          "source": "talos-lp-connector",
+          "target": "lp-gateway",
+          "label": "Quotes",
+          "style": { "lineStyle": "dashed", "color": "#333333" }
+        },
+        {
+          "id": "e-new-order-rfq",
+          "source": "lp-gateway",
+          "target": "talos-lp-connector",
+          "label": "new_order {RFQ_ID: 123}"
+        },
+        {
+          "id": "e-reports-trades",
+          "source": "talos-lp-connector",
+          "target": "lp-gateway",
+          "label": "reports, trades",
+          "style": { "lineStyle": "dashed", "color": "#333333" }
+        },
+        {
+          "id": "e-quote-request",
+          "source": "talos-lp-connector",
+          "target": "talos-dealing-api-group",
+          "label": "QuoteRequest"
+        },
+        {
+          "id": "e-new-order-single",
+          "source": "talos-lp-connector",
+          "target": "talos-dealing-api-group",
+          "label": "NewOrderSingle"
+        },
+        {
+          "id": "e-ws-customer-quotes",
+          "source": "talos-dealing-api-group",
+          "target": "talos-lp-connector",
+          "label": "WS: CustomerQuotes",
+          "style": { "lineStyle": "dashed", "color": "#333333" }
+        },
+        {
+          "id": "e-ws-execution-reports",
+          "source": "talos-dealing-api-group",
+          "target": "talos-lp-connector",
+          "label": "WS: CustomerExecutionReports",
+          "style": { "lineStyle": "dashed", "color": "#333333" }
+        },
+        {
+          "id": "e-ws-customer-trades",
+          "source": "talos-dealing-api-group",
+          "target": "talos-lp-connector",
+          "label": "WS: CustomerTrades",
+          "style": { "lineStyle": "dashed", "color": "#333333" }
+        },
+        {
+          "id": "e-to-lp",
+          "source": "talos-dealing-api-group",
+          "target": "lp-downstream",
+          "label": "",
+          "style": { "lineStyle": "dashed", "color": "#333333" }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "objectify",
+  "private": true,
+  "workspaces": [
+    "packages/schema",
+    "packages/cli",
+    "packages/web"
+  ]
+}

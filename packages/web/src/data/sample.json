@@ -1,0 +1,212 @@
+{
+  "version": "1.0",
+  "description": "This diagram illustrates a two-phase order execution flow in a trading system. The first phase, 'Request Order Quote', shows how a Proxy sends a quote request through the Order Gateway system (via its API and Router), which then communicates with the Exchange to obtain prices from three liquidity providers (LP #1, LP #2, LP #3). The quote price response with markup flows back through the Exchange and the Router. The second phase, 'Place Order with Quote ID', shows how the Proxy places an order through the same Order Gateway path, which forwards it to the Exchange for execution. The Exchange then sends fill reports to all three liquidity providers.",
+  "diagrams": [
+    {
+      "id": "request-order-quote",
+      "title": "Request Order Quote",
+      "direction": "DOWN",
+      "nodes": [
+        {
+          "id": "cv-1",
+          "label": "Order Gateway",
+          "type": "group",
+          "style": { "backgroundColor": "#BBDEFB", "textColor": "#1565C0" },
+          "orderHint": 1
+        },
+        {
+          "id": "proxy-1",
+          "label": "Proxy",
+          "type": "box",
+          "style": { "backgroundColor": "#FFE0B2", "textColor": "#000000", "borderColor": "#FFB74D" },
+          "orderHint": 0
+        },
+        {
+          "id": "cv-api-1",
+          "label": "CV API",
+          "type": "box",
+          "parentId": "cv-1",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
+          "orderHint": 0
+        },
+        {
+          "id": "lp-gateway-1",
+          "label": "LP Gateway",
+          "type": "box",
+          "parentId": "cv-1",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
+          "orderHint": 1
+        },
+        {
+          "id": "talos-1",
+          "label": "TALOS",
+          "type": "box",
+          "style": { "backgroundColor": "#CE93D8", "textColor": "#000000", "borderColor": "#AB47BC" },
+          "orderHint": 2
+        },
+        {
+          "id": "lp1-1",
+          "label": "LP #1",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
+          "orderHint": 3
+        },
+        {
+          "id": "lp2-1",
+          "label": "LP #2",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
+          "orderHint": 3
+        },
+        {
+          "id": "lp3-1",
+          "label": "LP #3",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
+          "orderHint": 3
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1-1",
+          "source": "proxy-1",
+          "target": "cv-api-1",
+          "label": "request order quote"
+        },
+        {
+          "id": "e1-2",
+          "source": "cv-api-1",
+          "target": "lp-gateway-1",
+          "label": "send quote request"
+        },
+        {
+          "id": "e1-3",
+          "source": "lp-gateway-1",
+          "target": "talos-1",
+          "label": "quote price response + markup"
+        },
+        {
+          "id": "e1-4",
+          "source": "talos-1",
+          "target": "lp1-1",
+          "label": "get price"
+        },
+        {
+          "id": "e1-5",
+          "source": "talos-1",
+          "target": "lp2-1",
+          "label": "get price"
+        },
+        {
+          "id": "e1-6",
+          "source": "talos-1",
+          "target": "lp3-1",
+          "label": "get price"
+        }
+      ]
+    },
+    {
+      "id": "place-order",
+      "title": "Place order with Quote ID",
+      "direction": "DOWN",
+      "nodes": [
+        {
+          "id": "cv-2",
+          "label": "Order Gateway",
+          "type": "group",
+          "style": { "backgroundColor": "#BBDEFB", "textColor": "#1565C0" },
+          "orderHint": 1
+        },
+        {
+          "id": "proxy-2",
+          "label": "Proxy",
+          "type": "box",
+          "style": { "backgroundColor": "#FFE0B2", "textColor": "#000000", "borderColor": "#FFB74D" },
+          "orderHint": 0
+        },
+        {
+          "id": "cv-api-2",
+          "label": "CV API",
+          "type": "box",
+          "parentId": "cv-2",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
+          "orderHint": 0
+        },
+        {
+          "id": "lp-gateway-2",
+          "label": "LP Gateway",
+          "type": "box",
+          "parentId": "cv-2",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
+          "orderHint": 1
+        },
+        {
+          "id": "talos-2",
+          "label": "TALOS",
+          "type": "box",
+          "style": { "backgroundColor": "#CE93D8", "textColor": "#000000", "borderColor": "#AB47BC" },
+          "orderHint": 2
+        },
+        {
+          "id": "lp1-2",
+          "label": "LP #1",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
+          "orderHint": 3
+        },
+        {
+          "id": "lp2-2",
+          "label": "LP #2",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
+          "orderHint": 3
+        },
+        {
+          "id": "lp3-2",
+          "label": "LP #3",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
+          "orderHint": 3
+        }
+      ],
+      "edges": [
+        {
+          "id": "e2-1",
+          "source": "proxy-2",
+          "target": "cv-api-2",
+          "label": "place order"
+        },
+        {
+          "id": "e2-2",
+          "source": "cv-api-2",
+          "target": "lp-gateway-2",
+          "label": "send order for execution"
+        },
+        {
+          "id": "e2-3",
+          "source": "lp-gateway-2",
+          "target": "talos-2",
+          "label": "send order, receive execution reports"
+        },
+        {
+          "id": "e2-4",
+          "source": "talos-2",
+          "target": "lp1-2",
+          "label": "fill"
+        },
+        {
+          "id": "e2-5",
+          "source": "talos-2",
+          "target": "lp2-2",
+          "label": "fill"
+        },
+        {
+          "id": "e2-6",
+          "source": "talos-2",
+          "target": "lp3-2",
+          "label": "fill"
+        }
+      ]
+    }
+  ]
+}

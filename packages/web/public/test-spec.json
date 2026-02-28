@@ -1,0 +1,392 @@
+{
+  "version": "2.0",
+  "palette": [
+    { "id": "pure-white", "hex": "#FFFFFF", "percentage": 35, "name": "Pure White" },
+    { "id": "off-white", "hex": "#F5F5F5", "percentage": 15, "name": "Off White" },
+    { "id": "light-blue", "hex": "#C5D9F1", "percentage": 12, "name": "Light Blue" },
+    { "id": "charcoal", "hex": "#333333", "percentage": 10, "name": "Charcoal" },
+    { "id": "black", "hex": "#000000", "percentage": 8, "name": "Black" },
+    { "id": "light-gray", "hex": "#E0E0E0", "percentage": 6, "name": "Light Gray" },
+    { "id": "peach-orange", "hex": "#FFCC80", "percentage": 5, "name": "Peach Orange" },
+    { "id": "lavender", "hex": "#C9B1D8", "percentage": 5, "name": "Lavender" },
+    { "id": "medium-gray", "hex": "#999999", "percentage": 4, "name": "Medium Gray" }
+  ],
+  "shapePalette": [
+    {
+      "id": "service-rect",
+      "kind": "rectangle",
+      "aspectRatio": 2.55,
+      "name": "Service Rectangle"
+    },
+    {
+      "id": "client-rounded",
+      "kind": "rounded-rectangle",
+      "aspectRatio": 1.73,
+      "name": "Client Rounded Box"
+    }
+  ],
+  "sizePalette": [
+    {
+      "id": "standard-service",
+      "width": 0.174,
+      "height": 0.061,
+      "name": "Standard Service Node"
+    },
+    {
+      "id": "client-node",
+      "width": 0.114,
+      "height": 0.061,
+      "name": "Client Node"
+    }
+  ],
+  "semanticTypes": [
+    {
+      "id": "client-proxy",
+      "name": "Client Proxy",
+      "description": "External client application that initiates order and quote requests into the system"
+    },
+    {
+      "id": "api-service",
+      "name": "API Service",
+      "description": "Internal API endpoint within the Order Gateway platform that receives and routes requests"
+    },
+    {
+      "id": "message-gateway",
+      "name": "Message Gateway",
+      "description": "Routes messages between internal Order Gateway services and external trading platforms"
+    },
+    {
+      "id": "execution-platform",
+      "name": "Execution Platform",
+      "description": "External trading platform (TALOS) that handles price discovery and order execution across liquidity providers"
+    },
+    {
+      "id": "liquidity-provider",
+      "name": "Liquidity Provider",
+      "description": "External market maker endpoint that provides pricing and accepts order execution"
+    },
+    {
+      "id": "service-container",
+      "name": "Service Container",
+      "description": "Logical grouping of related internal services within the Order Gateway platform"
+    }
+  ],
+  "description": "This diagram illustrates a two-phase order execution flow in a trading system. The first phase, 'Request Order Quote', shows how a Proxy sends a quote request through the Order Gateway system (via its API and Router), which then communicates with the Exchange to obtain prices from three liquidity providers (LP #1, LP #2, LP #3). The quote price response with markup flows back through the Exchange and the Router. The second phase, 'Place Order with Quote ID', shows how the Proxy places an order through the same Order Gateway path, which forwards it to the Exchange for execution. The Exchange then sends fill reports to all three liquidity providers.",
+  "diagrams": [
+    {
+      "id": "request-order-quote",
+      "title": "Request Order Quote",
+      "direction": "RIGHT",
+      "layoutMode": "spatial",
+      "imageDimensions": { "width": 832, "height": 906 },
+      "nodes": [
+        {
+          "id": "roq-proxy",
+          "label": "Proxy",
+          "type": "box",
+          "style": { "backgroundColor": "#FFCC80", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "spatial": { "x": 0.063, "y": 0.158, "width": 0.114, "height": 0.061 },
+          "shapeId": "client-rounded",
+          "sizeId": "client-node",
+          "semanticTypeId": "client-proxy"
+        },
+        {
+          "id": "roq-order-gateway",
+          "label": "Order Gateway",
+          "type": "group",
+          "style": { "backgroundColor": "#C5D9F1", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "spatial": { "x": 0.222, "y": 0.075, "width": 0.547, "height": 0.154 },
+          "semanticTypeId": "service-container"
+        },
+        {
+          "id": "roq-cv-api",
+          "label": "CV API",
+          "type": "box",
+          "parentId": "roq-order-gateway",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "spatial": { "x": 0.264, "y": 0.132, "width": 0.168, "height": 0.061 },
+          "shapeId": "service-rect",
+          "sizeId": "standard-service",
+          "semanticTypeId": "api-service"
+        },
+        {
+          "id": "roq-lp-gateway",
+          "label": "LP Gateway",
+          "type": "box",
+          "parentId": "roq-order-gateway",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "spatial": { "x": 0.565, "y": 0.132, "width": 0.174, "height": 0.061 },
+          "shapeId": "service-rect",
+          "sizeId": "standard-service",
+          "semanticTypeId": "message-gateway"
+        },
+        {
+          "id": "roq-talos",
+          "label": "TALOS",
+          "type": "box",
+          "style": { "backgroundColor": "#C9B1D8", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "bold" },
+          "spatial": { "x": 0.517, "y": 0.287, "width": 0.168, "height": 0.061 },
+          "shapeId": "service-rect",
+          "sizeId": "standard-service",
+          "semanticTypeId": "execution-platform"
+        },
+        {
+          "id": "roq-lp-1",
+          "label": "LP #1",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "spatial": { "x": 0.282, "y": 0.408, "width": 0.168, "height": 0.061 },
+          "shapeId": "service-rect",
+          "sizeId": "standard-service",
+          "semanticTypeId": "liquidity-provider"
+        },
+        {
+          "id": "roq-lp-2",
+          "label": "LP #2",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "spatial": { "x": 0.517, "y": 0.408, "width": 0.168, "height": 0.061 },
+          "shapeId": "service-rect",
+          "sizeId": "standard-service",
+          "semanticTypeId": "liquidity-provider"
+        },
+        {
+          "id": "roq-lp-3",
+          "label": "LP #3",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "spatial": { "x": 0.781, "y": 0.408, "width": 0.168, "height": 0.061 },
+          "shapeId": "service-rect",
+          "sizeId": "standard-service",
+          "semanticTypeId": "liquidity-provider"
+        }
+      ],
+      "edges": [
+        {
+          "id": "roq-edge-1",
+          "source": "roq-proxy",
+          "target": "roq-cv-api",
+          "label": "request order quote",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "sourceAnchor": "right",
+          "targetAnchor": "left"
+        },
+        {
+          "id": "roq-edge-2",
+          "source": "roq-cv-api",
+          "target": "roq-lp-gateway",
+          "label": "send quote request",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "sourceAnchor": "right",
+          "targetAnchor": "left"
+        },
+        {
+          "id": "roq-edge-3",
+          "source": "roq-lp-gateway",
+          "target": "roq-cv-api",
+          "label": "quote price response + markup",
+          "style": { "lineStyle": "dashed", "color": "#333333" },
+          "sourceAnchor": "left",
+          "targetAnchor": "right"
+        },
+        {
+          "id": "roq-edge-4",
+          "source": "roq-talos",
+          "target": "roq-lp-1",
+          "label": "get price",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "sourceAnchor": "left",
+          "targetAnchor": "top"
+        },
+        {
+          "id": "roq-edge-5",
+          "source": "roq-talos",
+          "target": "roq-lp-2",
+          "label": "get price",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top"
+        },
+        {
+          "id": "roq-edge-6",
+          "source": "roq-talos",
+          "target": "roq-lp-3",
+          "label": "get price",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "sourceAnchor": "right",
+          "targetAnchor": "top"
+        },
+        {
+          "id": "roq-edge-7",
+          "source": "roq-lp-gateway",
+          "target": "roq-talos",
+          "label": "quote price response + markup",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top"
+        }
+      ]
+    },
+    {
+      "id": "place-order",
+      "title": "Place order with Quote ID",
+      "direction": "RIGHT",
+      "layoutMode": "spatial",
+      "imageDimensions": { "width": 832, "height": 906 },
+      "nodes": [
+        {
+          "id": "po-proxy",
+          "label": "Proxy",
+          "type": "box",
+          "style": { "backgroundColor": "#FFCC80", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "spatial": { "x": 0.042, "y": 0.662, "width": 0.114, "height": 0.061 },
+          "shapeId": "client-rounded",
+          "sizeId": "client-node",
+          "semanticTypeId": "client-proxy"
+        },
+        {
+          "id": "po-order-gateway",
+          "label": "Order Gateway",
+          "type": "group",
+          "style": { "backgroundColor": "#C5D9F1", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "spatial": { "x": 0.210, "y": 0.579, "width": 0.547, "height": 0.154 },
+          "semanticTypeId": "service-container"
+        },
+        {
+          "id": "po-cv-api",
+          "label": "CV API",
+          "type": "box",
+          "parentId": "po-order-gateway",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "spatial": { "x": 0.252, "y": 0.635, "width": 0.168, "height": 0.061 },
+          "shapeId": "service-rect",
+          "sizeId": "standard-service",
+          "semanticTypeId": "api-service"
+        },
+        {
+          "id": "po-lp-gateway",
+          "label": "LP Gateway",
+          "type": "box",
+          "parentId": "po-order-gateway",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "spatial": { "x": 0.553, "y": 0.635, "width": 0.174, "height": 0.061 },
+          "shapeId": "service-rect",
+          "sizeId": "standard-service",
+          "semanticTypeId": "message-gateway"
+        },
+        {
+          "id": "po-talos",
+          "label": "TALOS",
+          "type": "box",
+          "style": { "backgroundColor": "#C9B1D8", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "bold" },
+          "spatial": { "x": 0.517, "y": 0.795, "width": 0.168, "height": 0.061 },
+          "shapeId": "service-rect",
+          "sizeId": "standard-service",
+          "semanticTypeId": "execution-platform"
+        },
+        {
+          "id": "po-lp-1",
+          "label": "LP #1",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "spatial": { "x": 0.282, "y": 0.916, "width": 0.168, "height": 0.061 },
+          "shapeId": "service-rect",
+          "sizeId": "standard-service",
+          "semanticTypeId": "liquidity-provider"
+        },
+        {
+          "id": "po-lp-2",
+          "label": "LP #2",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "spatial": { "x": 0.517, "y": 0.916, "width": 0.168, "height": 0.061 },
+          "shapeId": "service-rect",
+          "sizeId": "standard-service",
+          "semanticTypeId": "liquidity-provider"
+        },
+        {
+          "id": "po-lp-3",
+          "label": "LP #3",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#E0E0E0", "borderStyle": "solid" },
+          "font": { "fontSize": 14, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "spatial": { "x": 0.781, "y": 0.916, "width": 0.168, "height": 0.061 },
+          "shapeId": "service-rect",
+          "sizeId": "standard-service",
+          "semanticTypeId": "liquidity-provider"
+        }
+      ],
+      "edges": [
+        {
+          "id": "po-edge-1",
+          "source": "po-proxy",
+          "target": "po-cv-api",
+          "label": "place order",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "sourceAnchor": "right",
+          "targetAnchor": "left"
+        },
+        {
+          "id": "po-edge-2",
+          "source": "po-cv-api",
+          "target": "po-lp-gateway",
+          "label": "send order for execution",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "sourceAnchor": "right",
+          "targetAnchor": "left"
+        },
+        {
+          "id": "po-edge-3",
+          "source": "po-lp-gateway",
+          "target": "po-talos",
+          "label": "send order, receive execution reports",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top"
+        },
+        {
+          "id": "po-edge-4",
+          "source": "po-talos",
+          "target": "po-lp-1",
+          "label": "fill",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "sourceAnchor": "left",
+          "targetAnchor": "top"
+        },
+        {
+          "id": "po-edge-5",
+          "source": "po-talos",
+          "target": "po-lp-2",
+          "label": "fill",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top"
+        },
+        {
+          "id": "po-edge-6",
+          "source": "po-talos",
+          "target": "po-lp-3",
+          "label": "fill",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "sourceAnchor": "right",
+          "targetAnchor": "top"
+        }
+      ]
+    }
+  ]
+}
