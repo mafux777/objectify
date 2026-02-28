@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import { Handle, Position } from "@xyflow/react";
+import type { ShapeKind } from "@objectify/schema";
 
 /**
  * Clock-position handles. Each clock position maps to a React Flow Position
@@ -22,6 +23,47 @@ const CLOCK_HANDLES: {
   { clock: "10:30", position: Position.Left, style: { top: "0%" } },
 ];
 
+/**
+ * For circular nodes, diagonal handles (1:30, 4:30, 7:30, 10:30) must sit on
+ * the circle perimeter rather than the bounding-box corners.
+ *
+ * For a circle inscribed in its square bounding box the perimeter at 45° is at
+ *   50% ± 50% × cos(45°) ≈ 14.64% / 85.36%
+ * We override the handle's CSS to use absolute top/left positioning so the
+ * handle is no longer pinned to the bounding-box edge.
+ */
+const DIAG = 50 + 50 * Math.cos(Math.PI / 4); // ~85.36
+const INV = 100 - DIAG; // ~14.64
+
+const CIRCLE_DIAGONAL_OVERRIDES: Record<string, React.CSSProperties> = {
+  "1:30": {
+    top: `${INV}%`,
+    left: `${DIAG}%`,
+    right: "auto",
+    transform: "translate(-50%, -50%)",
+  },
+  "4:30": {
+    top: `${DIAG}%`,
+    left: `${DIAG}%`,
+    right: "auto",
+    transform: "translate(-50%, -50%)",
+  },
+  "7:30": {
+    top: `${DIAG}%`,
+    left: `${INV}%`,
+    transform: "translate(-50%, -50%)",
+  },
+  "10:30": {
+    top: `${INV}%`,
+    left: `${INV}%`,
+    transform: "translate(-50%, -50%)",
+  },
+};
+
+function isCircularShape(kind: ShapeKind | undefined): boolean {
+  return kind === "circle" || kind === "ellipse";
+}
+
 /** Hidden zero-size handle for backward compatibility with legacy "source-top" etc. */
 const LEGACY_HIDDEN: React.CSSProperties = {
   opacity: 0,
@@ -43,27 +85,36 @@ const LEGACY_HANDLES: {
   { side: "left", position: Position.Left, style: { top: "50%", ...LEGACY_HIDDEN } },
 ];
 
-export function NodeHandles() {
+export function NodeHandles({ shapeKind }: { shapeKind?: ShapeKind } = {}) {
+  const circular = isCircularShape(shapeKind);
+
   return (
     <>
-      {CLOCK_HANDLES.map(({ clock, position, style }) => (
-        <Fragment key={clock}>
-          <Handle
-            type="target"
-            position={position}
-            id={`target-${clock}`}
-            className="anchor-handle"
-            style={style}
-          />
-          <Handle
-            type="source"
-            position={position}
-            id={`source-${clock}`}
-            className="anchor-handle"
-            style={style}
-          />
-        </Fragment>
-      ))}
+      {CLOCK_HANDLES.map(({ clock, position, style }) => {
+        const handleStyle =
+          circular && CIRCLE_DIAGONAL_OVERRIDES[clock]
+            ? CIRCLE_DIAGONAL_OVERRIDES[clock]
+            : style;
+
+        return (
+          <Fragment key={clock}>
+            <Handle
+              type="target"
+              position={position}
+              id={`target-${clock}`}
+              className="anchor-handle"
+              style={handleStyle}
+            />
+            <Handle
+              type="source"
+              position={position}
+              id={`source-${clock}`}
+              className="anchor-handle"
+              style={handleStyle}
+            />
+          </Fragment>
+        );
+      })}
       {/* Legacy handles for backward compatibility with existing edges using "source-top" etc. */}
       {LEGACY_HANDLES.map(({ side, position, style }) => (
         <Fragment key={`legacy-${side}`}>

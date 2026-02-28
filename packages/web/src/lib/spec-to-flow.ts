@@ -3,7 +3,7 @@ import type { DiagramEdge } from "@objectify/schema";
 import { fontStack } from "./fonts";
 import { migrateEdgeLabels } from "./label-migration.js";
 
-function specMarkerToFlow(
+export function specMarkerToFlow(
   marker: string | undefined,
   fallback: string,
   color: string
@@ -55,14 +55,9 @@ function anchorToHandleId(anchor: string, direction: "source" | "target"): strin
   return `${direction}-${normalized}`;
 }
 
-/** Map routing type from spec to React Flow edge type */
-function routingToEdgeType(routingType: string | undefined): string {
-  switch (routingType) {
-    case "smoothstep": return "smoothstep";
-    case "bezier": return "default";
-    case "straight":
-    default: return "customStraight";
-  }
+/** All routing types use the unified customEdge component */
+function routingToEdgeType(_routingType: string | undefined): string {
+  return "customEdge";
 }
 
 export function specEdgesToFlowEdges(specEdges: DiagramEdge[]): Edge[] {
@@ -96,7 +91,7 @@ export function specEdgesToFlowEdges(specEdges: DiagramEdge[]): Edge[] {
       animated: e.style?.lineStyle === "dashed",
       style: {
         stroke: color,
-        strokeWidth: 1.5,
+        strokeWidth: e.style?.strokeWidth ?? 1.5,
         ...(e.style?.lineStyle === "dashed"
           ? { strokeDasharray: "6,3" }
           : e.style?.lineStyle === "dotted"
@@ -105,9 +100,11 @@ export function specEdgesToFlowEdges(specEdges: DiagramEdge[]): Edge[] {
       },
       markerStart: specMarkerToFlow(e.sourceMarker, "none", color),
       markerEnd: specMarkerToFlow(e.targetMarker, "arrow", color),
-      // Store full labels array for the LabelConnectors overlay
+      // Store routing/styling data for the unified CustomEdge component
       data: {
         labels: edgeLabels,
+        routingType: e.style?.routingType ?? "straight",
+        strokeWidth: e.style?.strokeWidth ?? 1.5,
         ...(e.labelStyle ? { labelStyle: e.labelStyle } : {}),
         ...(e.sourceMarker ? { sourceMarker: e.sourceMarker } : {}),
         ...(e.targetMarker ? { targetMarker: e.targetMarker } : {}),

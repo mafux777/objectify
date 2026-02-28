@@ -1,210 +1,569 @@
 {
-  "version": "1.0",
-  "description": "This diagram illustrates a two-phase order execution flow in a trading system. The first phase, 'Request Order Quote', shows how a Proxy sends a quote request through the Order Gateway system (via its API and Router), which then communicates with the Exchange to obtain prices from three liquidity providers (LP #1, LP #2, LP #3). The quote price response with markup flows back through the Exchange and the Router. The second phase, 'Place Order with Quote ID', shows how the Proxy places an order through the same Order Gateway path, which forwards it to the Exchange for execution. The Exchange then sends fill reports to all three liquidity providers.",
-  "diagrams": [
+  "version": "3.0",
+  "description": "Project Thunderbattle architecture diagram showing a gaming platform with a main container 'Game Management Control Center' containing four internal modules (Retention AI, Warp Module, Level and Challenge Management, User Management), three external ellipse nodes (Marketplace, Community, Next Level), and a description box. Arrows connect internal modules to external nodes and to each other.",
+  "palette": [
     {
-      "id": "request-order-quote",
-      "title": "Request Order Quote",
-      "direction": "DOWN",
-      "nodes": [
-        {
-          "id": "cv-1",
-          "label": "Order Gateway",
-          "type": "group",
-          "style": { "backgroundColor": "#BBDEFB", "textColor": "#1565C0" },
-          "orderHint": 1
-        },
-        {
-          "id": "proxy-1",
-          "label": "Proxy",
-          "type": "box",
-          "style": { "backgroundColor": "#FFE0B2", "textColor": "#000000", "borderColor": "#FFB74D" },
-          "orderHint": 0
-        },
-        {
-          "id": "cv-api-1",
-          "label": "CV API",
-          "type": "box",
-          "parentId": "cv-1",
-          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
-          "orderHint": 0
-        },
-        {
-          "id": "lp-gateway-1",
-          "label": "LP Gateway",
-          "type": "box",
-          "parentId": "cv-1",
-          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
-          "orderHint": 1
-        },
-        {
-          "id": "talos-1",
-          "label": "TALOS",
-          "type": "box",
-          "style": { "backgroundColor": "#CE93D8", "textColor": "#000000", "borderColor": "#AB47BC" },
-          "orderHint": 2
-        },
-        {
-          "id": "lp1-1",
-          "label": "LP #1",
-          "type": "box",
-          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
-          "orderHint": 3
-        },
-        {
-          "id": "lp2-1",
-          "label": "LP #2",
-          "type": "box",
-          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
-          "orderHint": 3
-        },
-        {
-          "id": "lp3-1",
-          "label": "LP #3",
-          "type": "box",
-          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
-          "orderHint": 3
-        }
-      ],
-      "edges": [
-        {
-          "id": "e1-1",
-          "source": "proxy-1",
-          "target": "cv-api-1",
-          "label": "request order quote"
-        },
-        {
-          "id": "e1-2",
-          "source": "cv-api-1",
-          "target": "lp-gateway-1",
-          "label": "send quote request"
-        },
-        {
-          "id": "e1-3",
-          "source": "lp-gateway-1",
-          "target": "talos-1",
-          "label": "quote price response + markup"
-        },
-        {
-          "id": "e1-4",
-          "source": "talos-1",
-          "target": "lp1-1",
-          "label": "get price"
-        },
-        {
-          "id": "e1-5",
-          "source": "talos-1",
-          "target": "lp2-1",
-          "label": "get price"
-        },
-        {
-          "id": "e1-6",
-          "source": "talos-1",
-          "target": "lp3-1",
-          "label": "get price"
-        }
-      ]
+      "id": "white",
+      "hex": "#FFFFFF",
+      "percentage": 55,
+      "name": "White"
     },
     {
-      "id": "place-order",
-      "title": "Place order with Quote ID",
+      "id": "light-green-fill",
+      "hex": "#C8F0D8",
+      "percentage": 8,
+      "name": "Light Green Fill"
+    },
+    {
+      "id": "light-yellow-fill",
+      "hex": "#FFF9C4",
+      "percentage": 10,
+      "name": "Light Yellow Fill"
+    },
+    {
+      "id": "light-yellow-ellipse",
+      "hex": "#FAE88A",
+      "percentage": 4,
+      "name": "Light Yellow Ellipse"
+    },
+    {
+      "id": "orange-border",
+      "hex": "#E6A817",
+      "percentage": 2,
+      "name": "Orange Border"
+    },
+    {
+      "id": "green-border",
+      "hex": "#4CAF50",
+      "percentage": 2,
+      "name": "Green Border"
+    },
+    {
+      "id": "red-border",
+      "hex": "#D32F2F",
+      "percentage": 2,
+      "name": "Red Border"
+    },
+    {
+      "id": "blue-border",
+      "hex": "#1E88E5",
+      "percentage": 2,
+      "name": "Blue Border"
+    },
+    {
+      "id": "black",
+      "hex": "#000000",
+      "percentage": 5,
+      "name": "Black"
+    },
+    {
+      "id": "dark-gray",
+      "hex": "#333333",
+      "percentage": 2,
+      "name": "Dark Gray"
+    },
+    {
+      "id": "green-text",
+      "hex": "#388E3C",
+      "percentage": 1,
+      "name": "Green Text"
+    },
+    {
+      "id": "red-text",
+      "hex": "#C62828",
+      "percentage": 1,
+      "name": "Red Text"
+    },
+    {
+      "id": "blue-text",
+      "hex": "#1565C0",
+      "percentage": 1,
+      "name": "Blue Text"
+    },
+    {
+      "id": "orange-text",
+      "hex": "#D4860A",
+      "percentage": 1,
+      "name": "Orange Text"
+    }
+  ],
+  "shapePalette": [
+    {
+      "id": "rounded-rectangle",
+      "kind": "rounded-rectangle",
+      "name": "Rounded Rectangle"
+    },
+    {
+      "id": "rectangle",
+      "kind": "rectangle",
+      "name": "Rectangle"
+    },
+    {
+      "id": "ellipse",
+      "kind": "ellipse",
+      "name": "Ellipse"
+    }
+  ],
+  "sizePalette": [
+    {
+      "id": "large-container",
+      "width": 0.63,
+      "height": 0.72,
+      "name": "Large Container"
+    },
+    {
+      "id": "inner-module",
+      "width": 0.18,
+      "height": 0.17,
+      "name": "Inner Module"
+    },
+    {
+      "id": "ellipse-large",
+      "width": 0.2,
+      "height": 0.13,
+      "name": "Large Ellipse"
+    },
+    {
+      "id": "description-box",
+      "width": 0.2,
+      "height": 0.33,
+      "name": "Description Box"
+    }
+  ],
+  "semanticTypes": [
+    {
+      "id": "container-group",
+      "name": "Container Group",
+      "description": "Top-level grouping container"
+    },
+    {
+      "id": "platform-module",
+      "name": "Platform Module",
+      "description": "Internal functional module of the platform"
+    },
+    {
+      "id": "external-component",
+      "name": "External Component",
+      "description": "External system or service ellipse"
+    },
+    {
+      "id": "description-note",
+      "name": "Description Note",
+      "description": "Explanatory text box"
+    }
+  ],
+  "diagrams": [
+    {
+      "id": "project-thunderbattle",
+      "title": "Project Thunderbattle",
       "direction": "DOWN",
+      "layoutMode": "spatial",
+      "imageDimensions": {
+        "width": 3419,
+        "height": 1994
+      },
+      "guides": [
+        {
+          "id": "row-0",
+          "index": 0,
+          "direction": "horizontal",
+          "position": 0.03,
+          "label": "Title row"
+        },
+        {
+          "id": "row-1",
+          "index": 1,
+          "direction": "horizontal",
+          "position": 0.19,
+          "label": "Top modules row"
+        },
+        {
+          "id": "row-2",
+          "index": 2,
+          "direction": "horizontal",
+          "position": 0.43,
+          "label": "Bottom modules row"
+        },
+        {
+          "id": "row-3",
+          "index": 3,
+          "direction": "horizontal",
+          "position": 0.43,
+          "label": "Description box row"
+        },
+        {
+          "id": "row-4",
+          "index": 4,
+          "direction": "horizontal",
+          "position": 0.87,
+          "label": "Ellipses row"
+        },
+        {
+          "id": "col-0",
+          "index": 0,
+          "direction": "vertical",
+          "position": 0.13,
+          "label": "Left inner modules"
+        },
+        {
+          "id": "col-1",
+          "index": 1,
+          "direction": "vertical",
+          "position": 0.44,
+          "label": "Right inner modules"
+        },
+        {
+          "id": "col-2",
+          "index": 2,
+          "direction": "vertical",
+          "position": 0.1,
+          "label": "Marketplace column"
+        },
+        {
+          "id": "col-3",
+          "index": 3,
+          "direction": "vertical",
+          "position": 0.44,
+          "label": "Community column"
+        },
+        {
+          "id": "col-4",
+          "index": 4,
+          "direction": "vertical",
+          "position": 0.8,
+          "label": "Next Level / Description column"
+        }
+      ],
       "nodes": [
         {
-          "id": "cv-2",
-          "label": "Order Gateway",
+          "id": "game-management-container",
+          "label": "Game Management Control Center",
           "type": "group",
-          "style": { "backgroundColor": "#BBDEFB", "textColor": "#1565C0" },
-          "orderHint": 1
-        },
-        {
-          "id": "proxy-2",
-          "label": "Proxy",
-          "type": "box",
-          "style": { "backgroundColor": "#FFE0B2", "textColor": "#000000", "borderColor": "#FFB74D" },
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#000000",
+            "borderColor": "#000000",
+            "borderStyle": "solid"
+          },
+          "spatial": {
+            "x": 0.085,
+            "y": 0.04,
+            "width": 0.63,
+            "height": 0.72
+          },
+          "font": {
+            "fontSize": 20,
+            "fontFamily": "monospace",
+            "fontWeight": "normal"
+          },
+          "shapeId": "rounded-rectangle",
+          "semanticTypeId": "container-group",
+          "labelPosition": "bottom-center",
+          "guideRow": "row-2",
+          "guideColumn": "col-1",
           "orderHint": 0
         },
         {
-          "id": "cv-api-2",
-          "label": "CV API",
+          "id": "retention-ai",
+          "label": "Retention AI",
           "type": "box",
-          "parentId": "cv-2",
-          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
-          "orderHint": 0
-        },
-        {
-          "id": "lp-gateway-2",
-          "label": "LP Gateway",
-          "type": "box",
-          "parentId": "cv-2",
-          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
+          "parentId": "game-management-container",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#388E3C",
+            "borderColor": "#4CAF50",
+            "borderStyle": "solid"
+          },
+          "spatial": {
+            "x": 0.115,
+            "y": 0.085,
+            "width": 0.18,
+            "height": 0.17
+          },
+          "font": {
+            "fontSize": 22,
+            "fontFamily": "monospace",
+            "fontWeight": "normal"
+          },
+          "shapeId": "rounded-rectangle",
+          "sizeId": "inner-module",
+          "semanticTypeId": "platform-module",
+          "labelPosition": "center",
+          "guideRow": "row-1",
+          "guideColumn": "col-0",
           "orderHint": 1
         },
         {
-          "id": "talos-2",
-          "label": "TALOS",
+          "id": "warp-module",
+          "label": "Warp Module",
           "type": "box",
-          "style": { "backgroundColor": "#CE93D8", "textColor": "#000000", "borderColor": "#AB47BC" },
+          "parentId": "game-management-container",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#1565C0",
+            "borderColor": "#1E88E5",
+            "borderStyle": "solid"
+          },
+          "spatial": {
+            "x": 0.375,
+            "y": 0.085,
+            "width": 0.18,
+            "height": 0.17
+          },
+          "font": {
+            "fontSize": 22,
+            "fontFamily": "monospace",
+            "fontWeight": "normal"
+          },
+          "shapeId": "rounded-rectangle",
+          "sizeId": "inner-module",
+          "semanticTypeId": "platform-module",
+          "labelPosition": "center",
+          "guideRow": "row-1",
+          "guideColumn": "col-1",
           "orderHint": 2
         },
         {
-          "id": "lp1-2",
-          "label": "LP #1",
+          "id": "level-challenge-management",
+          "label": "Level and challenge\nmanagement",
           "type": "box",
-          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
+          "parentId": "game-management-container",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#C62828",
+            "borderColor": "#D32F2F",
+            "borderStyle": "solid"
+          },
+          "spatial": {
+            "x": 0.115,
+            "y": 0.33,
+            "width": 0.18,
+            "height": 0.17
+          },
+          "font": {
+            "fontSize": 22,
+            "fontFamily": "monospace",
+            "fontWeight": "normal"
+          },
+          "shapeId": "rounded-rectangle",
+          "sizeId": "inner-module",
+          "semanticTypeId": "platform-module",
+          "labelPosition": "center",
+          "guideRow": "row-2",
+          "guideColumn": "col-0",
           "orderHint": 3
         },
         {
-          "id": "lp2-2",
-          "label": "LP #2",
+          "id": "user-management",
+          "label": "User management",
           "type": "box",
-          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
-          "orderHint": 3
+          "parentId": "game-management-container",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#000000",
+            "borderColor": "#000000",
+            "borderStyle": "solid"
+          },
+          "spatial": {
+            "x": 0.375,
+            "y": 0.33,
+            "width": 0.18,
+            "height": 0.17
+          },
+          "font": {
+            "fontSize": 22,
+            "fontFamily": "monospace",
+            "fontWeight": "normal"
+          },
+          "shapeId": "rectangle",
+          "sizeId": "inner-module",
+          "semanticTypeId": "platform-module",
+          "labelPosition": "center",
+          "guideRow": "row-2",
+          "guideColumn": "col-1",
+          "orderHint": 4
         },
         {
-          "id": "lp3-2",
-          "label": "LP #3",
+          "id": "marketplace",
+          "label": "Marketplace",
           "type": "box",
-          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000" },
-          "orderHint": 3
+          "style": {
+            "backgroundColor": "#C8F0D8",
+            "textColor": "#000000",
+            "borderColor": "#000000",
+            "borderStyle": "solid"
+          },
+          "spatial": {
+            "x": 0.015,
+            "y": 0.77,
+            "width": 0.2,
+            "height": 0.13
+          },
+          "font": {
+            "fontSize": 24,
+            "fontFamily": "monospace",
+            "fontWeight": "normal"
+          },
+          "shapeId": "ellipse",
+          "sizeId": "ellipse-large",
+          "semanticTypeId": "external-component",
+          "labelPosition": "center",
+          "guideRow": "row-4",
+          "guideColumn": "col-2",
+          "orderHint": 5
+        },
+        {
+          "id": "community",
+          "label": "Community",
+          "type": "box",
+          "style": {
+            "backgroundColor": "#FFF9C4",
+            "textColor": "#000000",
+            "borderColor": "#000000",
+            "borderStyle": "solid"
+          },
+          "spatial": {
+            "x": 0.345,
+            "y": 0.77,
+            "width": 0.2,
+            "height": 0.13
+          },
+          "font": {
+            "fontSize": 24,
+            "fontFamily": "monospace",
+            "fontWeight": "normal"
+          },
+          "shapeId": "ellipse",
+          "sizeId": "ellipse-large",
+          "semanticTypeId": "external-component",
+          "labelPosition": "center",
+          "guideRow": "row-4",
+          "guideColumn": "col-3",
+          "orderHint": 6
+        },
+        {
+          "id": "next-level",
+          "label": "Next Level",
+          "type": "box",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#D4860A",
+            "borderColor": "#E6A817",
+            "borderStyle": "solid"
+          },
+          "spatial": {
+            "x": 0.69,
+            "y": 0.77,
+            "width": 0.2,
+            "height": 0.13
+          },
+          "font": {
+            "fontSize": 24,
+            "fontFamily": "monospace",
+            "fontWeight": "normal"
+          },
+          "shapeId": "ellipse",
+          "sizeId": "ellipse-large",
+          "semanticTypeId": "external-component",
+          "labelPosition": "center",
+          "guideRow": "row-4",
+          "guideColumn": "col-4",
+          "orderHint": 7
+        },
+        {
+          "id": "description-box",
+          "label": "Project Thunder Battle is the next generation gaming platform with integrated marketplace, community, and next level warp modules. Investors are encouraged to request detailed investment documents from the Cayman Island-based Folding Hunt.",
+          "type": "box",
+          "style": {
+            "backgroundColor": "#FFF9C4",
+            "textColor": "#D4860A",
+            "borderColor": "#E6A817",
+            "borderStyle": "solid"
+          },
+          "spatial": {
+            "x": 0.77,
+            "y": 0.14,
+            "width": 0.2,
+            "height": 0.33
+          },
+          "font": {
+            "fontSize": 18,
+            "fontFamily": "monospace",
+            "fontWeight": "normal"
+          },
+          "shapeId": "rounded-rectangle",
+          "sizeId": "description-box",
+          "semanticTypeId": "description-note",
+          "labelPosition": "center",
+          "guideRow": "row-3",
+          "guideColumn": "col-4",
+          "orderHint": 8
         }
       ],
       "edges": [
         {
-          "id": "e2-1",
-          "source": "proxy-2",
-          "target": "cv-api-2",
-          "label": "place order"
+          "id": "edge-level-challenge-to-marketplace",
+          "source": "level-challenge-management",
+          "target": "marketplace",
+          "label": "",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#000000",
+            "routingType": "bezier",
+            "strokeWidth": 1.5
+          },
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "sourceMarker": "none",
+          "targetMarker": "arrow"
         },
         {
-          "id": "e2-2",
-          "source": "cv-api-2",
-          "target": "lp-gateway-2",
-          "label": "send order for execution"
+          "id": "edge-user-management-to-community",
+          "source": "user-management",
+          "target": "community",
+          "label": "",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#000000",
+            "routingType": "bezier",
+            "strokeWidth": 1.5
+          },
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "sourceMarker": "none",
+          "targetMarker": "arrow"
         },
         {
-          "id": "e2-3",
-          "source": "lp-gateway-2",
-          "target": "talos-2",
-          "label": "send order, receive execution reports"
+          "id": "edge-description-to-warp-module",
+          "source": "description-box",
+          "target": "warp-module",
+          "label": "",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#000000",
+            "routingType": "bezier",
+            "strokeWidth": 1.5
+          },
+          "sourceAnchor": "left",
+          "targetAnchor": "right",
+          "sourceMarker": "none",
+          "targetMarker": "arrow"
         },
         {
-          "id": "e2-4",
-          "source": "talos-2",
-          "target": "lp1-2",
-          "label": "fill"
-        },
-        {
-          "id": "e2-5",
-          "source": "talos-2",
-          "target": "lp2-2",
-          "label": "fill"
-        },
-        {
-          "id": "e2-6",
-          "source": "talos-2",
-          "target": "lp3-2",
-          "label": "fill"
+          "id": "edge-description-to-next-level",
+          "source": "description-box",
+          "target": "next-level",
+          "label": "",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#E6A817",
+            "routingType": "bezier",
+            "strokeWidth": 1.5
+          },
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "sourceMarker": "none",
+          "targetMarker": "arrow"
         }
       ]
     }

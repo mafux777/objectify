@@ -84,13 +84,14 @@ export function CommandBar({ nodes, edges, setNodes, setEdges, guides, setGuides
             id: `cmd-edge-${cmdNodeCounter}`,
             source: src.id,
             target: tgt.id,
-            type: "customStraight",
+            type: "customEdge",
             markerEnd: {
               type: MarkerType.ArrowClosed,
               color: "#555",
               width: 16,
               height: 16,
             },
+            data: { routingType: "straight" },
           },
         ]);
         break;

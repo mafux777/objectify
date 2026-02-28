@@ -61,7 +61,7 @@ export function ShapeNode({
       ? { aspectRatio: String(aspectRatio) }
       : {};
 
-  const handles = <NodeHandles />;
+  const handles = <NodeHandles shapeKind={shapeKind} />;
 
   if (isCylinder) {
     const borderColor = style.borderColor ?? "#bbb";

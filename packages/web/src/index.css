@@ -215,6 +215,20 @@ body,
   margin: 4px 0;
 }
 
+.context-menu .section-label {
+  padding: 6px 16px 2px;
+  font-size: 11px;
+  color: #999;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.context-menu button .check {
+  display: inline-block;
+  width: 16px;
+}
+
 /* Command bar */
 .command-bar {
   position: absolute;

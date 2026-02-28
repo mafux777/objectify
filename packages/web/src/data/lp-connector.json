@@ -1,114 +1,212 @@
 {
-  "version": "1.0",
-  "description": "This diagram shows the message flow between the LP Gateway, Talos LP Connector, and TALOS Dealing API in a trading system. The LP Gateway sends new_order requests (both quote-based and RFQ-based) to the Talos LP Connector, which forwards them as QuoteRequest and NewOrderSingle messages to the TALOS Dealing API. Responses flow back via WebSocket streams: CustomerQuotes, CustomerExecutionReports, and CustomerTrades are sent from the TALOS Dealing API through the Talos LP Connector, which returns Quotes, reports, and trades to the LP Gateway. The TALOS Dealing API applies markup (commission and spread) before communicating with downstream liquidity providers.",
+  "version": "3.0",
+  "description": "A hand-drawn diagram on graph paper in a notebook, photographed on a wooden desk. The diagram shows an architecture sketch related to 'Auth0' and 'Ava' with two rounded rectangular boxes side by side. The left box contains items: 'orders/trades', 'balance/create', 'portfolio security statuses', 'market accounts', 'credentials'. The right box contains: 'Org & users', 'users', 'API roles'. Notes around the diagram indicate: 'we need to learn to manipulate (CRUD) these objects, using - official APIs (preferred) - database ops - unofficial APIs (with session cookies)'. Bottom right corner has a note: '1 can be org admin, 2 cannot'. The label 'Auth0' appears in a small box to the right of the main boxes.",
+  "palette": [
+    {
+      "id": "cream-white",
+      "hex": "#F5F0E8",
+      "percentage": 55,
+      "name": "Notebook paper cream"
+    },
+    {
+      "id": "dark-wood",
+      "hex": "#5C3A1E",
+      "percentage": 30,
+      "name": "Dark wood desk"
+    },
+    {
+      "id": "navy-ink",
+      "hex": "#2C3E7A",
+      "percentage": 5,
+      "name": "Hand-written ink"
+    },
+    {
+      "id": "white-cable",
+      "hex": "#ECECEC",
+      "percentage": 5,
+      "name": "White cables"
+    },
+    {
+      "id": "black-cable",
+      "hex": "#1A1A1A",
+      "percentage": 3,
+      "name": "Black cables"
+    },
+    {
+      "id": "teal-object",
+      "hex": "#2E8B8B",
+      "percentage": 2,
+      "name": "Teal object top right"
+    }
+  ],
+  "shapePalette": [
+    {
+      "id": "rounded-rect",
+      "kind": "rounded-rectangle",
+      "aspectRatio": 0.7,
+      "name": "Rounded rectangle box"
+    },
+    {
+      "id": "small-rect",
+      "kind": "rectangle",
+      "aspectRatio": 2,
+      "name": "Small label rectangle"
+    }
+  ],
+  "sizePalette": [
+    {
+      "id": "main-box",
+      "width": 0.14,
+      "height": 0.2,
+      "name": "Main content box"
+    },
+    {
+      "id": "label-box",
+      "width": 0.08,
+      "height": 0.04,
+      "name": "Small label box"
+    }
+  ],
+  "semanticTypes": [
+    {
+      "id": "data-entity-group",
+      "name": "Data Entity Group",
+      "description": "A grouped list of related data entities or API objects"
+    },
+    {
+      "id": "auth-service-label",
+      "name": "Auth Service Label",
+      "description": "A label identifying an authentication/authorization service"
+    }
+  ],
   "diagrams": [
     {
-      "id": "lp-connector-flow",
-      "title": "LP Gateway ↔ Talos LP Connector ↔ TALOS Dealing API",
+      "id": "diagram-ava-auth0",
+      "title": "Ava / Auth0 CRUD Objects Sketch",
+      "direction": "RIGHT",
+      "layoutMode": "spatial",
+      "imageDimensions": {
+        "width": 1600,
+        "height": 1200
+      },
       "nodes": [
         {
-          "id": "lp-gateway",
-          "label": "LP\nGateway",
+          "id": "left-box",
+          "label": "orders/trades\nbalance/create\nportfolio security statuses\nmarket accounts\ncredentials",
           "type": "box",
-          "style": { "backgroundColor": "#FFF9C4", "textColor": "#000000", "borderColor": "#C8B900" },
+          "style": {
+            "backgroundColor": "#F5F0E8",
+            "textColor": "#2C3E7A",
+            "borderColor": "#2C3E7A",
+            "borderStyle": "solid"
+          },
+          "spatial": {
+            "x": 0.25,
+            "y": 0.36,
+            "width": 0.14,
+            "height": 0.2
+          },
+          "font": {
+            "fontSize": 13,
+            "fontFamily": "sans-serif",
+            "fontWeight": "normal"
+          },
+          "shapeId": "rounded-rect",
+          "sizeId": "main-box",
+          "semanticTypeId": "data-entity-group",
+          "labelPosition": "center",
+          "guideRow": "row-0",
+          "guideColumn": "col-0",
           "orderHint": 0
         },
         {
-          "id": "talos-lp-connector",
-          "label": "Talos LP\nConnector",
+          "id": "right-box",
+          "label": "Org & users\nusers\nAPI roles",
           "type": "box",
-          "style": { "backgroundColor": "#FFF9C4", "textColor": "#000000", "borderColor": "#C8B900" },
+          "style": {
+            "backgroundColor": "#F5F0E8",
+            "textColor": "#2C3E7A",
+            "borderColor": "#2C3E7A",
+            "borderStyle": "solid"
+          },
+          "spatial": {
+            "x": 0.4,
+            "y": 0.36,
+            "width": 0.14,
+            "height": 0.2
+          },
+          "font": {
+            "fontSize": 13,
+            "fontFamily": "sans-serif",
+            "fontWeight": "normal"
+          },
+          "shapeId": "rounded-rect",
+          "sizeId": "main-box",
+          "semanticTypeId": "data-entity-group",
+          "labelPosition": "center",
+          "guideRow": "row-0",
+          "guideColumn": "col-1",
           "orderHint": 1
         },
         {
-          "id": "talos-dealing-api-group",
-          "label": "TALOS Dealing API",
-          "type": "group",
-          "style": { "backgroundColor": "#B39DDB", "textColor": "#311B92" },
+          "id": "auth0-label",
+          "label": "Auth0",
+          "type": "box",
+          "style": {
+            "backgroundColor": "#F5F0E8",
+            "textColor": "#2C3E7A",
+            "borderColor": "#2C3E7A",
+            "borderStyle": "solid"
+          },
+          "spatial": {
+            "x": 0.56,
+            "y": 0.37,
+            "width": 0.08,
+            "height": 0.04
+          },
+          "font": {
+            "fontSize": 14,
+            "fontFamily": "sans-serif",
+            "fontWeight": "normal"
+          },
+          "shapeId": "small-rect",
+          "sizeId": "label-box",
+          "semanticTypeId": "auth-service-label",
+          "labelPosition": "center",
+          "guideRow": "row-0",
+          "guideColumn": "col-2",
           "orderHint": 2
-        },
-        {
-          "id": "apply-markup",
-          "label": "apply markup\n(commission, spread)",
-          "type": "box",
-          "parentId": "talos-dealing-api-group",
-          "style": { "backgroundColor": "#E8EAF6", "textColor": "#000000", "borderColor": "#9FA8DA" },
-          "orderHint": 0
-        },
-        {
-          "id": "lp-downstream",
-          "label": "LP",
-          "type": "box",
-          "style": { "backgroundColor": "#A5D6A7", "textColor": "#000000", "borderColor": "#66BB6A" },
-          "orderHint": 3
         }
       ],
-      "edges": [
+      "edges": [],
+      "guides": [
         {
-          "id": "e-new-order-quote",
-          "source": "lp-gateway",
-          "target": "talos-lp-connector",
-          "label": "new_order (quote)"
+          "id": "row-0",
+          "index": 0,
+          "direction": "horizontal",
+          "position": 0.46,
+          "label": "Main entity boxes"
         },
         {
-          "id": "e-quotes",
-          "source": "talos-lp-connector",
-          "target": "lp-gateway",
-          "label": "Quotes",
-          "style": { "lineStyle": "dashed", "color": "#333333" }
+          "id": "col-0",
+          "index": 0,
+          "direction": "vertical",
+          "position": 0.32,
+          "label": "Left box (Ava)"
         },
         {
-          "id": "e-new-order-rfq",
-          "source": "lp-gateway",
-          "target": "talos-lp-connector",
-          "label": "new_order {RFQ_ID: 123}"
+          "id": "col-1",
+          "index": 1,
+          "direction": "vertical",
+          "position": 0.47,
+          "label": "Right box (Auth0 entities)"
         },
         {
-          "id": "e-reports-trades",
-          "source": "talos-lp-connector",
-          "target": "lp-gateway",
-          "label": "reports, trades",
-          "style": { "lineStyle": "dashed", "color": "#333333" }
-        },
-        {
-          "id": "e-quote-request",
-          "source": "talos-lp-connector",
-          "target": "talos-dealing-api-group",
-          "label": "QuoteRequest"
-        },
-        {
-          "id": "e-new-order-single",
-          "source": "talos-lp-connector",
-          "target": "talos-dealing-api-group",
-          "label": "NewOrderSingle"
-        },
-        {
-          "id": "e-ws-customer-quotes",
-          "source": "talos-dealing-api-group",
-          "target": "talos-lp-connector",
-          "label": "WS: CustomerQuotes",
-          "style": { "lineStyle": "dashed", "color": "#333333" }
-        },
-        {
-          "id": "e-ws-execution-reports",
-          "source": "talos-dealing-api-group",
-          "target": "talos-lp-connector",
-          "label": "WS: CustomerExecutionReports",
-          "style": { "lineStyle": "dashed", "color": "#333333" }
-        },
-        {
-          "id": "e-ws-customer-trades",
-          "source": "talos-dealing-api-group",
-          "target": "talos-lp-connector",
-          "label": "WS: CustomerTrades",
-          "style": { "lineStyle": "dashed", "color": "#333333" }
-        },
-        {
-          "id": "e-to-lp",
-          "source": "talos-dealing-api-group",
-          "target": "lp-downstream",
-          "label": "",
-          "style": { "lineStyle": "dashed", "color": "#333333" }
+          "id": "col-2",
+          "index": 2,
+          "direction": "vertical",
+          "position": 0.6,
+          "label": "Auth0 label"
         }
       ]
     }

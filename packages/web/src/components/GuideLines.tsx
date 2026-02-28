@@ -121,12 +121,75 @@ export function GuideLines({
 
   const onPointerUp = useCallback(
     (e: React.PointerEvent) => {
-      if (dragState.current) {
-        (e.target as SVGElement).releasePointerCapture(e.pointerId);
-        dragState.current = null;
+      const ds = dragState.current;
+      if (!ds) return;
+
+      (e.target as SVGElement).releasePointerCapture(e.pointerId);
+      dragState.current = null;
+
+      // Check for merge: if dragged guide is now within threshold of another same-direction guide
+      const MERGE_THRESHOLD = 0.02; // 2% normalized distance
+      const draggedGuide = guides.find((g) => g.id === ds.guideId);
+      if (!draggedGuide) return;
+
+      const mergeTarget = guides
+        .filter((g) => g.id !== ds.guideId && g.direction === ds.direction)
+        .reduce<{ guide: GuideLine; dist: number } | null>((best, g) => {
+          const dist = Math.abs(g.position - draggedGuide.position);
+          if (dist < MERGE_THRESHOLD && (!best || dist < best.dist)) {
+            return { guide: g, dist };
+          }
+          return best;
+        }, null);
+
+      if (mergeTarget) {
+        const absorberId = mergeTarget.guide.id;
+        const removedId = ds.guideId;
+        const guideFields = ["guideRow", "guideColumn", "guideRowBottom", "guideColumnRight"] as const;
+
+        // Reassign all node references from the removed guide to the absorber
+        // and reposition nodes to align with the absorber's position
+        const absorberCanvasPos = ds.direction === "horizontal"
+          ? mergeTarget.guide.position * canvasHeight
+          : mergeTarget.guide.position * canvasWidth;
+
+        setNodes((nds) =>
+          nds.map((n) => {
+            const nd = n.data as Record<string, unknown>;
+            let changed = false;
+            const newData = { ...nd };
+
+            for (const field of guideFields) {
+              if (nd?.[field] === removedId) {
+                newData[field] = absorberId;
+                changed = true;
+              }
+            }
+
+            if (!changed) return n;
+
+            // Reposition: center on absorber guide position
+            const nW = n.width ?? n.measured?.width ?? 160;
+            const nH = n.height ?? n.measured?.height ?? 50;
+            let newPos = { ...n.position };
+
+            // Only reposition for top/left guide references (guideRow/guideColumn)
+            if (nd?.guideRow === removedId && ds.direction === "horizontal") {
+              newPos = { ...newPos, y: absorberCanvasPos - nH / 2 };
+            }
+            if (nd?.guideColumn === removedId && ds.direction === "vertical") {
+              newPos = { ...newPos, x: absorberCanvasPos - nW / 2 };
+            }
+
+            return { ...n, data: newData, position: newPos };
+          })
+        );
+
+        // Remove the dragged guide
+        setGuides((gs) => gs.filter((g) => g.id !== removedId));
       }
     },
-    []
+    [guides, canvasWidth, canvasHeight, setGuides, setNodes]
   );
 
   // Reactive viewport subscription — re-renders on zoom/pan changes
@@ -260,36 +323,40 @@ export function GuideLines({
                   strokeDasharray={dash}
                   opacity={0.5}
                 />
-                {/* Draggable label — above bounding box */}
-                <rect
-                  x={x - labelWidth / 2}
-                  y={ly}
-                  width={labelWidth}
-                  height={labelHeight}
-                  fill="rgba(25, 118, 210, 0.08)"
-                  rx={2 / zoom}
-                  style={{ pointerEvents: "auto", cursor: "ew-resize" }}
-                  onPointerDown={(e) => onPointerDown(e, guide)}
-                  onPointerMove={onPointerMove}
-                  onPointerUp={onPointerUp}
-                  onPointerEnter={() => onGuideHover?.(guide.id)}
-                  onPointerLeave={() => onGuideHover?.(null)}
-                />
-                <text
-                  x={x - labelWidth / 2 + labelPad}
-                  y={ly + fontSize + labelPad / 2}
-                  fontSize={fontSize}
-                  fill="#1976d2"
-                  opacity={0.7}
-                  style={{ pointerEvents: "auto", cursor: "ew-resize" }}
-                  onPointerDown={(e) => onPointerDown(e, guide)}
-                  onPointerMove={onPointerMove}
-                  onPointerUp={onPointerUp}
-                  onPointerEnter={() => onGuideHover?.(guide.id)}
-                  onPointerLeave={() => onGuideHover?.(null)}
+                {/* Draggable label — above bounding box, rotated -90° with first letter at bbox edge */}
+                <g
+                  transform={`rotate(-90, ${x}, ${colLabelY})`}
                 >
-                  {labelText}
-                </text>
+                  <rect
+                    x={x}
+                    y={colLabelY - labelHeight / 2}
+                    width={labelWidth}
+                    height={labelHeight}
+                    fill="rgba(25, 118, 210, 0.08)"
+                    rx={2 / zoom}
+                    style={{ pointerEvents: "auto", cursor: "ew-resize" }}
+                    onPointerDown={(e) => onPointerDown(e, guide)}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    onPointerEnter={() => onGuideHover?.(guide.id)}
+                    onPointerLeave={() => onGuideHover?.(null)}
+                  />
+                  <text
+                    x={x + labelPad}
+                    y={colLabelY + fontSize / 3}
+                    fontSize={fontSize}
+                    fill="#1976d2"
+                    opacity={0.7}
+                    style={{ pointerEvents: "auto", cursor: "ew-resize" }}
+                    onPointerDown={(e) => onPointerDown(e, guide)}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    onPointerEnter={() => onGuideHover?.(guide.id)}
+                    onPointerLeave={() => onGuideHover?.(null)}
+                  >
+                    {labelText}
+                  </text>
+                </g>
               </g>
             );
           }

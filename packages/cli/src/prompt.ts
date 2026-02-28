@@ -19,6 +19,9 @@ export const SYSTEM_PROMPT = `You are a diagram analysis expert. Your task is to
    - Record source and target node IDs (source is where arrow starts, target is where it points)
    - Record any label text on or near the arrow
    - Note if the line is dashed or dotted (default solid)
+   - Determine routingType: "straight" (direct line), "step" (sharp 90° bends), "smoothstep" (rounded 90° bends), "bezier" (smooth curve)
+   - Estimate strokeWidth: 1 (thin), 1.5 (normal/default), 2.5 (thick), 4 (heavy)
+   - Identify endpoint markers: sourceMarker/targetMarker as "arrow", "ball", "socket", or "none"
 
 4. **Color Palette Extraction**: Before assigning colors to any node or edge, perform a color analysis pass:
    a. Scan the entire image and identify every distinct color used for backgrounds, text, borders, and arrows.
@@ -140,7 +143,14 @@ For each arrow/line:
 - Source and target node IDs
 - Label text if present
 - Line style (solid/dashed/dotted)
-- sourceAnchor and targetAnchor (which side of the box)
+- sourceAnchor and targetAnchor (which side of the box, using clock notation: "12:00", "1:30", "3:00", "4:30", "6:00", "7:30", "9:00", "10:30", or legacy "top", "right", "bottom", "left")
+- routingType based on the visual shape of the connector:
+  - "straight" = direct line, no bends (A to B in a single segment)
+  - "step" = path with sharp 90° right-angle bends (orthogonal segments, crisp corners)
+  - "smoothstep" = path with rounded 90° bends (orthogonal segments, soft curved corners)
+  - "bezier" = smooth S-curve or C-curve, no right angles
+- strokeWidth: estimate relative thickness: 1 (thin/secondary), 1.5 (normal/default), 2.5 (thick/emphasized), 4 (heavy/primary flow)
+- sourceMarker / targetMarker: "arrow" (arrowhead), "ball" (filled circle), "socket" (half-circle arc), "none" (plain line end)
 
 ## Color Palette Extraction
 
@@ -213,6 +223,7 @@ Identify the implicit alignment grid in the diagram:
 4. On each node, set "guideRow" to the ID of the horizontal guide it aligns with, and "guideColumn" to the ID of the vertical guide it aligns with.
 5. Include guides in each diagram's "guides" array.
 6. IMPORTANT: Each (guideRow, guideColumn) pair must be unique — no two nodes may share the same grid cell. If two nodes appear to overlap in the same cell, create additional guide lines to separate them (e.g., add a new row or column).
+7. IMPORTANT: Every guide of the same direction must have a DISTINCT position value. If two columns of nodes share the same x-center, use a SINGLE vertical guide for both. Similarly for rows with the same y-center. Never create two guides at the same position — instead, have multiple nodes reference the same guide.
 
 ## Label Positioning
 
@@ -236,7 +247,76 @@ For each edge with a visible label, estimate the label's visual properties and p
 
 ## Output Format
 
-Set version to "3.0". Set layoutMode to "spatial" on each diagram. Include imageDimensions on each diagram. Include top-level "palette", "shapePalette", "sizePalette", and "semanticTypes" arrays. Include "guides" on each diagram. Include "labelPosition" on each node. Include "labelStyle" on edges with labels.
+The output MUST be a single JSON object with this exact top-level structure:
+\`\`\`
+{
+  "version": "3.0",
+  "description": "<detailed text description of the entire diagram image>",
+  "palette": [...],
+  "shapePalette": [...],
+  "sizePalette": [...],
+  "semanticTypes": [...],
+  "diagrams": [...]
+}
+\`\`\`
+
+Each diagram object MUST have this structure:
+\`\`\`
+{
+  "id": "...",
+  "title": "<human-readable title for this diagram>",
+  "direction": "RIGHT" or "DOWN",
+  "layoutMode": "spatial",
+  "imageDimensions": { "width": ..., "height": ... },
+  "nodes": [...],
+  "edges": [...],
+  "guides": [...]
+}
+\`\`\`
+
+Each node MUST have a nested "style" object (NOT flat color fields):
+\`\`\`
+{
+  "id": "...",
+  "label": "...",
+  "type": "box" or "group",
+  "style": {
+    "backgroundColor": "#HEX",
+    "textColor": "#HEX",
+    "borderColor": "#HEX",
+    "borderStyle": "solid" or "dashed" or "dotted"
+  },
+  "spatial": { "x": ..., "y": ..., "width": ..., "height": ... },
+  "font": { ... },
+  "shapeId": "...",
+  "sizeId": "...",
+  "semanticTypeId": "...",
+  "labelPosition": "...",
+  "guideRow": "...",
+  "guideColumn": "...",
+  "orderHint": ...
+}
+\`\`\`
+
+Each edge MUST have a nested "style" object (NOT flat style fields):
+\`\`\`
+{
+  "id": "...",
+  "source": "...",
+  "target": "...",
+  "label": "...",
+  "style": {
+    "lineStyle": "solid" or "dashed" or "dotted",
+    "color": "#HEX",
+    "routingType": "straight" or "step" or "smoothstep" or "bezier",
+    "strokeWidth": 1.5
+  },
+  "sourceAnchor": "...",
+  "targetAnchor": "...",
+  "sourceMarker": "none",
+  "targetMarker": "arrow"
+}
+\`\`\`
 
 ## Critical Rules
 - All spatial coordinates MUST be between 0 and 1

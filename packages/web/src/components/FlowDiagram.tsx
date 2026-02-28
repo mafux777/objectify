@@ -32,12 +32,11 @@ import { useUndoHistory } from "../hooks/useUndoHistory.js";
 import { ColorBoxNode } from "./nodes/ColorBoxNode.js";
 import { GroupNode } from "./nodes/GroupNode.js";
 import { ShapeNode } from "./nodes/ShapeNode.js";
-import { CustomStraightEdge } from "./edges/CustomStraightEdge.js";
+import { CustomEdge } from "./edges/CustomEdge.js";
 import { ContextMenu, type ContextMenuState } from "./ContextMenu.js";
 import { CommandBar } from "./CommandBar.js";
 import { Legend } from "./Legend.js";
 import { flowToDiagram, flowToSpec } from "../lib/flow-to-spec.js";
-import { collectMarkerColors } from "../lib/spec-to-flow.js";
 import { GuideLines } from "./GuideLines.js";
 import { LabelConnectors } from "./LabelConnectors.js";
 
@@ -50,7 +49,7 @@ const nodeTypes: NodeTypes = {
 };
 
 const edgeTypes: EdgeTypes = {
-  customStraight: CustomStraightEdge,
+  customEdge: CustomEdge,
 };
 
 interface FlowDiagramProps {
@@ -133,6 +132,39 @@ export function FlowDiagram({
     if (!edge) return null;
     return { edgeId: focusedEdgeId, nodeIds: new Set([edge.source, edge.target]) };
   }, [focusedEdgeId, edges]);
+
+  // Compute marker colors from live edges (supports context menu changes)
+  const liveMarkerColors = useMemo(() => {
+    const seen = new Set<string>();
+    const result: { kind: string; color: string }[] = [];
+    for (const e of edges) {
+      const d = (e as Record<string, unknown>).data as Record<string, unknown> | undefined;
+      const color = (e.style?.stroke as string) ?? "#555";
+      for (const marker of [d?.sourceMarker, d?.targetMarker] as string[]) {
+        if (marker === "ball" || marker === "socket") {
+          const key = `${marker}-${color}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            result.push({ kind: marker, color });
+          }
+        }
+      }
+    }
+    // Also include original spec markers to handle initial render
+    for (const e of diagram.edges) {
+      const color = e.style?.color ?? "#555";
+      for (const marker of [e.sourceMarker, e.targetMarker]) {
+        if (marker === "ball" || marker === "socket") {
+          const key = `${marker}-${color}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            result.push({ kind: marker, color });
+          }
+        }
+      }
+    }
+    return result;
+  }, [edges, diagram.edges]);
 
   // Edge click handler
   const onEdgeClick = useCallback(
@@ -284,13 +316,14 @@ export function FlowDiagram({
         addEdge(
           {
             ...params,
-            type: "customStraight",
+            type: "customEdge",
             markerEnd: {
               type: MarkerType.ArrowClosed,
               color: "#555",
               width: 16,
               height: 16,
             },
+            data: { routingType: "straight" },
           },
           eds
         )
@@ -311,6 +344,82 @@ export function FlowDiagram({
       const nodeH = draggedNode.height ?? draggedNode.measured?.height ?? 50;
       const centerX = draggedNode.position.x + nodeW / 2;
       const centerY = draggedNode.position.y + nodeH / 2;
+
+      // Shift+drag: reassign node to nearest existing guides
+      if (event.shiftKey) {
+        saveSnapshot();
+
+        const horizontalGuides = guides.filter((g) => g.direction === "horizontal");
+        const verticalGuides = guides.filter((g) => g.direction === "vertical");
+
+        // Find nearest horizontal guide to node's Y-center
+        let newRowId = rowId;
+        if (horizontalGuides.length > 0) {
+          let bestDist = Infinity;
+          for (const g of horizontalGuides) {
+            const dist = Math.abs(g.position * canvasHeight - centerY);
+            if (dist < bestDist) {
+              bestDist = dist;
+              newRowId = g.id;
+            }
+          }
+        }
+
+        // Find nearest vertical guide to node's X-center
+        let newColId = colId;
+        if (verticalGuides.length > 0) {
+          let bestDist = Infinity;
+          for (const g of verticalGuides) {
+            const dist = Math.abs(g.position * canvasWidth - centerX);
+            if (dist < bestDist) {
+              bestDist = dist;
+              newColId = g.id;
+            }
+          }
+        }
+
+        // Snap node to the new guide intersection
+        const newRowGuide = guides.find((g) => g.id === newRowId);
+        const newColGuide = guides.find((g) => g.id === newColId);
+        const snapY = newRowGuide ? newRowGuide.position * canvasHeight - nodeH / 2 : draggedNode.position.y;
+        const snapX = newColGuide ? newColGuide.position * canvasWidth - nodeW / 2 : draggedNode.position.x;
+
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === draggedNode.id
+              ? {
+                  ...n,
+                  position: { x: snapX, y: snapY },
+                  data: { ...n.data, guideRow: newRowId, guideColumn: newColId },
+                }
+              : n
+          )
+        );
+
+        // Clean up orphan guides: if old guide has no remaining references, delete it
+        const guideFields = ["guideRow", "guideColumn", "guideRowBottom", "guideColumnRight"] as const;
+        const orphanCandidates = new Set<string>();
+        if (rowId && rowId !== newRowId) orphanCandidates.add(rowId);
+        if (colId && colId !== newColId) orphanCandidates.add(colId);
+
+        if (orphanCandidates.size > 0) {
+          // Check all OTHER nodes (excluding the dragged one) for references
+          setGuides((gs) => {
+            const referencedIds = new Set<string>();
+            for (const n of nodes) {
+              if (n.id === draggedNode.id) continue;
+              const nd = n.data as Record<string, unknown>;
+              for (const field of guideFields) {
+                const val = nd?.[field] as string | undefined;
+                if (val) referencedIds.add(val);
+              }
+            }
+            return gs.filter((g) => !orphanCandidates.has(g.id) || referencedIds.has(g.id));
+          });
+        }
+
+        return; // Skip normal guide-snapping logic
+      }
 
       // Alt+drag: detach from shared guides and create new personal guides
       if (event.altKey) {
@@ -340,8 +449,28 @@ export function FlowDiagram({
           label: `${shortLabel} Col`,
         };
 
-        // Add the new guides
-        setGuides((gs) => [...gs, newRowGuide, newColGuide]);
+        // Add new guides and remove old ones if they become orphaned
+        const guideFields = ["guideRow", "guideColumn", "guideRowBottom", "guideColumnRight"] as const;
+        const orphanCandidates = new Set<string>();
+        if (rowId) orphanCandidates.add(rowId);
+        if (colId) orphanCandidates.add(colId);
+
+        // Check if any OTHER node still references the old guides
+        const referencedByOthers = new Set<string>();
+        for (const n of nodes) {
+          if (n.id === draggedNode.id) continue;
+          const nd = n.data as Record<string, unknown>;
+          for (const field of guideFields) {
+            const val = nd?.[field] as string | undefined;
+            if (val) referencedByOthers.add(val);
+          }
+        }
+
+        setGuides((gs) => [
+          ...gs.filter((g) => !orphanCandidates.has(g.id) || referencedByOthers.has(g.id)),
+          newRowGuide,
+          newColGuide,
+        ]);
 
         // Reassign the dragged node to the new guides
         setNodes((nds) =>
@@ -405,7 +534,7 @@ export function FlowDiagram({
         })
       );
     },
-    [guides, canvasWidth, canvasHeight, setGuides, setNodes]
+    [guides, nodes, canvasWidth, canvasHeight, setGuides, setNodes, saveSnapshot]
   );
 
   const onNodeContextMenu = useCallback(
@@ -496,7 +625,7 @@ export function FlowDiagram({
         {/* Custom SVG marker definitions for ball-and-socket connectors */}
         <svg style={{ position: "absolute", width: 0, height: 0 }}>
           <defs>
-            {collectMarkerColors(diagram.edges).map(({ kind, color }) => {
+            {liveMarkerColors.map(({ kind, color }) => {
               const id = `marker-${kind}-${color.replace("#", "")}`;
               if (kind === "ball") {
                 return (

@@ -232,13 +232,27 @@ const EdgeStyleSchema = z.object({
     .default("#333333")
     .describe("CSS hex color for the arrow line"),
   routingType: z
-    .enum(["straight", "smoothstep", "bezier"])
+    .enum(["straight", "step", "smoothstep", "bezier"])
     .default("straight")
     .optional()
     .describe(
-      "Edge routing algorithm. 'straight' draws a direct line between anchors. " +
-        "'smoothstep' uses orthogonal segments with rounded corners. " +
-        "'bezier' uses a cubic bezier curve. Defaults to 'straight'."
+      "Edge routing algorithm. Choose based on the visual appearance of the connector: " +
+        "'straight' = direct line between anchors (no bends). " +
+        "'step' = orthogonal path with sharp 90° corners (right-angle bends, crisp corners). " +
+        "'smoothstep' = orthogonal path with rounded 90° corners (right-angle bends with soft curves at turns). " +
+        "'bezier' = smooth S-curve or C-curve between anchors (no sharp corners, no right angles). " +
+        "Defaults to 'straight'. Most flowcharts and architecture diagrams use 'straight' or 'smoothstep'."
+    ),
+  strokeWidth: z
+    .number()
+    .min(0.5)
+    .max(8)
+    .default(1.5)
+    .optional()
+    .describe(
+      "Line thickness in pixels. Common values: 1 (thin/secondary), 1.5 (normal/default), " +
+        "2.5 (thick/emphasized), 4 (heavy/primary flow). " +
+        "Use thicker values for prominent main-flow arrows and thinner values for secondary or annotation arrows."
     ),
 });
 
@@ -588,7 +602,7 @@ const SingleDiagramSchema = z.object({
 });
 
 export const DiagramSpecSchema = z.object({
-  version: z.enum(["1.0", "2.0", "3.0", "4.0", "5.0"]).describe("Schema version. 2.0 includes spatial data. 3.0 adds guide lines and label positioning. 4.0 adds multi-label support. 5.0 adds container group shapes (cloud, cylinder) and ball-socket edge endpoint markers."),
+  version: z.enum(["1.0", "2.0", "3.0", "4.0", "5.0", "6.0"]).describe("Schema version. 2.0 includes spatial data. 3.0 adds guide lines and label positioning. 4.0 adds multi-label support. 5.0 adds container group shapes (cloud, cylinder) and ball-socket edge endpoint markers. 6.0 adds step routing type and strokeWidth."),
   palette: ColorPaletteSchema.optional().describe(
     "Color palette sampled from the source image. All node/edge colors should reference " +
       "hex values from this palette. Optional for backward compatibility with older specs."

@@ -146,19 +146,20 @@ export function flowToDiagram(
     const color =
       ((e.style as Record<string, unknown>)?.stroke as string) ?? "#333333";
 
-    // Determine routing type from flow edge type
-    const routingType: "straight" | "smoothstep" | "bezier" =
-      e.type === "smoothstep"
-        ? "smoothstep"
-        : e.type === "default"
-          ? "bezier"
-          : "straight";
+    // Read routing type and strokeWidth from edge data (set by unified CustomEdge)
+    const edgeData = ((e as Record<string, unknown>).data ?? {}) as Record<string, unknown>;
+    const routingType = (edgeData.routingType as string) ?? "straight";
+    const strokeWidth = edgeData.strokeWidth as number | undefined;
 
-    edge.style = { lineStyle, color, routingType };
+    edge.style = {
+      lineStyle,
+      color,
+      routingType: routingType as "straight" | "step" | "smoothstep" | "bezier",
+      ...(strokeWidth && strokeWidth !== 1.5 ? { strokeWidth } : {}),
+    };
 
     // Preserve edge label style, multi-labels, and markers if present in data
-    if ((e as Record<string, unknown>).data) {
-      const edgeData = (e as Record<string, unknown>).data as Record<string, unknown>;
+    if (edgeData) {
       if (edgeData.labelStyle) {
         edge.labelStyle = edgeData.labelStyle as DiagramEdge["labelStyle"];
       }
@@ -227,18 +228,23 @@ export function flowToSpec(
   const hasV5Features = diagram.edges.some(
     (e) => (e.sourceMarker && e.sourceMarker !== "none") || (e.targetMarker && e.targetMarker !== "arrow")
   );
-  const version = hasV5Features
-    ? "5.0"
-    : hasMultiLabels
-      ? "4.0"
-      : hasGuides
-        ? "3.0"
-        : originalDiagram.layoutMode === "spatial"
-          ? "2.0"
-          : "1.0";
+  const hasV6Features = diagram.edges.some(
+    (e) => e.style?.strokeWidth !== undefined || e.style?.routingType === "step"
+  );
+  const version = hasV6Features
+    ? "6.0"
+    : hasV5Features
+      ? "5.0"
+      : hasMultiLabels
+        ? "4.0"
+        : hasGuides
+          ? "3.0"
+          : originalDiagram.layoutMode === "spatial"
+            ? "2.0"
+            : "1.0";
 
   return {
-    version: version as "1.0" | "2.0" | "3.0" | "4.0" | "5.0",
+    version: version as "1.0" | "2.0" | "3.0" | "4.0" | "5.0" | "6.0",
     ...(palette && palette.length > 0 ? { palette } : {}),
     ...(shapePalette && shapePalette.length > 0 ? { shapePalette } : {}),
     ...(sizePalette && sizePalette.length > 0 ? { sizePalette } : {}),
@@ -255,12 +261,16 @@ const VALID_ANCHORS = new Set([
   "top", "right", "bottom", "left",
 ]);
 
-function handleToAnchor(handleId: string): string | undefined {
+type AnchorSide =
+  | "12:00" | "1:30" | "3:00" | "4:30" | "6:00" | "7:30" | "9:00" | "10:30"
+  | "top" | "right" | "bottom" | "left";
+
+function handleToAnchor(handleId: string): AnchorSide | undefined {
   // Handle IDs: "source-12:00", "target-3:00", "source-top" (legacy), etc.
   const match = handleId.match(/^(?:source|target)-(.+)$/);
   if (!match) return undefined;
   const anchor = match[1];
-  return VALID_ANCHORS.has(anchor) ? anchor : undefined;
+  return VALID_ANCHORS.has(anchor) ? (anchor as AnchorSide) : undefined;
 }
 
 function clamp01(v: number): number {

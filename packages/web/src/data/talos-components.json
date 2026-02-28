@@ -63,7 +63,8 @@
         { "id": "col-admin-right", "index": 13, "direction": "vertical", "position": 0.208, "label": "Admin right" },
         { "id": "col-cp-right", "index": 14, "direction": "vertical", "position": 0.739, "label": "CP right" },
         { "id": "col-worker-right", "index": 15, "direction": "vertical", "position": 0.999, "label": "Worker right" },
-        { "id": "col-cloud-right", "index": 16, "direction": "vertical", "position": 0.510, "label": "Cloud right" }
+        { "id": "col-cloud-right", "index": 16, "direction": "vertical", "position": 0.510, "label": "Cloud right" },
+        { "id": "col-cloud-center", "index": 17, "direction": "vertical", "position": 0.365, "label": "Cloud center" }
       ],
       "nodes": [
         {
@@ -389,7 +390,7 @@
           "sizeId": "component",
           "semanticTypeId": "sidero-component",
           "guideRow": "row-7",
-          "guideColumn": "col-3",
+          "guideColumn": "col-cloud-center",
           "orderHint": 0
         }
       ],
@@ -398,6 +399,8 @@
           "id": "e-kubectl-apiserver",
           "source": "kubectl",
           "target": "cp-kube-apiserver",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
           "sourceMarker": "none",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -406,6 +409,8 @@
           "id": "e-clusterctl-apiserver",
           "source": "clusterctl",
           "target": "cp-kube-apiserver",
+          "sourceAnchor": "1:30",
+          "targetAnchor": "9:00",
           "sourceMarker": "none",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -414,6 +419,8 @@
           "id": "e-apiserver-etcd",
           "source": "cp-kube-apiserver",
           "target": "cp-etcd",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "7:30",
           "sourceMarker": "socket",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -422,6 +429,8 @@
           "id": "e-apiserver-controller",
           "source": "cp-kube-apiserver",
           "target": "cp-kube-controller",
+          "sourceAnchor": "7:30",
+          "targetAnchor": "1:30",
           "sourceMarker": "socket",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -430,6 +439,8 @@
           "id": "e-apiserver-scheduler",
           "source": "cp-kube-apiserver",
           "target": "cp-kube-scheduler",
+          "sourceAnchor": "4:30",
+          "targetAnchor": "10:30",
           "sourceMarker": "socket",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -438,6 +449,8 @@
           "id": "e-cp-kubelet-apiserver",
           "source": "cp-kubelet",
           "target": "cp-kube-apiserver",
+          "sourceAnchor": "10:30",
+          "targetAnchor": "4:30",
           "sourceMarker": "none",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -446,6 +459,8 @@
           "id": "e-cp-kubelet-containerd",
           "source": "cp-kubelet",
           "target": "cp-containerd",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
           "sourceMarker": "socket",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -454,6 +469,8 @@
           "id": "e-cp-machined-apid",
           "source": "cp-machined",
           "target": "cp-apid",
+          "sourceAnchor": "6:00",
+          "targetAnchor": "12:00",
           "sourceMarker": "socket",
           "targetMarker": "socket",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -462,6 +479,8 @@
           "id": "e-cp-machined-trustd",
           "source": "cp-machined",
           "target": "cp-trustd",
+          "sourceAnchor": "4:30",
+          "targetAnchor": "10:30",
           "sourceMarker": "none",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -470,6 +489,8 @@
           "id": "e-cp-machined-udevd",
           "source": "cp-machined",
           "target": "cp-udevd",
+          "sourceAnchor": "7:30",
+          "targetAnchor": "3:00",
           "sourceMarker": "none",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -478,6 +499,8 @@
           "id": "e-talosctl-apid",
           "source": "talosctl",
           "target": "cp-apid",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
           "sourceMarker": "none",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -486,6 +509,8 @@
           "id": "e-cp-apid-w-apid",
           "source": "cp-apid",
           "target": "w-apid",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
           "sourceMarker": "ball",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -494,6 +519,8 @@
           "id": "e-w-kubelet-containerd",
           "source": "w-kubelet",
           "target": "w-containerd",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
           "sourceMarker": "socket",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -502,6 +529,8 @@
           "id": "e-w-kubelet-apiserver",
           "source": "w-kubelet",
           "target": "cp-kube-apiserver",
+          "sourceAnchor": "9:00",
+          "targetAnchor": "3:00",
           "sourceMarker": "none",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -510,6 +539,8 @@
           "id": "e-w-apid-machined",
           "source": "w-apid",
           "target": "w-machined",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "7:30",
           "sourceMarker": "none",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -518,6 +549,8 @@
           "id": "e-w-machined-udevd",
           "source": "w-machined",
           "target": "w-udevd",
+          "sourceAnchor": "9:00",
+          "targetAnchor": "3:00",
           "sourceMarker": "none",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
@@ -526,6 +559,8 @@
           "id": "e-omni-apid",
           "source": "omni",
           "target": "cp-apid",
+          "sourceAnchor": "12:00",
+          "targetAnchor": "6:00",
           "sourceMarker": "none",
           "targetMarker": "ball",
           "style": { "lineStyle": "solid", "color": "#000000" }
