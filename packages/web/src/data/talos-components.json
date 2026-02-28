@@ -1,0 +1,548 @@
+{
+  "version": "5.0",
+  "description": "This diagram illustrates the components of a Talos Linux cluster. Three main containers represent physical or logical boundaries: an Administrator workstation with CLI tools (kubectl, clusterctl, talosctl), a Control plane node running Kubernetes control components (kube-apiserver, etcd, kube-controller-manager, kube-scheduler) alongside Talos-specific daemons (machined, apid, trustd) and system services (udevd), and a Worker node running kubelet, containerd, kube-proxy plus Talos daemons. A Sidero Labs cloud container hosts the Omni management platform. Components connect via provides/requires interfaces shown as ball-and-socket connectors.",
+  "imageDimensions": { "width": 1050, "height": 561 },
+  "palette": [
+    { "id": "k8s-blue", "hex": "#3333FF", "percentage": 25, "name": "Kubernetes Blue" },
+    { "id": "sidero-orange", "hex": "#FF8000", "percentage": 15, "name": "Sidero Orange" },
+    { "id": "system-gray", "hex": "#E6E6E6", "percentage": 5, "name": "System Gray" },
+    { "id": "white", "hex": "#FFFFFF", "percentage": 45, "name": "White" },
+    { "id": "black", "hex": "#000000", "percentage": 10, "name": "Black" }
+  ],
+  "shapePalette": [
+    { "id": "component-circle", "kind": "circle", "name": "Component Circle" },
+    { "id": "cloud-group", "kind": "cloud", "name": "Cloud Container" },
+    { "id": "db-cylinder", "kind": "cylinder", "name": "Database Cylinder" }
+  ],
+  "sizePalette": [
+    { "id": "component", "width": 0.067, "height": 0.10, "name": "Component" },
+    { "id": "db-component", "width": 0.042, "height": 0.075, "name": "Database Component" },
+    { "id": "container-admin", "width": 0.208, "height": 0.556, "name": "Admin Container" },
+    { "id": "container-cp", "width": 0.495, "height": 0.556, "name": "Control Plane Container" },
+    { "id": "container-worker", "width": 0.221, "height": 0.556, "name": "Worker Container" },
+    { "id": "container-cloud", "width": 0.290, "height": 0.193, "name": "Cloud Container" }
+  ],
+  "semanticTypes": [
+    { "id": "k8s-component", "name": "Kubernetes Component", "description": "Core Kubernetes process running on a cluster node" },
+    { "id": "sidero-component", "name": "Sidero Labs Component", "description": "Talos or Sidero Labs-specific daemon or service" },
+    { "id": "system-component", "name": "System Component", "description": "OS-level service (kernel/udev)" },
+    { "id": "admin-tool", "name": "Admin Tool", "description": "CLI tool for cluster administration" }
+  ],
+  "diagrams": [
+    {
+      "id": "talos-components",
+      "title": "Talos Linux Components",
+      "direction": "RIGHT",
+      "guides": [
+        { "id": "row-top", "index": 0, "direction": "horizontal", "position": 0.002, "label": "Container top" },
+        { "id": "row-1", "index": 1, "direction": "horizontal", "position": 0.12, "label": "Tier 1" },
+        { "id": "row-2", "index": 2, "direction": "horizontal", "position": 0.17, "label": "API tier" },
+        { "id": "row-3", "index": 3, "direction": "horizontal", "position": 0.30, "label": "Manager tier" },
+        { "id": "row-4", "index": 4, "direction": "horizontal", "position": 0.37, "label": "Runtime tier" },
+        { "id": "row-5", "index": 5, "direction": "horizontal", "position": 0.47, "label": "System tier" },
+        { "id": "row-6", "index": 6, "direction": "horizontal", "position": 0.58, "label": "Agent tier" },
+        { "id": "row-cloud", "index": 7, "direction": "horizontal", "position": 0.72, "label": "Cloud top" },
+        { "id": "row-7", "index": 8, "direction": "horizontal", "position": 0.84, "label": "Cloud tier" },
+
+        { "id": "col-admin", "index": 0, "direction": "vertical", "position": 0.0, "label": "Admin left" },
+        { "id": "col-1", "index": 1, "direction": "vertical", "position": 0.155, "label": "Admin center" },
+        { "id": "col-cp", "index": 2, "direction": "vertical", "position": 0.244, "label": "CP left" },
+        { "id": "col-2", "index": 3, "direction": "vertical", "position": 0.300, "label": "CP-left" },
+        { "id": "col-3", "index": 4, "direction": "vertical", "position": 0.390, "label": "CP-center" },
+        { "id": "col-4", "index": 5, "direction": "vertical", "position": 0.475, "label": "CP-center-right" },
+        { "id": "col-5", "index": 6, "direction": "vertical", "position": 0.520, "label": "CP-mid-right" },
+        { "id": "col-6", "index": 7, "direction": "vertical", "position": 0.590, "label": "CP-right" },
+        { "id": "col-7", "index": 8, "direction": "vertical", "position": 0.690, "label": "CP-far-right" },
+        { "id": "col-worker", "index": 9, "direction": "vertical", "position": 0.778, "label": "Worker left" },
+        { "id": "col-8", "index": 10, "direction": "vertical", "position": 0.833, "label": "Worker-left" },
+        { "id": "col-9", "index": 11, "direction": "vertical", "position": 0.943, "label": "Worker-right" },
+        { "id": "col-cloud", "index": 12, "direction": "vertical", "position": 0.220, "label": "Cloud left" },
+
+        { "id": "row-bottom", "index": 9, "direction": "horizontal", "position": 0.558, "label": "Container bottom" },
+        { "id": "row-cloud-bottom", "index": 10, "direction": "horizontal", "position": 0.913, "label": "Cloud bottom" },
+        { "id": "col-admin-right", "index": 13, "direction": "vertical", "position": 0.208, "label": "Admin right" },
+        { "id": "col-cp-right", "index": 14, "direction": "vertical", "position": 0.739, "label": "CP right" },
+        { "id": "col-worker-right", "index": 15, "direction": "vertical", "position": 0.999, "label": "Worker right" },
+        { "id": "col-cloud-right", "index": 16, "direction": "vertical", "position": 0.510, "label": "Cloud right" }
+      ],
+      "nodes": [
+        {
+          "id": "admin-workstation",
+          "label": "Administrator workstation",
+          "type": "group",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#000000", "borderStyle": "solid" },
+          "font": { "fontWeight": "bold" },
+          "sizeId": "container-admin",
+          "guideRow": "row-top",
+          "guideColumn": "col-admin",
+          "guideRowBottom": "row-bottom",
+          "guideColumnRight": "col-admin-right",
+          "orderHint": 0
+        },
+        {
+          "id": "kubectl",
+          "label": "kubectl",
+          "type": "box",
+          "parentId": "admin-workstation",
+          "style": { "backgroundColor": "#3333FF", "textColor": "#FFFFFF", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "k8s-component",
+          "guideRow": "row-1",
+          "guideColumn": "col-1",
+          "orderHint": 0
+        },
+        {
+          "id": "clusterctl",
+          "label": "clusterctl",
+          "type": "box",
+          "parentId": "admin-workstation",
+          "style": { "backgroundColor": "#3333FF", "textColor": "#FFFFFF", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "admin-tool",
+          "guideRow": "row-3",
+          "guideColumn": "col-1",
+          "orderHint": 1
+        },
+        {
+          "id": "talosctl",
+          "label": "talosctl",
+          "type": "box",
+          "parentId": "admin-workstation",
+          "style": { "backgroundColor": "#FF8000", "textColor": "#000000", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "admin-tool",
+          "guideRow": "row-6",
+          "guideColumn": "col-1",
+          "orderHint": 2
+        },
+        {
+          "id": "control-plane",
+          "label": "Control plane node",
+          "type": "group",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#000000", "borderStyle": "solid" },
+          "font": { "fontWeight": "bold" },
+          "sizeId": "container-cp",
+          "guideRow": "row-top",
+          "guideColumn": "col-cp",
+          "guideRowBottom": "row-bottom",
+          "guideColumnRight": "col-cp-right",
+          "orderHint": 1
+        },
+        {
+          "id": "cp-kube-apiserver",
+          "label": "kube-apiserver",
+          "type": "box",
+          "parentId": "control-plane",
+          "style": { "backgroundColor": "#3333FF", "textColor": "#FFFFFF", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "k8s-component",
+          "guideRow": "row-2",
+          "guideColumn": "col-3",
+          "orderHint": 0
+        },
+        {
+          "id": "cp-etcd",
+          "label": "etcd",
+          "type": "box",
+          "parentId": "control-plane",
+          "style": { "backgroundColor": "#3333FF", "textColor": "#FFFFFF", "borderColor": "#000000" },
+          "shapeId": "db-cylinder",
+          "sizeId": "db-component",
+          "semanticTypeId": "k8s-component",
+          "guideRow": "row-1",
+          "guideColumn": "col-4",
+          "orderHint": 0
+        },
+        {
+          "id": "cp-kube-controller",
+          "label": "kube-controller-manager",
+          "type": "box",
+          "parentId": "control-plane",
+          "style": { "backgroundColor": "#3333FF", "textColor": "#FFFFFF", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "k8s-component",
+          "guideRow": "row-3",
+          "guideColumn": "col-2",
+          "orderHint": 1
+        },
+        {
+          "id": "cp-kube-scheduler",
+          "label": "kube-scheduler",
+          "type": "box",
+          "parentId": "control-plane",
+          "style": { "backgroundColor": "#3333FF", "textColor": "#FFFFFF", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "k8s-component",
+          "guideRow": "row-3",
+          "guideColumn": "col-5",
+          "orderHint": 1
+        },
+        {
+          "id": "cp-kubelet",
+          "label": "kubelet",
+          "type": "box",
+          "parentId": "control-plane",
+          "style": { "backgroundColor": "#3333FF", "textColor": "#FFFFFF", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "k8s-component",
+          "guideRow": "row-4",
+          "guideColumn": "col-6",
+          "orderHint": 2
+        },
+        {
+          "id": "cp-containerd",
+          "label": "containerd",
+          "type": "box",
+          "parentId": "control-plane",
+          "style": { "backgroundColor": "#3333FF", "textColor": "#FFFFFF", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "k8s-component",
+          "guideRow": "row-4",
+          "guideColumn": "col-7",
+          "orderHint": 2
+        },
+        {
+          "id": "cp-kube-proxy",
+          "label": "kube-proxy",
+          "type": "box",
+          "parentId": "control-plane",
+          "style": { "backgroundColor": "#3333FF", "textColor": "#FFFFFF", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "k8s-component",
+          "guideRow": "row-5",
+          "guideColumn": "col-6",
+          "orderHint": 3
+        },
+        {
+          "id": "cp-machined",
+          "label": "machined",
+          "type": "box",
+          "parentId": "control-plane",
+          "style": { "backgroundColor": "#FF8000", "textColor": "#000000", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "sidero-component",
+          "guideRow": "row-4",
+          "guideColumn": "col-3",
+          "orderHint": 4
+        },
+        {
+          "id": "cp-apid",
+          "label": "apid",
+          "type": "box",
+          "parentId": "control-plane",
+          "style": { "backgroundColor": "#FF8000", "textColor": "#000000", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "sidero-component",
+          "guideRow": "row-6",
+          "guideColumn": "col-3",
+          "orderHint": 5
+        },
+        {
+          "id": "cp-trustd",
+          "label": "trustd",
+          "type": "box",
+          "parentId": "control-plane",
+          "style": { "backgroundColor": "#FF8000", "textColor": "#000000", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "sidero-component",
+          "guideRow": "row-5",
+          "guideColumn": "col-4",
+          "orderHint": 4
+        },
+        {
+          "id": "cp-udevd",
+          "label": "udevd",
+          "type": "box",
+          "parentId": "control-plane",
+          "style": { "backgroundColor": "#E6E6E6", "textColor": "#000000", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "system-component",
+          "guideRow": "row-5",
+          "guideColumn": "col-2",
+          "orderHint": 4
+        },
+        {
+          "id": "worker-node",
+          "label": "Worker node",
+          "type": "group",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#000000", "borderStyle": "solid" },
+          "font": { "fontWeight": "bold" },
+          "sizeId": "container-worker",
+          "guideRow": "row-top",
+          "guideColumn": "col-worker",
+          "guideRowBottom": "row-bottom",
+          "guideColumnRight": "col-worker-right",
+          "orderHint": 2
+        },
+        {
+          "id": "w-kubelet",
+          "label": "kubelet",
+          "type": "box",
+          "parentId": "worker-node",
+          "style": { "backgroundColor": "#3333FF", "textColor": "#FFFFFF", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "k8s-component",
+          "guideRow": "row-1",
+          "guideColumn": "col-8",
+          "orderHint": 0
+        },
+        {
+          "id": "w-containerd",
+          "label": "containerd",
+          "type": "box",
+          "parentId": "worker-node",
+          "style": { "backgroundColor": "#3333FF", "textColor": "#FFFFFF", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "k8s-component",
+          "guideRow": "row-1",
+          "guideColumn": "col-9",
+          "orderHint": 0
+        },
+        {
+          "id": "w-kube-proxy",
+          "label": "kube-proxy",
+          "type": "box",
+          "parentId": "worker-node",
+          "style": { "backgroundColor": "#3333FF", "textColor": "#FFFFFF", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "k8s-component",
+          "guideRow": "row-3",
+          "guideColumn": "col-8",
+          "orderHint": 1
+        },
+        {
+          "id": "w-apid",
+          "label": "apid",
+          "type": "box",
+          "parentId": "worker-node",
+          "style": { "backgroundColor": "#FF8000", "textColor": "#000000", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "sidero-component",
+          "guideRow": "row-6",
+          "guideColumn": "col-8",
+          "orderHint": 2
+        },
+        {
+          "id": "w-machined",
+          "label": "machined",
+          "type": "box",
+          "parentId": "worker-node",
+          "style": { "backgroundColor": "#FF8000", "textColor": "#000000", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "sidero-component",
+          "guideRow": "row-5",
+          "guideColumn": "col-9",
+          "orderHint": 2
+        },
+        {
+          "id": "w-udevd",
+          "label": "udevd",
+          "type": "box",
+          "parentId": "worker-node",
+          "style": { "backgroundColor": "#E6E6E6", "textColor": "#000000", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "system-component",
+          "guideRow": "row-5",
+          "guideColumn": "col-8",
+          "orderHint": 2
+        },
+        {
+          "id": "sidero-cloud",
+          "label": "Sidero Labs cloud",
+          "type": "group",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#000000", "borderStyle": "solid" },
+          "shapeId": "cloud-group",
+          "sizeId": "container-cloud",
+          "guideRow": "row-cloud",
+          "guideColumn": "col-cloud",
+          "guideRowBottom": "row-cloud-bottom",
+          "guideColumnRight": "col-cloud-right",
+          "font": { "fontWeight": "bold" },
+          "orderHint": 3
+        },
+        {
+          "id": "omni",
+          "label": "Omni",
+          "type": "box",
+          "parentId": "sidero-cloud",
+          "style": { "backgroundColor": "#FF8000", "textColor": "#000000", "borderColor": "#000000" },
+          "shapeId": "component-circle",
+          "sizeId": "component",
+          "semanticTypeId": "sidero-component",
+          "guideRow": "row-7",
+          "guideColumn": "col-3",
+          "orderHint": 0
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-kubectl-apiserver",
+          "source": "kubectl",
+          "target": "cp-kube-apiserver",
+          "sourceMarker": "none",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-clusterctl-apiserver",
+          "source": "clusterctl",
+          "target": "cp-kube-apiserver",
+          "sourceMarker": "none",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-apiserver-etcd",
+          "source": "cp-kube-apiserver",
+          "target": "cp-etcd",
+          "sourceMarker": "socket",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-apiserver-controller",
+          "source": "cp-kube-apiserver",
+          "target": "cp-kube-controller",
+          "sourceMarker": "socket",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-apiserver-scheduler",
+          "source": "cp-kube-apiserver",
+          "target": "cp-kube-scheduler",
+          "sourceMarker": "socket",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-cp-kubelet-apiserver",
+          "source": "cp-kubelet",
+          "target": "cp-kube-apiserver",
+          "sourceMarker": "none",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-cp-kubelet-containerd",
+          "source": "cp-kubelet",
+          "target": "cp-containerd",
+          "sourceMarker": "socket",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-cp-machined-apid",
+          "source": "cp-machined",
+          "target": "cp-apid",
+          "sourceMarker": "socket",
+          "targetMarker": "socket",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-cp-machined-trustd",
+          "source": "cp-machined",
+          "target": "cp-trustd",
+          "sourceMarker": "none",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-cp-machined-udevd",
+          "source": "cp-machined",
+          "target": "cp-udevd",
+          "sourceMarker": "none",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-talosctl-apid",
+          "source": "talosctl",
+          "target": "cp-apid",
+          "sourceMarker": "none",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-cp-apid-w-apid",
+          "source": "cp-apid",
+          "target": "w-apid",
+          "sourceMarker": "ball",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-w-kubelet-containerd",
+          "source": "w-kubelet",
+          "target": "w-containerd",
+          "sourceMarker": "socket",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-w-kubelet-apiserver",
+          "source": "w-kubelet",
+          "target": "cp-kube-apiserver",
+          "sourceMarker": "none",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-w-apid-machined",
+          "source": "w-apid",
+          "target": "w-machined",
+          "sourceMarker": "none",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-w-machined-udevd",
+          "source": "w-machined",
+          "target": "w-udevd",
+          "sourceMarker": "none",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        },
+        {
+          "id": "e-omni-apid",
+          "source": "omni",
+          "target": "cp-apid",
+          "sourceMarker": "none",
+          "targetMarker": "ball",
+          "style": { "lineStyle": "solid", "color": "#000000" }
+        }
+      ],
+      "legend": {
+        "title": "Legend",
+        "nodeEntries": [
+          { "semanticTypeId": "k8s-component", "label": "Kubernetes components", "color": "#3333FF" },
+          { "semanticTypeId": "sidero-component", "label": "Sidero Labs components", "color": "#FF8000" },
+          { "semanticTypeId": "system-component", "label": "System components", "color": "#E6E6E6" }
+        ],
+        "edgeEntries": [
+          { "label": "provides", "sourceMarker": "none", "targetMarker": "ball", "color": "#000000" },
+          { "label": "requires", "sourceMarker": "socket", "targetMarker": "none", "color": "#000000" }
+        ]
+      }
+    }
+  ]
+}

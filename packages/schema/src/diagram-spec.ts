@@ -6,6 +6,19 @@ const AnchorSideSchema = z
   .enum(["top", "right", "bottom", "left"])
   .describe("Side of a node: top (12 o'clock), right (3), bottom (6), left (9)");
 
+const ClockAnchorSchema = z
+  .enum([
+    "12:00", "1:30", "3:00", "4:30", "6:00", "7:30", "9:00", "10:30",
+    // Legacy aliases for backward compatibility:
+    "top", "right", "bottom", "left",
+  ])
+  .describe(
+    "Anchor position on a node using clock notation. " +
+      "12:00=top-center, 3:00=right-center, 6:00=bottom-center, 9:00=left-center. " +
+      "1:30=top-right corner, 4:30=bottom-right, 7:30=bottom-left, 10:30=top-left. " +
+      "Legacy values 'top','right','bottom','left' are accepted as aliases."
+  );
+
 // --- Node schemas ---
 
 const NodeStyleSchema = z.object({
@@ -95,11 +108,21 @@ const NodeSchema = z.object({
   label: z.string().describe("Display text shown inside the box"),
   type: z
     .enum(["box", "group"])
-    .describe("'box' for leaf nodes, 'group' for containers that hold other nodes"),
+    .describe(
+      "'box' for leaf nodes, 'group' for containers that hold other nodes. " +
+        "Groups visually enclose their children and can have any shape (rectangle, cloud, etc.) via shapeId. " +
+        "Groups can nest arbitrarily deep: a group inside a group creates a hierarchy. " +
+        "Children reference their parent group via parentId. " +
+        "Use solid borders for physical containers (servers, machines) and dashed borders for logical groupings (clouds, zones)."
+    ),
   parentId: z
     .string()
     .optional()
-    .describe("ID of the parent group node if this node is nested inside one"),
+    .describe(
+      "ID of the parent group node if this node is nested inside one. " +
+        "Creates a containment hierarchy: moving a node out of its parent group changes the semantic relationship. " +
+        "Nesting can be arbitrarily deep (e.g., a pod inside a node inside a cluster)."
+    ),
   style: NodeStyleSchema,
   orderHint: z
     .number()
@@ -123,7 +146,9 @@ const NodeSchema = z.object({
     .string()
     .optional()
     .describe(
-      "References a size palette entry by id. All nodes sharing a sizeId render at identical dimensions."
+      "References a size palette entry by id. All nodes sharing a sizeId render at identical dimensions. " +
+        "For groups: provides explicit container dimensions. Groups without sizeId auto-size from children. " +
+        "Containers sharing the same height value will have aligned bottom edges when their tops align via guides."
     ),
   semanticTypeId: z
     .string()
@@ -143,11 +168,37 @@ const NodeSchema = z.object({
   guideRow: z
     .string()
     .optional()
-    .describe("ID of the horizontal guide line this node snaps to"),
+    .describe(
+      "ID of the horizontal guide line this node's center snaps to. " +
+        "Nodes sharing the same guideRow are horizontally aligned. " +
+        "For nodes inside groups: when the top-most children across different groups share " +
+        "the same row guide, the containers automatically get aligned top edges. " +
+        "Similarly, bottom-most children on the same row guide align container bottom edges."
+    ),
   guideColumn: z
     .string()
     .optional()
-    .describe("ID of the vertical guide line this node snaps to"),
+    .describe(
+      "ID of the vertical guide line this node's center snaps to. " +
+        "Nodes sharing the same guideColumn are vertically aligned. " +
+        "Each (guideRow, guideColumn) pair must be unique across all leaf nodes."
+    ),
+  guideRowBottom: z
+    .string()
+    .optional()
+    .describe(
+      "ID of the horizontal guide at this group's bottom edge. " +
+        "Only applies to group nodes. Groups sharing the same guideRowBottom " +
+        "have aligned bottom edges. Used with guideRow to derive container height from guides."
+    ),
+  guideColumnRight: z
+    .string()
+    .optional()
+    .describe(
+      "ID of the vertical guide at this group's right edge. " +
+        "Only applies to group nodes. Groups sharing the same guideColumnRight " +
+        "have aligned right edges. Used with guideColumn to derive container width from guides."
+    ),
   labels: z
     .array(NodeLabelSchema)
     .optional()
@@ -157,6 +208,17 @@ const NodeSchema = z.object({
         "When present, supersedes the legacy 'label' + 'labelPosition' fields."
     ),
 });
+
+// --- Edge marker schemas ---
+
+const MarkerKindSchema = z
+  .enum(["arrow", "ball", "socket", "none"])
+  .describe(
+    "Endpoint marker for an edge. " +
+      "'ball' = small filled circle representing a provided interface (UML lollipop). " +
+      "'socket' = half-circle arc representing a required interface (UML socket). " +
+      "'arrow' = standard arrowhead. 'none' = plain line end."
+  );
 
 // --- Edge schemas ---
 
@@ -169,6 +231,15 @@ const EdgeStyleSchema = z.object({
     .string()
     .default("#333333")
     .describe("CSS hex color for the arrow line"),
+  routingType: z
+    .enum(["straight", "smoothstep", "bezier"])
+    .default("straight")
+    .optional()
+    .describe(
+      "Edge routing algorithm. 'straight' draws a direct line between anchors. " +
+        "'smoothstep' uses orthogonal segments with rounded corners. " +
+        "'bezier' uses a cubic bezier curve. Defaults to 'straight'."
+    ),
 });
 
 const EdgeLabelStyleSchema = z.object({
@@ -224,11 +295,13 @@ const EdgeSchema = z.object({
     .optional()
     .describe("Text label displayed on or near the arrow"),
   style: EdgeStyleSchema.optional(),
-  sourceAnchor: AnchorSideSchema.optional().describe(
-    "Side of the source node where the arrow originates"
+  sourceAnchor: ClockAnchorSchema.optional().describe(
+    "Anchor position on the source node where the edge originates. " +
+      "Uses clock notation (e.g. '3:00' for right center, '1:30' for top-right corner)."
   ),
-  targetAnchor: AnchorSideSchema.optional().describe(
-    "Side of the target node where the arrow terminates"
+  targetAnchor: ClockAnchorSchema.optional().describe(
+    "Anchor position on the target node where the edge terminates. " +
+      "Uses clock notation (e.g. '9:00' for left center, '7:30' for bottom-left corner)."
   ),
   labelStyle: EdgeLabelStyleSchema.optional().describe(
     "Styling for the edge label text. If omitted, renderer defaults apply."
@@ -238,6 +311,18 @@ const EdgeSchema = z.object({
     .optional()
     .describe(
       "Multi-label array. When present, supersedes the legacy 'label' + 'labelStyle' fields."
+    ),
+  sourceMarker: MarkerKindSchema.default("none")
+    .optional()
+    .describe(
+      "Marker at the source end of the edge. Defaults to 'none' (plain line). " +
+        "Use 'ball'/'socket' for UML component-style connectors."
+    ),
+  targetMarker: MarkerKindSchema.default("arrow")
+    .optional()
+    .describe(
+      "Marker at the target end of the edge. Defaults to 'arrow'. " +
+        "Use 'ball' for a provided interface endpoint, 'socket' for a required interface endpoint."
     ),
 });
 
@@ -283,8 +368,15 @@ const ShapeKindSchema = z
     "parallelogram",
     "hexagon",
     "arrow-shape",
+    "cloud",
+    "cylinder",
   ])
-  .describe("Geometric shape kind for a node");
+  .describe(
+    "Geometric shape kind for a node or group container. " +
+      "'cloud' renders a cloud/blob outline, typically for logical groupings (e.g., cloud providers). " +
+      "'cylinder' renders a database cylinder icon (top ellipse + body). " +
+      "Groups can use any shape via shapeId — 'rectangle' is the default for groups."
+  );
 
 const ShapePaletteEntrySchema = z.object({
   id: z
@@ -398,6 +490,59 @@ const GuideLineSchema = z.object({
     .describe("Optional human-readable label for the guide line"),
 });
 
+// --- Legend schemas ---
+
+const LegendNodeEntrySchema = z.object({
+  semanticTypeId: z
+    .string()
+    .optional()
+    .describe("References a semantic type. The legend entry represents this category of nodes."),
+  label: z
+    .string()
+    .describe("Display text for this legend entry, e.g. 'Kubernetes components'"),
+  color: z
+    .string()
+    .optional()
+    .describe("CSS hex color for the legend swatch. If semanticTypeId is set, can be auto-derived."),
+  shapeId: z
+    .string()
+    .optional()
+    .describe("Shape palette reference for the legend swatch icon."),
+});
+
+const LegendEdgeEntrySchema = z.object({
+  label: z
+    .string()
+    .describe("Display text for this edge legend entry, e.g. 'provides'"),
+  sourceMarker: MarkerKindSchema.default("none")
+    .optional()
+    .describe("Marker at the source end of the example edge"),
+  targetMarker: MarkerKindSchema.default("none")
+    .optional()
+    .describe("Marker at the target end of the example edge"),
+  lineStyle: z
+    .enum(["solid", "dashed", "dotted"])
+    .default("solid"),
+  color: z
+    .string()
+    .default("#000000"),
+});
+
+const LegendSchema = z.object({
+  title: z
+    .string()
+    .default("Legend")
+    .describe("Title displayed at the top of the legend box"),
+  nodeEntries: z
+    .array(LegendNodeEntrySchema)
+    .optional()
+    .describe("Node category entries shown in the legend"),
+  edgeEntries: z
+    .array(LegendEdgeEntrySchema)
+    .optional()
+    .describe("Edge type entries shown in the legend"),
+});
+
 // --- Diagram schemas ---
 
 const ImageDimensionsSchema = z.object({
@@ -421,7 +566,8 @@ const SingleDiagramSchema = z.object({
       "'spatial' uses extracted positions from the image; 'auto' uses ELK.js auto-layout"
     ),
   imageDimensions: ImageDimensionsSchema.optional().describe(
-    "Original image dimensions in pixels. Required for spatial layout mode."
+    "Original image dimensions in pixels. Used to set the canvas aspect ratio for " +
+      "spatial and guide-based layout modes, ensuring faithful proportions."
   ),
   nodes: z.array(NodeSchema).describe("All boxes and container groups in this diagram"),
   edges: z.array(EdgeSchema).describe("All arrows connecting nodes in this diagram"),
@@ -429,13 +575,20 @@ const SingleDiagramSchema = z.object({
     .array(GuideLineSchema)
     .optional()
     .describe(
-      "Guide lines representing the implicit alignment grid. " +
-        "Horizontal guides define row positions, vertical guides define column positions."
+      "Guide lines representing the alignment grid. " +
+        "Horizontal guides define row positions (y-axis), vertical guides define column positions (x-axis). " +
+        "Leaf nodes snap their centers to guide intersections via guideRow/guideColumn. " +
+        "Container groups can reference four edge guides (guideRow, guideColumn, guideRowBottom, guideColumnRight) " +
+        "to derive their exact position and size. Groups sharing the same edge guides have aligned edges."
     ),
+  legend: LegendSchema.optional().describe(
+    "Legend configuration. If present, renders a legend panel showing " +
+      "node categories (with color swatches) and edge types (with marker examples)."
+  ),
 });
 
 export const DiagramSpecSchema = z.object({
-  version: z.enum(["1.0", "2.0", "3.0", "4.0"]).describe("Schema version. 2.0 includes spatial data. 3.0 adds guide lines and label positioning. 4.0 adds multi-label support."),
+  version: z.enum(["1.0", "2.0", "3.0", "4.0", "5.0"]).describe("Schema version. 2.0 includes spatial data. 3.0 adds guide lines and label positioning. 4.0 adds multi-label support. 5.0 adds container group shapes (cloud, cylinder) and ball-socket edge endpoint markers."),
   palette: ColorPaletteSchema.optional().describe(
     "Color palette sampled from the source image. All node/edge colors should reference " +
       "hex values from this palette. Optional for backward compatibility with older specs."
@@ -484,3 +637,8 @@ export type EdgeLabelStyle = z.infer<typeof EdgeLabelStyleSchema>;
 export type ClockPosition = z.infer<typeof ClockPositionSchema>;
 export type NodeLabel = z.infer<typeof NodeLabelSchema>;
 export type EdgeLabel = z.infer<typeof EdgeLabelSchema>;
+export type MarkerKind = z.infer<typeof MarkerKindSchema>;
+export type ClockAnchor = z.infer<typeof ClockAnchorSchema>;
+export type LegendConfig = z.infer<typeof LegendSchema>;
+export type LegendNodeEntry = z.infer<typeof LegendNodeEntrySchema>;
+export type LegendEdgeEntry = z.infer<typeof LegendEdgeEntrySchema>;

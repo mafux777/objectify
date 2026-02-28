@@ -141,6 +141,11 @@ function flattenElkResult(
         ? "shapeNode"
         : "colorBox";
 
+    // For group nodes, also look up shape entry to pass shapeKind (e.g., cloud)
+    const groupShapeEntry = isGroup && specNode.shapeId && shapeMap
+      ? shapeMap.get(specNode.shapeId)
+      : undefined;
+
     const rfNode: Node = {
       id: specNode.id,
       type: nodeType,
@@ -151,6 +156,7 @@ function flattenElkResult(
         style: specNode.style,
         ...(specNode.font ? { font: specNode.font } : {}),
         ...(shapeEntry ? { shapeKind: shapeEntry.kind, ...(shapeEntry.aspectRatio ? { aspectRatio: shapeEntry.aspectRatio } : {}) } : {}),
+        ...(groupShapeEntry ? { shapeKind: groupShapeEntry.kind } : {}),
         ...(specNode.shapeId ? { shapeId: specNode.shapeId } : {}),
         ...(specNode.sizeId ? { sizeId: specNode.sizeId } : {}),
         ...(specNode.semanticTypeId ? { semanticTypeId: specNode.semanticTypeId } : {}),

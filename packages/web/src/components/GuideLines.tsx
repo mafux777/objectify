@@ -11,6 +11,7 @@ interface GuideLinesProps {
   setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
   nodes: Node[];
   saveSnapshot: () => void;
+  onGuideHover?: (guideId: string | null) => void;
 }
 
 export function GuideLines({
@@ -22,6 +23,7 @@ export function GuideLines({
   setNodes,
   nodes,
   saveSnapshot,
+  onGuideHover,
 }: GuideLinesProps) {
   const { getViewport } = useReactFlow();
   const dragState = useRef<{
@@ -69,8 +71,11 @@ export function GuideLines({
         )
       );
 
-      // Move all nodes snapped to this guide
-      const guideField = ds.direction === "horizontal" ? "guideRow" : "guideColumn";
+      // Determine if this guide is used as a bottom/right edge guide
+      // If so, we resize groups rather than translate them
+      const bottomField = ds.direction === "horizontal" ? "guideRowBottom" : "guideColumnRight";
+      const topField = ds.direction === "horizontal" ? "guideRow" : "guideColumn";
+
       const newCanvasPos = ds.direction === "horizontal"
         ? newPosition * canvasHeight
         : newPosition * canvasWidth;
@@ -78,20 +83,36 @@ export function GuideLines({
       setNodes((nds) =>
         nds.map((n) => {
           const nd = n.data as Record<string, unknown>;
-          if (nd?.[guideField] !== ds.guideId) return n;
 
-          const nW = n.width ?? n.measured?.width ?? 160;
-          const nH = n.height ?? n.measured?.height ?? 50;
-
-          if (ds.direction === "horizontal") {
-            const newY = newCanvasPos - nH / 2;
-            if (Math.abs(n.position.y - newY) < 0.5) return n;
-            return { ...n, position: { x: n.position.x, y: newY } };
-          } else {
-            const newX = newCanvasPos - nW / 2;
-            if (Math.abs(n.position.x - newX) < 0.5) return n;
-            return { ...n, position: { x: newX, y: n.position.y } };
+          // Case 1: Node uses this guide as a bottom/right edge → resize
+          if (nd?.[bottomField] === ds.guideId) {
+            const newDim = newCanvasPos - n.position.y;
+            if (ds.direction === "horizontal") {
+              const newH = Math.max(30, newCanvasPos - n.position.y);
+              return { ...n, height: newH, style: { ...n.style, height: newH } };
+            } else {
+              const newW = Math.max(60, newCanvasPos - n.position.x);
+              return { ...n, width: newW, style: { ...n.style, width: newW } };
+            }
           }
+
+          // Case 2: Node uses this guide as a top/left edge → translate (center-based)
+          if (nd?.[topField] === ds.guideId) {
+            const nW = n.width ?? n.measured?.width ?? 160;
+            const nH = n.height ?? n.measured?.height ?? 50;
+
+            if (ds.direction === "horizontal") {
+              const newY = newCanvasPos - nH / 2;
+              if (Math.abs(n.position.y - newY) < 0.5) return n;
+              return { ...n, position: { x: n.position.x, y: newY } };
+            } else {
+              const newX = newCanvasPos - nW / 2;
+              if (Math.abs(n.position.x - newX) < 0.5) return n;
+              return { ...n, position: { x: newX, y: n.position.y } };
+            }
+          }
+
+          return n;
         })
       );
     },
@@ -204,6 +225,8 @@ export function GuideLines({
                   onPointerDown={(e) => onPointerDown(e, guide)}
                   onPointerMove={onPointerMove}
                   onPointerUp={onPointerUp}
+                  onPointerEnter={() => onGuideHover?.(guide.id)}
+                  onPointerLeave={() => onGuideHover?.(null)}
                 />
                 <text
                   x={lx + labelPad}
@@ -215,6 +238,8 @@ export function GuideLines({
                   onPointerDown={(e) => onPointerDown(e, guide)}
                   onPointerMove={onPointerMove}
                   onPointerUp={onPointerUp}
+                  onPointerEnter={() => onGuideHover?.(guide.id)}
+                  onPointerLeave={() => onGuideHover?.(null)}
                 >
                   {labelText}
                 </text>
@@ -247,6 +272,8 @@ export function GuideLines({
                   onPointerDown={(e) => onPointerDown(e, guide)}
                   onPointerMove={onPointerMove}
                   onPointerUp={onPointerUp}
+                  onPointerEnter={() => onGuideHover?.(guide.id)}
+                  onPointerLeave={() => onGuideHover?.(null)}
                 />
                 <text
                   x={x - labelWidth / 2 + labelPad}
@@ -258,6 +285,8 @@ export function GuideLines({
                   onPointerDown={(e) => onPointerDown(e, guide)}
                   onPointerMove={onPointerMove}
                   onPointerUp={onPointerUp}
+                  onPointerEnter={() => onGuideHover?.(guide.id)}
+                  onPointerLeave={() => onGuideHover?.(null)}
                 >
                   {labelText}
                 </text>

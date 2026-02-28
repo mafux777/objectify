@@ -3,19 +3,83 @@ import type { DiagramEdge } from "@objectify/schema";
 import { fontStack } from "./fonts";
 import { migrateEdgeLabels } from "./label-migration.js";
 
+function specMarkerToFlow(
+  marker: string | undefined,
+  fallback: string,
+  color: string
+): string | { type: MarkerType; color: string; width: number; height: number } | undefined {
+  const kind = marker ?? fallback;
+  switch (kind) {
+    case "ball":
+      return `url(#marker-ball-${color.replace("#", "")})`;
+    case "socket":
+      return `url(#marker-socket-${color.replace("#", "")})`;
+    case "arrow":
+      return { type: MarkerType.ArrowClosed, color, width: 16, height: 16 };
+    case "none":
+      return undefined;
+    default:
+      return undefined;
+  }
+}
+
+/** Collect all unique marker+color combinations needed for SVG defs */
+export function collectMarkerColors(specEdges: DiagramEdge[]): { kind: string; color: string }[] {
+  const seen = new Set<string>();
+  const result: { kind: string; color: string }[] = [];
+  for (const e of specEdges) {
+    const color = e.style?.color ?? "#555";
+    for (const marker of [e.sourceMarker, e.targetMarker]) {
+      if (marker === "ball" || marker === "socket") {
+        const key = `${marker}-${color}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          result.push({ kind: marker, color });
+        }
+      }
+    }
+  }
+  return result;
+}
+
+/** Map legacy cardinal anchors to clock notation for handle IDs */
+const LEGACY_ANCHOR_MAP: Record<string, string> = {
+  top: "12:00",
+  right: "3:00",
+  bottom: "6:00",
+  left: "9:00",
+};
+
+function anchorToHandleId(anchor: string, direction: "source" | "target"): string {
+  const normalized = LEGACY_ANCHOR_MAP[anchor] ?? anchor;
+  return `${direction}-${normalized}`;
+}
+
+/** Map routing type from spec to React Flow edge type */
+function routingToEdgeType(routingType: string | undefined): string {
+  switch (routingType) {
+    case "smoothstep": return "smoothstep";
+    case "bezier": return "default";
+    case "straight":
+    default: return "customStraight";
+  }
+}
+
 export function specEdgesToFlowEdges(specEdges: DiagramEdge[]): Edge[] {
   return specEdges.map((e) => {
     const edgeLabels = migrateEdgeLabels(e);
     // React Flow only supports one label natively — use the first one
     const primaryLabel = edgeLabels[0];
+    const color = e.style?.color ?? "#555";
+    const edgeType = routingToEdgeType(e.style?.routingType);
 
     return {
       id: e.id,
       source: e.source,
       target: e.target,
-      type: "smoothstep",
-      ...(e.sourceAnchor ? { sourceHandle: `source-${e.sourceAnchor}` } : {}),
-      ...(e.targetAnchor ? { targetHandle: `target-${e.targetAnchor}` } : {}),
+      type: edgeType,
+      ...(e.sourceAnchor ? { sourceHandle: anchorToHandleId(e.sourceAnchor, "source") } : {}),
+      ...(e.targetAnchor ? { targetHandle: anchorToHandleId(e.targetAnchor, "target") } : {}),
       label: primaryLabel?.text ?? e.label,
       labelStyle: {
         fontSize: e.labelStyle?.fontSize ?? 11,
@@ -31,7 +95,7 @@ export function specEdgesToFlowEdges(specEdges: DiagramEdge[]): Edge[] {
       },
       animated: e.style?.lineStyle === "dashed",
       style: {
-        stroke: e.style?.color ?? "#555",
+        stroke: color,
         strokeWidth: 1.5,
         ...(e.style?.lineStyle === "dashed"
           ? { strokeDasharray: "6,3" }
@@ -39,16 +103,14 @@ export function specEdgesToFlowEdges(specEdges: DiagramEdge[]): Edge[] {
             ? { strokeDasharray: "2,2" }
             : {}),
       },
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-        color: e.style?.color ?? "#555",
-        width: 16,
-        height: 16,
-      },
+      markerStart: specMarkerToFlow(e.sourceMarker, "none", color),
+      markerEnd: specMarkerToFlow(e.targetMarker, "arrow", color),
       // Store full labels array for the LabelConnectors overlay
       data: {
         labels: edgeLabels,
         ...(e.labelStyle ? { labelStyle: e.labelStyle } : {}),
+        ...(e.sourceMarker ? { sourceMarker: e.sourceMarker } : {}),
+        ...(e.targetMarker ? { targetMarker: e.targetMarker } : {}),
       },
     };
   });

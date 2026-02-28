@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -10,6 +10,7 @@ import {
   useNodesState,
   useEdgesState,
   type NodeTypes,
+  type EdgeTypes,
   type OnConnect,
   type Node,
   type Edge,
@@ -31,9 +32,12 @@ import { useUndoHistory } from "../hooks/useUndoHistory.js";
 import { ColorBoxNode } from "./nodes/ColorBoxNode.js";
 import { GroupNode } from "./nodes/GroupNode.js";
 import { ShapeNode } from "./nodes/ShapeNode.js";
+import { CustomStraightEdge } from "./edges/CustomStraightEdge.js";
 import { ContextMenu, type ContextMenuState } from "./ContextMenu.js";
 import { CommandBar } from "./CommandBar.js";
+import { Legend } from "./Legend.js";
 import { flowToDiagram, flowToSpec } from "../lib/flow-to-spec.js";
+import { collectMarkerColors } from "../lib/spec-to-flow.js";
 import { GuideLines } from "./GuideLines.js";
 import { LabelConnectors } from "./LabelConnectors.js";
 
@@ -43,6 +47,10 @@ const nodeTypes: NodeTypes = {
   colorBox: ColorBoxNode,
   groupNode: GroupNode,
   shapeNode: ShapeNode,
+};
+
+const edgeTypes: EdgeTypes = {
+  customStraight: CustomStraightEdge,
 };
 
 interface FlowDiagramProps {
@@ -74,6 +82,9 @@ export function FlowDiagram({
   const [guides, setGuides] = useState<GuideLine[]>(diagram.guides ?? []);
   const [showGuides, setShowGuides] = useState(true);
   const [showLabelConnectors, setShowLabelConnectors] = useState(false);
+  const [showLegend, setShowLegend] = useState(true);
+  const [hoveredGuideId, setHoveredGuideId] = useState<string | null>(null);
+  const [focusedEdgeId, setFocusedEdgeId] = useState<string | null>(null);
   const flowRef = useRef<HTMLDivElement>(null);
 
   const { saveSnapshot, undo, redo, canUndo, canRedo, clearHistory } =
@@ -83,6 +94,59 @@ export function FlowDiagram({
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const isInitialMount = useRef(true);
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved" | null>(null);
+
+  // Expose helpers for external tooling (e.g. Claude Code) to query/manipulate selection
+  useEffect(() => {
+    (window as Record<string, unknown>).__objectify = {
+      selectByIds: (ids: string[]) => {
+        setNodes((nds) =>
+          nds.map((n) => ({ ...n, selected: ids.includes(n.id) }))
+        );
+      },
+      getSelectedIds: () => nodes.filter((n) => n.selected).map((n) => n.id),
+      getNodes: () => nodes,
+    };
+  });
+
+  // Compute highlighted node IDs from hovered guide
+  const guideHighlightedNodeIds = useMemo(() => {
+    if (!hoveredGuideId) return new Set<string>();
+    const ids = new Set<string>();
+    for (const n of nodes) {
+      const d = n.data as Record<string, unknown>;
+      if (
+        d?.guideRow === hoveredGuideId ||
+        d?.guideColumn === hoveredGuideId ||
+        d?.guideRowBottom === hoveredGuideId ||
+        d?.guideColumnRight === hoveredGuideId
+      ) {
+        ids.add(n.id);
+      }
+    }
+    return ids;
+  }, [hoveredGuideId, nodes]);
+
+  // Compute highlight/dim sets from focused edge
+  const edgeHighlight = useMemo(() => {
+    if (!focusedEdgeId) return null;
+    const edge = edges.find((e) => e.id === focusedEdgeId);
+    if (!edge) return null;
+    return { edgeId: focusedEdgeId, nodeIds: new Set([edge.source, edge.target]) };
+  }, [focusedEdgeId, edges]);
+
+  // Edge click handler
+  const onEdgeClick = useCallback(
+    (_event: React.MouseEvent, edge: Edge) => {
+      setFocusedEdgeId((prev) => (prev === edge.id ? null : edge.id));
+    },
+    []
+  );
+
+  // Clear edge focus on pane click
+  const onPaneClick = useCallback(() => {
+    setContextMenu(null);
+    setFocusedEdgeId(null);
+  }, []);
 
   // Compute canvas dimensions for guide rendering
   const canvasWidth = 1200;
@@ -220,7 +284,7 @@ export function FlowDiagram({
         addEdge(
           {
             ...params,
-            type: "smoothstep",
+            type: "customStraight",
             markerEnd: {
               type: MarkerType.ArrowClosed,
               color: "#555",
@@ -416,8 +480,10 @@ export function FlowDiagram({
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
         onPaneContextMenu={onPaneContextMenu}
-        onPaneClick={closeContextMenu}
+        onEdgeClick={onEdgeClick}
+        onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.1}
@@ -427,6 +493,30 @@ export function FlowDiagram({
         deleteKeyCode={["Backspace", "Delete"]}
         proOptions={{ hideAttribution: true }}
       >
+        {/* Custom SVG marker definitions for ball-and-socket connectors */}
+        <svg style={{ position: "absolute", width: 0, height: 0 }}>
+          <defs>
+            {collectMarkerColors(diagram.edges).map(({ kind, color }) => {
+              const id = `marker-${kind}-${color.replace("#", "")}`;
+              if (kind === "ball") {
+                return (
+                  <marker key={id} id={id} viewBox="0 0 10 10" refX="5" refY="5"
+                    markerWidth="8" markerHeight="8" orient="auto">
+                    <circle cx="5" cy="5" r="4" fill={color} />
+                  </marker>
+                );
+              }
+              // socket
+              return (
+                <marker key={id} id={id} viewBox="0 0 12 12" refX="1" refY="6"
+                  markerWidth="10" markerHeight="10" orient="auto">
+                  <path d="M 10 1 A 5 5 0 0 0 10 11" fill="none"
+                    stroke={color} strokeWidth="1.5" />
+                </marker>
+              );
+            })}
+          </defs>
+        </svg>
         <Background gap={20} size={1} color="#e8e8e8" />
         <Controls />
         <MiniMap
@@ -445,7 +535,11 @@ export function FlowDiagram({
             setNodes={setNodes}
             nodes={nodes}
             saveSnapshot={saveSnapshot}
+            onGuideHover={setHoveredGuideId}
           />
+        )}
+        {diagram.legend && (
+          <Legend legend={diagram.legend} visible={showLegend} />
         )}
         <LabelConnectors
           nodes={nodes}
@@ -492,10 +586,47 @@ export function FlowDiagram({
               {showGuides ? "Hide Guides" : "Show Guides"}
             </button>
           )}
+          {diagram.legend && (
+            <button
+              className="load-btn"
+              onClick={() => setShowLegend(!showLegend)}
+              style={{ marginRight: 8 }}
+            >
+              {showLegend ? "Hide Legend" : "Show Legend"}
+            </button>
+          )}
           <button className="load-btn" onClick={handleExport}>
             Export JSON
           </button>
         </Panel>
+        {/* Guide hover highlight */}
+        {hoveredGuideId && guideHighlightedNodeIds.size > 0 && (
+          <style>{`
+            ${Array.from(guideHighlightedNodeIds)
+              .map((id) => `.react-flow__node[data-id="${id}"]`)
+              .join(",\n            ")} {
+              box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.5) !important;
+              z-index: 10 !important;
+            }
+          `}</style>
+        )}
+
+        {/* Edge focus highlight/dim */}
+        {edgeHighlight && (
+          <style>{`
+            .react-flow__node { opacity: 0.25; transition: opacity 0.2s; }
+            .react-flow__edge { opacity: 0.25; transition: opacity 0.2s; }
+            ${Array.from(edgeHighlight.nodeIds)
+              .map((id) => `.react-flow__node[data-id="${id}"]`)
+              .join(",\n            ")} {
+              opacity: 1 !important;
+              box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.5) !important;
+            }
+            .react-flow__edge[data-id="${edgeHighlight.edgeId}"] {
+              opacity: 1 !important;
+            }
+          `}</style>
+        )}
       </ReactFlow>
 
       {contextMenu && (

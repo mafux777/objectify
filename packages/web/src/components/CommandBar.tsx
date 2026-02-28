@@ -84,7 +84,7 @@ export function CommandBar({ nodes, edges, setNodes, setEdges, guides, setGuides
             id: `cmd-edge-${cmdNodeCounter}`,
             source: src.id,
             target: tgt.id,
-            type: "smoothstep",
+            type: "customStraight",
             markerEnd: {
               type: MarkerType.ArrowClosed,
               color: "#555",

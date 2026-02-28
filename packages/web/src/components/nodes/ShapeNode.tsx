@@ -1,7 +1,8 @@
-import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
+import { NodeResizer, type NodeProps } from "@xyflow/react";
 import type { NodeStyle, NodeFont, ShapeKind, NodeLabel } from "@objectify/schema";
 import { fontStack } from "../../lib/fonts";
 import { NodeLabels } from "./NodeLabels";
+import { NodeHandles } from "./NodeHandles";
 
 type ShapeNodeData = {
   label: string;
@@ -52,12 +53,51 @@ export function ShapeNode({
 
   const centerLabel = labels?.find((l) => l.position === "center")?.text ?? label;
   const hasOutsideLabels = labels?.some((l) => l.position !== "center");
-  const shapeStyles = getShapeStyles(shapeKind);
+  const isCylinder = shapeKind === "cylinder";
+  const shapeStyles = isCylinder ? {} : getShapeStyles(shapeKind);
   // Apply aspect ratio from shape palette (unless shape already enforces it, like circle)
   const aspectRatioStyle: React.CSSProperties =
     aspectRatio && shapeKind !== "circle"
       ? { aspectRatio: String(aspectRatio) }
       : {};
+
+  const handles = <NodeHandles />;
+
+  if (isCylinder) {
+    const borderColor = style.borderColor ?? "#bbb";
+    return (
+      <>
+        {hasOutsideLabels && labels && (
+          <NodeLabels labels={labels} defaultFont={font} defaultColor={style.textColor ?? "#000"} />
+        )}
+        <NodeResizer minWidth={60} minHeight={30} isVisible={!!selected} lineClassName="resizer-line" handleClassName="resizer-handle" />
+        {handles}
+        <svg viewBox="0 0 60 50" style={{ width: "100%", height: "100%" }} preserveAspectRatio="none">
+          {/* Body */}
+          <rect x="1" y="10" width="58" height="30" fill={style.backgroundColor} stroke="none" />
+          {/* Left/right borders */}
+          <line x1="1" y1="10" x2="1" y2="40" stroke={borderColor} strokeWidth="2" />
+          <line x1="59" y1="10" x2="59" y2="40" stroke={borderColor} strokeWidth="2" />
+          {/* Bottom ellipse */}
+          <ellipse cx="30" cy="40" rx="29" ry="8" fill={style.backgroundColor} stroke={borderColor} strokeWidth="2" />
+          {/* Top ellipse (covers body top) */}
+          <ellipse cx="30" cy="10" rx="29" ry="8" fill={style.backgroundColor} stroke={borderColor} strokeWidth="2" />
+          {/* Label */}
+          <text
+            x="30" y="30"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill={style.textColor ?? "#000"}
+            fontWeight={font?.fontWeight === "bold" ? 700 : 500}
+            fontSize={font?.fontSize ?? 13}
+            fontFamily={fontStack(font?.fontFamily)}
+          >
+            {centerLabel}
+          </text>
+        </svg>
+      </>
+    );
+  }
 
   return (
     <>
@@ -71,58 +111,7 @@ export function ShapeNode({
         lineClassName="resizer-line"
         handleClassName="resizer-handle"
       />
-
-      {/* Target handles (incoming) */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        id="target-top"
-        className="anchor-handle"
-      />
-      <Handle
-        type="target"
-        position={Position.Right}
-        id="target-right"
-        className="anchor-handle"
-      />
-      <Handle
-        type="target"
-        position={Position.Bottom}
-        id="target-bottom"
-        className="anchor-handle"
-      />
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="target-left"
-        className="anchor-handle"
-      />
-
-      {/* Source handles (outgoing) */}
-      <Handle
-        type="source"
-        position={Position.Top}
-        id="source-top"
-        className="anchor-handle"
-      />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="source-right"
-        className="anchor-handle"
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="source-bottom"
-        className="anchor-handle"
-      />
-      <Handle
-        type="source"
-        position={Position.Left}
-        id="source-left"
-        className="anchor-handle"
-      />
+      {handles}
 
       <div
         style={{

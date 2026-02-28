@@ -17,6 +17,10 @@ const DEFAULT_NODE_HEIGHT = 50;
 const CELL_STACK_GAP = 10;
 const MIN_NODE_GAP = 20; // minimum pixels between adjacent nodes
 
+const GROUP_PADDING_TOP = 40; // space for title
+const GROUP_PADDING_SIDE = 20;
+const GROUP_PADDING_BOTTOM = 20;
+
 /**
  * Validate that no two nodes share the same (guideRow, guideColumn) pair.
  * Returns an array of warning strings for any duplicates found.
@@ -149,6 +153,16 @@ export function resolveGuideOverlaps(
  * Guide-based layout: positions nodes at the intersections of their assigned
  * row (horizontal guide) and column (vertical guide). This makes guides
  * structural — the grid skeleton that determines node placement.
+ *
+ * Groups (containers) are handled specially:
+ * - Leaf nodes are positioned at guide intersections (center-based)
+ * - Groups derive their position and size from their children's bounding box
+ * - If a group has a sizeId, that explicit size is used (centered on children)
+ * - Children's positions are converted to parent-relative coordinates
+ *
+ * This produces container edge alignment as an emergent property: when the
+ * top-most children across different groups share the same row guide, all
+ * those containers get the same top edge.
  */
 export function guideLayoutDiagram(
   diagram: SingleDiagram,
@@ -159,12 +173,6 @@ export function guideLayoutDiagram(
   const imgH = diagram.imageDimensions?.height ?? REFERENCE_CANVAS_HEIGHT;
   const canvasWidth = REFERENCE_CANVAS_WIDTH;
   const canvasHeight = canvasWidth * (imgH / imgW);
-
-  // Validate unique grid coordinates
-  const warnings = validateGuideCoordinates(diagram.nodes);
-  for (const w of warnings) {
-    console.warn(`[Guide Layout] ${w}`);
-  }
 
   // Build lookup maps
   const shapeMap = shapePalette
@@ -183,10 +191,27 @@ export function guideLayoutDiagram(
     };
   }
 
+  // Separate groups from leaf nodes
+  const groupNodes: DiagramNode[] = [];
+  const leafNodes: DiagramNode[] = [];
+  for (const node of diagram.nodes) {
+    if (node.type === "group") {
+      groupNodes.push(node);
+    } else {
+      leafNodes.push(node);
+    }
+  }
+
+  // Validate unique grid coordinates (only for leaf nodes with guides)
+  const warnings = validateGuideCoordinates(leafNodes);
+  for (const w of warnings) {
+    console.warn(`[Guide Layout] ${w}`);
+  }
+
   // Post-LLM validation: resolve overlaps by adjusting guide positions
   const resolvedGuides = resolveGuideOverlaps(
     diagram.guides ?? [],
-    diagram.nodes,
+    leafNodes,
     getNodeSize,
     canvasWidth,
     canvasHeight,
@@ -197,38 +222,37 @@ export function guideLayoutDiagram(
     guideMap.set(g.id, g);
   }
 
-  // Group nodes by their (guideRow, guideColumn) cell
+  // --- Phase 1: Position leaf nodes at guide intersections ---
   const cellKey = (row: string, col: string) => `${row}::${col}`;
   const cells = new Map<string, DiagramNode[]>();
-  const unassigned: DiagramNode[] = [];
+  const unassignedLeaves: DiagramNode[] = [];
 
-  for (const node of diagram.nodes) {
+  for (const node of leafNodes) {
     if (node.guideRow && node.guideColumn) {
       const key = cellKey(node.guideRow, node.guideColumn);
       if (!cells.has(key)) cells.set(key, []);
       cells.get(key)!.push(node);
     } else {
-      unassigned.push(node);
+      unassignedLeaves.push(node);
     }
   }
 
   const rfNodes: Node[] = [];
+  // Map from node id → positioned flow node (for group bound computation)
+  const positionedById = new Map<string, Node>();
 
-  // Place nodes at guide intersections
   for (const [, cellNodes] of cells) {
     const firstNode = cellNodes[0];
     const rowGuide = guideMap.get(firstNode.guideRow!);
     const colGuide = guideMap.get(firstNode.guideColumn!);
     if (!rowGuide || !colGuide) {
-      // Guides not found — treat as unassigned
-      unassigned.push(...cellNodes);
+      unassignedLeaves.push(...cellNodes);
       continue;
     }
 
     const centerX = colGuide.position * canvasWidth;
     const centerY = rowGuide.position * canvasHeight;
 
-    // Compute total stack height for vertical centering
     const sizes = cellNodes.map((n) => getNodeSize(n));
     const totalHeight =
       sizes.reduce((sum, s) => sum + s.h, 0) +
@@ -242,22 +266,176 @@ export function guideLayoutDiagram(
       const y = currentY;
       currentY += h + CELL_STACK_GAP;
 
-      rfNodes.push(buildFlowNode(node, x, y, w, h, shapeMap));
+      const rfNode = buildFlowNode(node, x, y, w, h, shapeMap);
+      rfNodes.push(rfNode);
+      positionedById.set(rfNode.id, rfNode);
     }
   }
 
-  // Place unassigned nodes in a fallback area (bottom of canvas)
+  // Place unassigned leaf nodes in a fallback area
   let fallbackX = 20;
   const fallbackY = canvasHeight + 40;
-  for (const node of unassigned) {
+  for (const node of unassignedLeaves) {
     const { w, h } = getNodeSize(node);
-    rfNodes.push(buildFlowNode(node, fallbackX, fallbackY, w, h, shapeMap));
+    const rfNode = buildFlowNode(node, fallbackX, fallbackY, w, h, shapeMap);
+    rfNodes.push(rfNode);
+    positionedById.set(rfNode.id, rfNode);
     fallbackX += w + 20;
+  }
+
+  // --- Phase 2: Position groups ---
+  // Groups with guideRow + guideColumn + sizeId: use guides as top-left corner, sizeId for dimensions.
+  // Groups with sizeId only (no guides): derive position from children bbox, use explicit size.
+  // Groups without sizeId: auto-size from children bbox + padding.
+  for (const group of groupNodes) {
+    const children = rfNodes.filter(
+      (n) => n.parentId === group.id
+    );
+
+    let gx: number, gy: number, gw: number, gh: number;
+    const groupSize = getNodeSize(group);
+    const hasExplicitSize = group.sizeId && sizeMap?.has(group.sizeId);
+
+    // Priority 0: All 4 edge guides → derive size from guide positions
+    const rowGuide = group.guideRow ? guideMap.get(group.guideRow) : undefined;
+    const colGuide = group.guideColumn ? guideMap.get(group.guideColumn) : undefined;
+    const rowBottomGuide = group.guideRowBottom ? guideMap.get(group.guideRowBottom) : undefined;
+    const colRightGuide = group.guideColumnRight ? guideMap.get(group.guideColumnRight) : undefined;
+
+    if (rowGuide && colGuide && rowBottomGuide && colRightGuide) {
+      // All 4 edge guides present — size derived entirely from guides
+      gx = colGuide.position * canvasWidth;
+      gy = rowGuide.position * canvasHeight;
+      gw = (colRightGuide.position - colGuide.position) * canvasWidth;
+      gh = (rowBottomGuide.position - rowGuide.position) * canvasHeight;
+    } else if (rowGuide && colGuide && hasExplicitSize) {
+      // Priority 1: top-left guides + sizeId
+      gx = colGuide.position * canvasWidth;
+      gy = rowGuide.position * canvasHeight;
+      gw = groupSize.w;
+      gh = groupSize.h;
+    } else if (children.length === 0) {
+      // No children — use size palette or defaults, place in fallback
+      gx = fallbackX;
+      gy = fallbackY;
+      gw = groupSize.w;
+      gh = groupSize.h;
+      fallbackX += groupSize.w + 20;
+    } else {
+      // Derive position from children bounding box
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const child of children) {
+        const cw = child.width ?? child.measured?.width ?? 80;
+        const ch = child.height ?? child.measured?.height ?? 80;
+        minX = Math.min(minX, child.position.x);
+        minY = Math.min(minY, child.position.y);
+        maxX = Math.max(maxX, child.position.x + cw);
+        maxY = Math.max(maxY, child.position.y + ch);
+      }
+
+      if (hasExplicitSize) {
+        // Explicit size, position so children fit from top-left
+        gw = groupSize.w;
+        gh = groupSize.h;
+        gx = minX - GROUP_PADDING_SIDE;
+        gy = minY - GROUP_PADDING_TOP;
+      } else {
+        // Auto-size: children bbox + padding
+        const bboxW = maxX - minX;
+        const bboxH = maxY - minY;
+        gw = bboxW + GROUP_PADDING_SIDE * 2;
+        gh = bboxH + GROUP_PADDING_TOP + GROUP_PADDING_BOTTOM;
+        gx = minX - GROUP_PADDING_SIDE;
+        gy = minY - GROUP_PADDING_TOP;
+      }
+    }
+
+    const groupFlowNode = buildFlowNode(group, gx, gy, gw, gh, shapeMap);
+    positionedById.set(groupFlowNode.id, groupFlowNode);
+    // Groups must appear before their children in the array
+    rfNodes.unshift(groupFlowNode);
+  }
+
+  // --- Phase 3: Convert children positions to parent-relative ---
+  for (const node of rfNodes) {
+    if (node.parentId) {
+      const parent = positionedById.get(node.parentId);
+      if (parent) {
+        node.position = {
+          x: node.position.x - parent.position.x,
+          y: node.position.y - parent.position.y,
+        };
+      }
+    }
+  }
+
+  // --- Phase 4: Validate guides ---
+  const orphanWarnings = validateOrphanGuides(resolvedGuides, diagram.nodes);
+  for (const w of orphanWarnings) {
+    console.warn(`[Guide Layout] ${w}`);
+  }
+  const dupeWarnings = validateNearDuplicateGuides(resolvedGuides);
+  for (const w of dupeWarnings) {
+    console.warn(`[Guide Layout] ${w}`);
   }
 
   const edges = specEdgesToFlowEdges(diagram.edges);
 
   return { nodes: rfNodes, edges };
+}
+
+/**
+ * Validate that every guide is referenced by at least one node.
+ * Guides not referenced by any node's guideRow/guideColumn/guideRowBottom/guideColumnRight
+ * are flagged as orphans.
+ */
+export function validateOrphanGuides(
+  guides: GuideLine[],
+  nodes: DiagramNode[]
+): string[] {
+  const usedIds = new Set<string>();
+  for (const node of nodes) {
+    if (node.guideRow) usedIds.add(node.guideRow);
+    if (node.guideColumn) usedIds.add(node.guideColumn);
+    if (node.guideRowBottom) usedIds.add(node.guideRowBottom);
+    if (node.guideColumnRight) usedIds.add(node.guideColumnRight);
+  }
+
+  const warnings: string[] = [];
+  for (const guide of guides) {
+    if (!usedIds.has(guide.id)) {
+      warnings.push(
+        `[Orphan Guide] "${guide.id}" (${guide.direction} at ${guide.position.toFixed(3)}) has no nodes referencing it`
+      );
+    }
+  }
+  return warnings;
+}
+
+/**
+ * Warn if two guides of the same direction have positions within 0.01 of each other.
+ * These may be unintentional duplicates that should be merged.
+ */
+export function validateNearDuplicateGuides(guides: GuideLine[]): string[] {
+  const warnings: string[] = [];
+  const byDirection = { horizontal: [] as GuideLine[], vertical: [] as GuideLine[] };
+  for (const g of guides) {
+    byDirection[g.direction].push(g);
+  }
+
+  for (const [dir, group] of Object.entries(byDirection)) {
+    const sorted = group.sort((a, b) => a.position - b.position);
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const delta = sorted[i + 1].position - sorted[i].position;
+      if (delta < 0.01) {
+        warnings.push(
+          `[Near-Duplicate] ${dir} guides "${sorted[i].id}" (${sorted[i].position.toFixed(3)}) and ` +
+            `"${sorted[i + 1].id}" (${sorted[i + 1].position.toFixed(3)}) are only ${(delta * 100).toFixed(1)}% apart — consider merging`
+        );
+      }
+    }
+  }
+  return warnings;
 }
 
 function buildFlowNode(
@@ -297,6 +475,8 @@ function buildFlowNode(
       ...(node.semanticTypeId ? { semanticTypeId: node.semanticTypeId } : {}),
       ...(node.guideRow ? { guideRow: node.guideRow } : {}),
       ...(node.guideColumn ? { guideColumn: node.guideColumn } : {}),
+      ...(node.guideRowBottom ? { guideRowBottom: node.guideRowBottom } : {}),
+      ...(node.guideColumnRight ? { guideColumnRight: node.guideColumnRight } : {}),
     },
     ...(node.parentId
       ? { parentId: node.parentId, extent: "parent" as const }

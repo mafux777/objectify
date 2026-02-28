@@ -21,4 +21,5 @@ export {
   type ClockPosition,
   type NodeLabel,
   type EdgeLabel,
+  type MarkerKind,
 } from "./diagram-spec.js";

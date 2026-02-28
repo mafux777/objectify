@@ -246,3 +246,35 @@ body,
 .command-bar input::placeholder {
   color: #aaa;
 }
+
+/* Selection emphasis: dim non-selected nodes/edges when something is selected */
+.react-flow:has(.react-flow__node.selected) .react-flow__node:not(.selected) {
+  opacity: 0.3;
+  transition: opacity 0.2s;
+}
+
+.react-flow:has(.react-flow__node.selected) .react-flow__edge:not(.selected) {
+  opacity: 0.15;
+}
+
+.react-flow__node.selected {
+  filter: drop-shadow(0 0 6px rgba(25, 118, 210, 0.5));
+  transition: filter 0.2s, opacity 0.2s;
+}
+
+.react-flow__node,
+.react-flow__edge {
+  transition: opacity 0.2s;
+}
+
+/* Edge midpoint handle */
+.edge-midpoint-handle {
+  cursor: pointer;
+  pointer-events: all;
+  transition: r 0.15s, fill 0.15s;
+}
+
+.edge-midpoint-handle:hover {
+  r: 6;
+  fill: #e3f2fd;
+}

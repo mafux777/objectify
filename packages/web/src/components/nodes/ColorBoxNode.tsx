@@ -1,7 +1,8 @@
-import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
+import { NodeResizer, type NodeProps } from "@xyflow/react";
 import type { NodeStyle, NodeFont, NodeLabel } from "@objectify/schema";
 import { fontStack } from "../../lib/fonts";
 import { NodeLabels } from "./NodeLabels";
+import { NodeHandles } from "./NodeHandles";
 
 type ColorBoxData = {
   label: string;
@@ -33,17 +34,7 @@ export function ColorBoxNode({
         handleClassName="resizer-handle"
       />
 
-      {/* Target handles (incoming) */}
-      <Handle type="target" position={Position.Top} id="target-top" className="anchor-handle" />
-      <Handle type="target" position={Position.Right} id="target-right" className="anchor-handle" />
-      <Handle type="target" position={Position.Bottom} id="target-bottom" className="anchor-handle" />
-      <Handle type="target" position={Position.Left} id="target-left" className="anchor-handle" />
-
-      {/* Source handles (outgoing) */}
-      <Handle type="source" position={Position.Top} id="source-top" className="anchor-handle" />
-      <Handle type="source" position={Position.Right} id="source-right" className="anchor-handle" />
-      <Handle type="source" position={Position.Bottom} id="source-bottom" className="anchor-handle" />
-      <Handle type="source" position={Position.Left} id="source-left" className="anchor-handle" />
+      <NodeHandles />
 
       <div
         style={{

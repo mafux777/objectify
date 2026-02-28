@@ -4,6 +4,7 @@ import { DiagramViewer } from "./components/DiagramViewer.js";
 import sampleData from "./data/sample.json";
 import lpConnectorData from "./data/lp-connector.json";
 import tradingPipelineData from "./data/trading-pipeline.json";
+import talosComponentsData from "./data/talos-components.json";
 
 interface SpecEntry {
   slug: string;
@@ -95,6 +96,9 @@ function App() {
           </button>
           <button className="load-btn" onClick={() => loadSpec(tradingPipelineData)}>
             Sample 3
+          </button>
+          <button className="load-btn" onClick={() => loadSpec(talosComponentsData)}>
+            Sample 4
           </button>
           {specList.length > 0 && (
             <>

@@ -4,7 +4,6 @@ import type {
   SingleDiagram,
   DiagramNode,
   DiagramEdge,
-  AnchorSide,
   ColorPaletteEntry,
   ShapePaletteEntry,
   SizePaletteEntry,
@@ -61,6 +60,12 @@ export function flowToDiagram(
     }
     if (data.guideColumn) {
       node.guideColumn = data.guideColumn as string;
+    }
+    if (data.guideRowBottom) {
+      node.guideRowBottom = data.guideRowBottom as string;
+    }
+    if (data.guideColumnRight) {
+      node.guideColumnRight = data.guideColumnRight as string;
     }
 
     // Export multi-label array; also set legacy label from labels[0]
@@ -141,9 +146,17 @@ export function flowToDiagram(
     const color =
       ((e.style as Record<string, unknown>)?.stroke as string) ?? "#333333";
 
-    edge.style = { lineStyle, color };
+    // Determine routing type from flow edge type
+    const routingType: "straight" | "smoothstep" | "bezier" =
+      e.type === "smoothstep"
+        ? "smoothstep"
+        : e.type === "default"
+          ? "bezier"
+          : "straight";
 
-    // Preserve edge label style and multi-labels if present in data
+    edge.style = { lineStyle, color, routingType };
+
+    // Preserve edge label style, multi-labels, and markers if present in data
     if ((e as Record<string, unknown>).data) {
       const edgeData = (e as Record<string, unknown>).data as Record<string, unknown>;
       if (edgeData.labelStyle) {
@@ -156,6 +169,12 @@ export function flowToDiagram(
         if (labels.length > 0) {
           edge.label = labels[0].text;
         }
+      }
+      if (edgeData.sourceMarker) {
+        edge.sourceMarker = edgeData.sourceMarker as DiagramEdge["sourceMarker"];
+      }
+      if (edgeData.targetMarker) {
+        edge.targetMarker = edgeData.targetMarker as DiagramEdge["targetMarker"];
       }
     }
 
@@ -177,6 +196,10 @@ export function flowToDiagram(
 
   if (guides && guides.length > 0) {
     diagram.guides = guides;
+  }
+
+  if (originalDiagram.legend) {
+    diagram.legend = originalDiagram.legend;
   }
 
   return diagram;
@@ -201,16 +224,21 @@ export function flowToSpec(
   const hasGuides = guides && guides.length > 0;
   const hasMultiLabels = diagram.nodes.some((n) => n.labels && n.labels.length > 0)
     || diagram.edges.some((e) => e.labels && e.labels.length > 0);
-  const version = hasMultiLabels
-    ? "4.0"
-    : hasGuides
-      ? "3.0"
-      : originalDiagram.layoutMode === "spatial"
-        ? "2.0"
-        : "1.0";
+  const hasV5Features = diagram.edges.some(
+    (e) => (e.sourceMarker && e.sourceMarker !== "none") || (e.targetMarker && e.targetMarker !== "arrow")
+  );
+  const version = hasV5Features
+    ? "5.0"
+    : hasMultiLabels
+      ? "4.0"
+      : hasGuides
+        ? "3.0"
+        : originalDiagram.layoutMode === "spatial"
+          ? "2.0"
+          : "1.0";
 
   return {
-    version: version as "1.0" | "2.0" | "3.0" | "4.0",
+    version: version as "1.0" | "2.0" | "3.0" | "4.0" | "5.0",
     ...(palette && palette.length > 0 ? { palette } : {}),
     ...(shapePalette && shapePalette.length > 0 ? { shapePalette } : {}),
     ...(sizePalette && sizePalette.length > 0 ? { sizePalette } : {}),
@@ -222,15 +250,17 @@ export function flowToSpec(
 
 // --- helpers ---
 
-function handleToAnchor(handleId: string): AnchorSide | undefined {
-  // Handle IDs are "source-top", "target-left", etc.
-  const match = handleId.match(/^(?:source|target)-(\w+)$/);
+const VALID_ANCHORS = new Set([
+  "12:00", "1:30", "3:00", "4:30", "6:00", "7:30", "9:00", "10:30",
+  "top", "right", "bottom", "left",
+]);
+
+function handleToAnchor(handleId: string): string | undefined {
+  // Handle IDs: "source-12:00", "target-3:00", "source-top" (legacy), etc.
+  const match = handleId.match(/^(?:source|target)-(.+)$/);
   if (!match) return undefined;
-  const side = match[1];
-  if (side === "top" || side === "right" || side === "bottom" || side === "left") {
-    return side;
-  }
-  return undefined;
+  const anchor = match[1];
+  return VALID_ANCHORS.has(anchor) ? anchor : undefined;
 }
 
 function clamp01(v: number): number {
