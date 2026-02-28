@@ -1,17 +1,23 @@
 import { useState, useCallback } from "react";
 import { MarkerType, type Node, type Edge } from "@xyflow/react";
+import type { GuideLine } from "@objectify/schema";
 import { parseCommand } from "../lib/command-parser.js";
 
 let cmdNodeCounter = 100;
+let guideCounter = 100;
 
 interface CommandBarProps {
   nodes: Node[];
   edges: Edge[];
   setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
+  guides: GuideLine[];
+  setGuides: React.Dispatch<React.SetStateAction<GuideLine[]>>;
+  canvasWidth: number;
+  canvasHeight: number;
 }
 
-export function CommandBar({ nodes, edges, setNodes, setEdges }: CommandBarProps) {
+export function CommandBar({ nodes, edges, setNodes, setEdges, guides, setGuides, canvasWidth, canvasHeight }: CommandBarProps) {
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -151,10 +157,51 @@ export function CommandBar({ nodes, edges, setNodes, setEdges }: CommandBarProps
         );
         break;
       }
+
+      case "move-guide": {
+        const guide = guides.find((g) => g.id === cmd.guideId);
+        if (!guide) { setError(`Guide "${cmd.guideId}" not found`); return; }
+        // Convert pixel amount to normalized delta
+        const isHorizontal = guide.direction === "horizontal";
+        const canvasDim = isHorizontal ? canvasHeight : canvasWidth;
+        const sign = (cmd.direction === "down" || cmd.direction === "right") ? 1 : -1;
+        const delta = (sign * cmd.amount) / canvasDim;
+        setGuides((gs) =>
+          gs.map((g) =>
+            g.id === cmd.guideId
+              ? { ...g, position: Math.max(0, Math.min(1, g.position + delta)) }
+              : g
+          )
+        );
+        break;
+      }
+
+      case "add-guide": {
+        guideCounter++;
+        const prefix = cmd.direction === "horizontal" ? "row" : "col";
+        const existing = guides.filter((g) => g.direction === cmd.direction);
+        setGuides((gs) => [
+          ...gs,
+          {
+            id: `${prefix}-${guideCounter}`,
+            index: existing.length,
+            direction: cmd.direction,
+            position: Math.max(0, Math.min(1, cmd.position)),
+          },
+        ]);
+        break;
+      }
+
+      case "delete-guide": {
+        const guide = guides.find((g) => g.id === cmd.guideId);
+        if (!guide) { setError(`Guide "${cmd.guideId}" not found`); return; }
+        setGuides((gs) => gs.filter((g) => g.id !== cmd.guideId));
+        break;
+      }
     }
 
     setInput("");
-  }, [input, findNodeByLabel, setNodes, setEdges]);
+  }, [input, findNodeByLabel, setNodes, setEdges, guides, setGuides, canvasWidth, canvasHeight]);
 
   return (
     <div className="command-bar">

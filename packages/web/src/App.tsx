@@ -3,6 +3,7 @@ import { DiagramSpecSchema, type DiagramSpec } from "@objectify/schema";
 import { DiagramViewer } from "./components/DiagramViewer.js";
 import sampleData from "./data/sample.json";
 import lpConnectorData from "./data/lp-connector.json";
+import tradingPipelineData from "./data/trading-pipeline.json";
 
 function App() {
   const [spec, setSpec] = useState<DiagramSpec | null>(null);
@@ -58,6 +59,9 @@ function App() {
           </button>
           <button className="load-btn" onClick={() => loadSpec(lpConnectorData)}>
             Sample 2
+          </button>
+          <button className="load-btn" onClick={() => loadSpec(tradingPipelineData)}>
+            Sample 3
           </button>
           <button
             className="load-btn"

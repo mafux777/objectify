@@ -1,20 +1,44 @@
 import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
 import type { NodeStyle, NodeFont } from "@objectify/schema";
 
+type LabelPosition = "center" | "top-left" | "top-center" | "bottom-center" | "above" | "below";
+
 type ColorBoxData = {
   label: string;
   style: NodeStyle;
   font?: NodeFont;
+  labelPosition?: LabelPosition;
 };
 
 export function ColorBoxNode({
   data,
   selected,
 }: NodeProps & { data: ColorBoxData }) {
-  const { label, style, font } = data;
+  const { label, style, font, labelPosition = "center" } = data;
+
+  const isOutsideLabel = labelPosition === "above" || labelPosition === "below";
 
   return (
     <>
+      {isOutsideLabel && (
+        <div
+          style={{
+            position: "absolute",
+            ...(labelPosition === "above" ? { bottom: "100%", marginBottom: 4 } : { top: "100%", marginTop: 4 }),
+            left: 0,
+            width: "100%",
+            textAlign: "center",
+            fontSize: font?.fontSize ?? 11,
+            fontFamily: font?.fontFamily ?? "sans-serif",
+            fontWeight: font?.fontWeight === "bold" ? 700 : 400,
+            color: style.textColor ?? "#000",
+            whiteSpace: "pre-line",
+            pointerEvents: "none",
+          }}
+        >
+          {label}
+        </div>
+      )}
       <NodeResizer
         minWidth={60}
         minHeight={30}
@@ -43,7 +67,7 @@ export function ColorBoxNode({
           borderRadius: 8,
           padding: "10px 20px",
           fontWeight: font?.fontWeight === "bold" ? 700 : 500,
-          fontSize: font?.fontSize ? Math.min(font.fontSize, 18) : 13,
+          fontSize: font?.fontSize ?? 13,
           fontFamily: font?.fontFamily ?? "sans-serif",
           minWidth: 60,
           textAlign: "center",
@@ -51,11 +75,11 @@ export function ColorBoxNode({
           width: "100%",
           height: "100%",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          alignItems: labelPosition === "top-left" ? "flex-start" : labelPosition === "bottom-center" ? "flex-end" : "center",
+          justifyContent: labelPosition === "top-left" ? "flex-start" : "center",
         }}
       >
-        {label}
+        {!isOutsideLabel && label}
       </div>
     </>
   );

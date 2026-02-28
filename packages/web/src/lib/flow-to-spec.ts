@@ -9,6 +9,7 @@ import type {
   ShapePaletteEntry,
   SizePaletteEntry,
   SemanticTypeEntry,
+  GuideLine,
 } from "@objectify/schema";
 
 /**
@@ -23,7 +24,8 @@ export function flowToSpec(
   palette?: ColorPaletteEntry[],
   shapePalette?: ShapePaletteEntry[],
   sizePalette?: SizePaletteEntry[],
-  semanticTypes?: SemanticTypeEntry[]
+  semanticTypes?: SemanticTypeEntry[],
+  guides?: GuideLine[]
 ): DiagramSpec {
   const specNodes: DiagramNode[] = nodes.map((n) => {
     const isGroup = n.type === "groupNode";
@@ -56,6 +58,15 @@ export function flowToSpec(
     }
     if (data.semanticTypeId) {
       node.semanticTypeId = data.semanticTypeId as string;
+    }
+    if (data.labelPosition && data.labelPosition !== "center") {
+      node.labelPosition = data.labelPosition as DiagramNode["labelPosition"];
+    }
+    if (data.guideRow) {
+      node.guideRow = data.guideRow as string;
+    }
+    if (data.guideColumn) {
+      node.guideColumn = data.guideColumn as string;
     }
 
     // Preserve spatial data: convert absolute pixel positions back to
@@ -131,6 +142,14 @@ export function flowToSpec(
 
     edge.style = { lineStyle, color };
 
+    // Preserve edge label style if present in data
+    if ((e as Record<string, unknown>).data) {
+      const edgeData = (e as Record<string, unknown>).data as Record<string, unknown>;
+      if (edgeData.labelStyle) {
+        edge.labelStyle = edgeData.labelStyle as DiagramEdge["labelStyle"];
+      }
+    }
+
     return edge;
   });
 
@@ -147,8 +166,19 @@ export function flowToSpec(
     diagram.imageDimensions = originalDiagram.imageDimensions;
   }
 
+  if (guides && guides.length > 0) {
+    diagram.guides = guides;
+  }
+
+  const hasGuides = guides && guides.length > 0;
+  const version = hasGuides
+    ? "3.0"
+    : originalDiagram.layoutMode === "spatial"
+      ? "2.0"
+      : "1.0";
+
   return {
-    version: (originalDiagram.layoutMode === "spatial" ? "2.0" : "1.0") as "1.0" | "2.0",
+    version: version as "1.0" | "2.0" | "3.0",
     ...(palette && palette.length > 0 ? { palette } : {}),
     ...(shapePalette && shapePalette.length > 0 ? { shapePalette } : {}),
     ...(sizePalette && sizePalette.length > 0 ? { sizePalette } : {}),

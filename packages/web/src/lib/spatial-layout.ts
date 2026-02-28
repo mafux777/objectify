@@ -72,10 +72,13 @@ export function spatialLayoutDiagram(
           label: node.label,
           style: node.style,
           font: node.font,
-          ...(shapeEntry ? { shapeKind: shapeEntry.kind } : {}),
+          ...(shapeEntry ? { shapeKind: shapeEntry.kind, ...(shapeEntry.aspectRatio ? { aspectRatio: shapeEntry.aspectRatio } : {}) } : {}),
           ...(node.shapeId ? { shapeId: node.shapeId } : {}),
           ...(node.sizeId ? { sizeId: node.sizeId } : {}),
           ...(node.semanticTypeId ? { semanticTypeId: node.semanticTypeId } : {}),
+          ...(node.labelPosition ? { labelPosition: node.labelPosition } : {}),
+          ...(node.guideRow ? { guideRow: node.guideRow } : {}),
+          ...(node.guideColumn ? { guideColumn: node.guideColumn } : {}),
         },
         ...(node.parentId
           ? { parentId: node.parentId, extent: "parent" as const }

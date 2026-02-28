@@ -148,10 +148,13 @@ function flattenElkResult(
         label: specNode.label,
         style: specNode.style,
         ...(specNode.font ? { font: specNode.font } : {}),
-        ...(shapeEntry ? { shapeKind: shapeEntry.kind } : {}),
+        ...(shapeEntry ? { shapeKind: shapeEntry.kind, ...(shapeEntry.aspectRatio ? { aspectRatio: shapeEntry.aspectRatio } : {}) } : {}),
         ...(specNode.shapeId ? { shapeId: specNode.shapeId } : {}),
         ...(specNode.sizeId ? { sizeId: specNode.sizeId } : {}),
         ...(specNode.semanticTypeId ? { semanticTypeId: specNode.semanticTypeId } : {}),
+        ...(specNode.labelPosition ? { labelPosition: specNode.labelPosition } : {}),
+        ...(specNode.guideRow ? { guideRow: specNode.guideRow } : {}),
+        ...(specNode.guideColumn ? { guideColumn: specNode.guideColumn } : {}),
       },
       ...(parentId
         ? { parentId, extent: "parent" as const }

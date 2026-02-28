@@ -108,6 +108,22 @@ const NodeSchema = z.object({
       "References a semantic type entry by id. Indicates the conceptual archetype of this node, " +
         "e.g. LP #1 and LP #2 might both have semanticTypeId 'liquidity-provider'."
     ),
+  labelPosition: z
+    .enum(["center", "top-left", "top-center", "bottom-center", "above", "below"])
+    .default("center")
+    .optional()
+    .describe(
+      "Where the label sits relative to the node. 'center' = inside centered, " +
+        "'top-left' = inside top-left (typical for groups), 'above'/'below' = outside the node."
+    ),
+  guideRow: z
+    .string()
+    .optional()
+    .describe("ID of the horizontal guide line this node snaps to"),
+  guideColumn: z
+    .string()
+    .optional()
+    .describe("ID of the vertical guide line this node snaps to"),
 });
 
 // --- Edge schemas ---
@@ -121,6 +137,33 @@ const EdgeStyleSchema = z.object({
     .string()
     .default("#333333")
     .describe("CSS hex color for the arrow line"),
+});
+
+const EdgeLabelStyleSchema = z.object({
+  fontSize: z
+    .number()
+    .optional()
+    .describe("Font size in pixels for the edge label"),
+  fontFamily: z
+    .enum(["sans-serif", "serif", "monospace"])
+    .default("sans-serif")
+    .describe("Font family for the edge label"),
+  fontWeight: z
+    .enum(["normal", "bold"])
+    .default("normal")
+    .describe("Font weight for the edge label"),
+  color: z
+    .string()
+    .optional()
+    .describe("CSS hex color for the edge label text"),
+  backgroundColor: z
+    .string()
+    .optional()
+    .describe("CSS hex color for the edge label background"),
+  position: z
+    .enum(["center", "source", "target"])
+    .default("center")
+    .describe("Where along the edge path the label is placed"),
 });
 
 const EdgeSchema = z.object({
@@ -137,6 +180,9 @@ const EdgeSchema = z.object({
   ),
   targetAnchor: AnchorSideSchema.optional().describe(
     "Side of the target node where the arrow terminates"
+  ),
+  labelStyle: EdgeLabelStyleSchema.optional().describe(
+    "Styling for the edge label text. If omitted, renderer defaults apply."
   ),
 });
 
@@ -272,6 +318,31 @@ const SemanticTypesSchema = z
       "Nodes with the same semanticTypeId share a conceptual role."
   );
 
+// --- Guide line schemas ---
+
+const GuideLineSchema = z.object({
+  id: z
+    .string()
+    .describe("Unique identifier, e.g. 'row-1', 'col-3'. Used for user commands like 'move row-1 down'."),
+  index: z
+    .number()
+    .int()
+    .min(0)
+    .describe("Numeric label displayed alongside the guide. Rows numbered top-to-bottom, columns left-to-right."),
+  direction: z
+    .enum(["horizontal", "vertical"])
+    .describe("'horizontal' for row guides (y-axis position), 'vertical' for column guides (x-axis position)"),
+  position: z
+    .number()
+    .min(0)
+    .max(1)
+    .describe("Normalized 0-1 position. For horizontal guides, this is the y coordinate. For vertical, the x coordinate."),
+  label: z
+    .string()
+    .optional()
+    .describe("Optional human-readable label for the guide line"),
+});
+
 // --- Diagram schemas ---
 
 const ImageDimensionsSchema = z.object({
@@ -299,10 +370,17 @@ const SingleDiagramSchema = z.object({
   ),
   nodes: z.array(NodeSchema).describe("All boxes and container groups in this diagram"),
   edges: z.array(EdgeSchema).describe("All arrows connecting nodes in this diagram"),
+  guides: z
+    .array(GuideLineSchema)
+    .optional()
+    .describe(
+      "Guide lines representing the implicit alignment grid. " +
+        "Horizontal guides define row positions, vertical guides define column positions."
+    ),
 });
 
 export const DiagramSpecSchema = z.object({
-  version: z.enum(["1.0", "2.0"]).describe("Schema version. 2.0 includes spatial data."),
+  version: z.enum(["1.0", "2.0", "3.0"]).describe("Schema version. 2.0 includes spatial data. 3.0 adds guide lines and label positioning."),
   palette: ColorPaletteSchema.optional().describe(
     "Color palette sampled from the source image. All node/edge colors should reference " +
       "hex values from this palette. Optional for backward compatibility with older specs."
@@ -346,3 +424,5 @@ export type ShapeKind = z.infer<typeof ShapeKindSchema>;
 export type ShapePaletteEntry = z.infer<typeof ShapePaletteEntrySchema>;
 export type SizePaletteEntry = z.infer<typeof SizePaletteEntrySchema>;
 export type SemanticTypeEntry = z.infer<typeof SemanticTypeEntrySchema>;
+export type GuideLine = z.infer<typeof GuideLineSchema>;
+export type EdgeLabelStyle = z.infer<typeof EdgeLabelStyleSchema>;

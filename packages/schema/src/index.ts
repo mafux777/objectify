@@ -16,4 +16,6 @@ export {
   type ShapePaletteEntry,
   type SizePaletteEntry,
   type SemanticTypeEntry,
+  type GuideLine,
+  type EdgeLabelStyle,
 } from "./diagram-spec.js";

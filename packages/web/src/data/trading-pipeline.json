@@ -1,0 +1,315 @@
+{
+  "version": "3.0",
+  "description": "This diagram illustrates an automated trading pipeline. Security market data (bid/ask prices and sizes) for two securities is fed into a Prediction Model that generates predicted prices. These predicted prices are then passed to a Trading Signal generator that determines buy and sell prices for each security. Finally, a Trading Strategy component combines the trading signals with available funds to produce output orders specifying buy/sell prices and sizes for each security.",
+  "palette": [
+    { "id": "light-yellow", "hex": "#FFF9C4", "percentage": 12, "name": "Light Yellow" },
+    { "id": "dark-yellow", "hex": "#C8B900", "percentage": 2, "name": "Dark Yellow" },
+    { "id": "light-purple", "hex": "#CE93D8", "percentage": 8, "name": "Light Purple" },
+    { "id": "dark-purple", "hex": "#AB47BC", "percentage": 2, "name": "Dark Purple" },
+    { "id": "light-blue", "hex": "#B3E5FC", "percentage": 8, "name": "Light Blue" },
+    { "id": "medium-blue", "hex": "#4FC3F7", "percentage": 2, "name": "Medium Blue" },
+    { "id": "white", "hex": "#FFFFFF", "percentage": 55, "name": "White" },
+    { "id": "black", "hex": "#000000", "percentage": 5, "name": "Black" },
+    { "id": "salmon", "hex": "#E57373", "percentage": 3, "name": "Salmon Red" },
+    { "id": "dark-gray", "hex": "#333333", "percentage": 3, "name": "Dark Gray" }
+  ],
+  "shapePalette": [
+    { "id": "parallelogram", "kind": "parallelogram", "name": "Parallelogram" },
+    { "id": "diamond", "kind": "diamond", "aspectRatio": 1.2, "name": "Diamond" },
+    { "id": "rounded-rect", "kind": "rounded-rectangle", "name": "Rounded Rectangle" },
+    { "id": "rectangle", "kind": "rectangle", "name": "Rectangle" }
+  ],
+  "sizePalette": [
+    { "id": "data-input", "width": 0.21, "height": 0.16, "name": "Data Input Box" },
+    { "id": "process-diamond", "width": 0.12, "height": 0.15, "name": "Process Diamond" },
+    { "id": "value-pill", "width": 0.08, "height": 0.08, "name": "Value Pill" },
+    { "id": "small-input", "width": 0.09, "height": 0.075, "name": "Small Input" },
+    { "id": "output-table", "width": 0.22, "height": 0.13, "name": "Output Table" }
+  ],
+  "semanticTypes": [
+    { "id": "input-data", "name": "Input Data", "description": "External data fed into the pipeline" },
+    { "id": "processing", "name": "Processing Component", "description": "Transforms or computes data" },
+    { "id": "intermediate-value", "name": "Intermediate Value", "description": "Computed value passed between stages" },
+    { "id": "output-data", "name": "Output Data", "description": "Final result of the pipeline" }
+  ],
+  "diagrams": [
+    {
+      "id": "trading-pipeline",
+      "title": "Trading Pipeline",
+      "direction": "RIGHT",
+      "nodes": [
+        {
+          "id": "sec1-data",
+          "label": "Security 1 Data\nTS|BidSize|BidPrice|AskPrice|AskSize|...\nTS1 10 109 111 10\nTS2 10 109 111 10\n...",
+          "type": "box",
+          "style": { "backgroundColor": "#FFF9C4", "textColor": "#000000", "borderColor": "#C8B900" },
+          "font": { "fontSize": 11, "fontFamily": "monospace", "fontWeight": "normal" },
+          "shapeId": "parallelogram",
+          "sizeId": "data-input",
+          "semanticTypeId": "input-data",
+          "labelPosition": "center",
+          "orderHint": 0,
+          "guideRow": "row-0",
+          "guideColumn": "col-0"
+        },
+        {
+          "id": "sec2-data",
+          "label": "Security 2 Data\nTS|BidSize|BidPrice|AskPrice|AskSize|...\nTS1 1000 252 253 1000\nTS2 1000 252 253 1000\n...",
+          "type": "box",
+          "style": { "backgroundColor": "#FFF9C4", "textColor": "#000000", "borderColor": "#C8B900" },
+          "font": { "fontSize": 11, "fontFamily": "monospace", "fontWeight": "normal" },
+          "shapeId": "parallelogram",
+          "sizeId": "data-input",
+          "semanticTypeId": "input-data",
+          "labelPosition": "center",
+          "orderHint": 0,
+          "guideRow": "row-2",
+          "guideColumn": "col-0"
+        },
+        {
+          "id": "prediction-model",
+          "label": "Prediction\nModel",
+          "type": "box",
+          "style": { "backgroundColor": "#CE93D8", "textColor": "#000000", "borderColor": "#AB47BC" },
+          "font": { "fontSize": 13, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "shapeId": "diamond",
+          "sizeId": "process-diamond",
+          "semanticTypeId": "processing",
+          "labelPosition": "center",
+          "orderHint": 1,
+          "guideRow": "row-1",
+          "guideColumn": "col-1"
+        },
+        {
+          "id": "predicted-price-1",
+          "label": "110",
+          "type": "box",
+          "style": { "backgroundColor": "#B3E5FC", "textColor": "#E57373", "borderColor": "#4FC3F7" },
+          "font": { "fontSize": 16, "fontFamily": "sans-serif", "fontWeight": "bold" },
+          "shapeId": "rounded-rect",
+          "sizeId": "value-pill",
+          "semanticTypeId": "intermediate-value",
+          "labelPosition": "center",
+          "orderHint": 2,
+          "guideRow": "row-0",
+          "guideColumn": "col-2"
+        },
+        {
+          "id": "predicted-price-2",
+          "label": "252.5",
+          "type": "box",
+          "style": { "backgroundColor": "#B3E5FC", "textColor": "#E57373", "borderColor": "#4FC3F7" },
+          "font": { "fontSize": 16, "fontFamily": "sans-serif", "fontWeight": "bold" },
+          "shapeId": "rounded-rect",
+          "sizeId": "value-pill",
+          "semanticTypeId": "intermediate-value",
+          "labelPosition": "center",
+          "orderHint": 2,
+          "guideRow": "row-2",
+          "guideColumn": "col-2"
+        },
+        {
+          "id": "trading-signal",
+          "label": "Trading\nSignal",
+          "type": "box",
+          "style": { "backgroundColor": "#CE93D8", "textColor": "#000000", "borderColor": "#AB47BC" },
+          "font": { "fontSize": 13, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "shapeId": "diamond",
+          "sizeId": "process-diamond",
+          "semanticTypeId": "processing",
+          "labelPosition": "center",
+          "orderHint": 3,
+          "guideRow": "row-1",
+          "guideColumn": "col-3"
+        },
+        {
+          "id": "buy-sell-1",
+          "label": "100\n120",
+          "type": "box",
+          "style": { "backgroundColor": "#B3E5FC", "textColor": "#E57373", "borderColor": "#4FC3F7" },
+          "font": { "fontSize": 16, "fontFamily": "sans-serif", "fontWeight": "bold" },
+          "shapeId": "rounded-rect",
+          "sizeId": "value-pill",
+          "semanticTypeId": "intermediate-value",
+          "labelPosition": "center",
+          "orderHint": 4,
+          "guideRow": "row-0",
+          "guideColumn": "col-4"
+        },
+        {
+          "id": "buy-sell-2",
+          "label": "250\n255",
+          "type": "box",
+          "style": { "backgroundColor": "#B3E5FC", "textColor": "#E57373", "borderColor": "#4FC3F7" },
+          "font": { "fontSize": 16, "fontFamily": "sans-serif", "fontWeight": "bold" },
+          "shapeId": "rounded-rect",
+          "sizeId": "value-pill",
+          "semanticTypeId": "intermediate-value",
+          "labelPosition": "center",
+          "orderHint": 4,
+          "guideRow": "row-2",
+          "guideColumn": "col-4"
+        },
+        {
+          "id": "available-funds",
+          "label": "Available\nFunds",
+          "type": "box",
+          "style": { "backgroundColor": "#FFF9C4", "textColor": "#000000", "borderColor": "#C8B900" },
+          "font": { "fontSize": 13, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "shapeId": "parallelogram",
+          "sizeId": "small-input",
+          "semanticTypeId": "input-data",
+          "labelPosition": "center",
+          "orderHint": 4,
+          "guideRow": "row-0",
+          "guideColumn": "col-4"
+        },
+        {
+          "id": "trading-strategy",
+          "label": "Trading\nStrategy",
+          "type": "box",
+          "style": { "backgroundColor": "#CE93D8", "textColor": "#000000", "borderColor": "#AB47BC" },
+          "font": { "fontSize": 13, "fontFamily": "sans-serif", "fontWeight": "normal" },
+          "shapeId": "diamond",
+          "sizeId": "process-diamond",
+          "semanticTypeId": "processing",
+          "labelPosition": "center",
+          "orderHint": 5,
+          "guideRow": "row-1",
+          "guideColumn": "col-5"
+        },
+        {
+          "id": "output",
+          "label": "Output\nID|BuyPrice|BuySize|SellPrice|SellSize\n1 100 10 120 10\n2 250 15 255 15",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#333333" },
+          "font": { "fontSize": 12, "fontFamily": "monospace", "fontWeight": "normal" },
+          "shapeId": "rectangle",
+          "sizeId": "output-table",
+          "semanticTypeId": "output-data",
+          "labelPosition": "center",
+          "orderHint": 6,
+          "guideRow": "row-1",
+          "guideColumn": "col-5"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-sec1-pred",
+          "source": "sec1-data",
+          "target": "prediction-model",
+          "sourceAnchor": "right",
+          "targetAnchor": "left",
+          "style": { "lineStyle": "solid", "color": "#333333" }
+        },
+        {
+          "id": "e-sec2-pred",
+          "source": "sec2-data",
+          "target": "prediction-model",
+          "sourceAnchor": "right",
+          "targetAnchor": "left",
+          "style": { "lineStyle": "solid", "color": "#333333" }
+        },
+        {
+          "id": "e-pred-price1",
+          "source": "prediction-model",
+          "target": "predicted-price-1",
+          "label": "Predicted Price",
+          "sourceAnchor": "right",
+          "targetAnchor": "left",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "labelStyle": { "fontSize": 11, "fontFamily": "sans-serif", "fontWeight": "normal", "color": "#000000", "position": "target" }
+        },
+        {
+          "id": "e-pred-price2",
+          "source": "prediction-model",
+          "target": "predicted-price-2",
+          "label": "Predicted Price",
+          "sourceAnchor": "right",
+          "targetAnchor": "left",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "labelStyle": { "fontSize": 11, "fontFamily": "sans-serif", "fontWeight": "normal", "color": "#000000", "position": "target" }
+        },
+        {
+          "id": "e-price1-signal",
+          "source": "predicted-price-1",
+          "target": "trading-signal",
+          "sourceAnchor": "right",
+          "targetAnchor": "left",
+          "style": { "lineStyle": "solid", "color": "#333333" }
+        },
+        {
+          "id": "e-price2-signal",
+          "source": "predicted-price-2",
+          "target": "trading-signal",
+          "sourceAnchor": "right",
+          "targetAnchor": "left",
+          "style": { "lineStyle": "solid", "color": "#333333" }
+        },
+        {
+          "id": "e-signal-bs1",
+          "source": "trading-signal",
+          "target": "buy-sell-1",
+          "label": "Buy Price\nSell Price",
+          "sourceAnchor": "right",
+          "targetAnchor": "left",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "labelStyle": { "fontSize": 11, "fontFamily": "sans-serif", "fontWeight": "normal", "color": "#000000", "position": "target" }
+        },
+        {
+          "id": "e-signal-bs2",
+          "source": "trading-signal",
+          "target": "buy-sell-2",
+          "label": "Buy Price\nSell Price",
+          "sourceAnchor": "right",
+          "targetAnchor": "left",
+          "style": { "lineStyle": "solid", "color": "#333333" },
+          "labelStyle": { "fontSize": 11, "fontFamily": "sans-serif", "fontWeight": "normal", "color": "#000000", "position": "target" }
+        },
+        {
+          "id": "e-bs1-strategy",
+          "source": "buy-sell-1",
+          "target": "trading-strategy",
+          "sourceAnchor": "right",
+          "targetAnchor": "left",
+          "style": { "lineStyle": "solid", "color": "#333333" }
+        },
+        {
+          "id": "e-bs2-strategy",
+          "source": "buy-sell-2",
+          "target": "trading-strategy",
+          "sourceAnchor": "right",
+          "targetAnchor": "left",
+          "style": { "lineStyle": "solid", "color": "#333333" }
+        },
+        {
+          "id": "e-funds-strategy",
+          "source": "available-funds",
+          "target": "trading-strategy",
+          "sourceAnchor": "bottom",
+          "targetAnchor": "top",
+          "style": { "lineStyle": "solid", "color": "#333333" }
+        },
+        {
+          "id": "e-strategy-output",
+          "source": "trading-strategy",
+          "target": "output",
+          "sourceAnchor": "right",
+          "targetAnchor": "left",
+          "style": { "lineStyle": "solid", "color": "#333333" }
+        }
+      ],
+      "guides": [
+        { "id": "row-0", "index": 0, "direction": "horizontal", "position": 0.2, "label": "Top Row" },
+        { "id": "row-1", "index": 1, "direction": "horizontal", "position": 0.5, "label": "Middle Row" },
+        { "id": "row-2", "index": 2, "direction": "horizontal", "position": 0.8, "label": "Bottom Row" },
+        { "id": "col-0", "index": 0, "direction": "vertical", "position": 0.1, "label": "Security Data" },
+        { "id": "col-1", "index": 1, "direction": "vertical", "position": 0.27, "label": "Prediction" },
+        { "id": "col-2", "index": 2, "direction": "vertical", "position": 0.38, "label": "Prices" },
+        { "id": "col-3", "index": 3, "direction": "vertical", "position": 0.52, "label": "Signal" },
+        { "id": "col-4", "index": 4, "direction": "vertical", "position": 0.67, "label": "Buy/Sell" },
+        { "id": "col-5", "index": 5, "direction": "vertical", "position": 0.85, "label": "Output" }
+      ]
+    }
+  ]
+}

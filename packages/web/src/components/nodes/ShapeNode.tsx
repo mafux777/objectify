@@ -1,11 +1,15 @@
 import { Handle, Position, NodeResizer, type NodeProps } from "@xyflow/react";
 import type { NodeStyle, NodeFont, ShapeKind } from "@objectify/schema";
 
+type LabelPosition = "center" | "top-left" | "top-center" | "bottom-center" | "above" | "below";
+
 type ShapeNodeData = {
   label: string;
   style: NodeStyle;
   font?: NodeFont;
   shapeKind?: ShapeKind;
+  aspectRatio?: number;
+  labelPosition?: LabelPosition;
 };
 
 function getShapeStyles(kind: ShapeKind | undefined): React.CSSProperties {
@@ -44,11 +48,36 @@ export function ShapeNode({
   data,
   selected,
 }: NodeProps & { data: ShapeNodeData }) {
-  const { label, style, font, shapeKind } = data;
+  const { label, style, font, shapeKind, aspectRatio, labelPosition = "center" } = data;
+  const isOutsideLabel = labelPosition === "above" || labelPosition === "below";
   const shapeStyles = getShapeStyles(shapeKind);
+  // Apply aspect ratio from shape palette (unless shape already enforces it, like circle)
+  const aspectRatioStyle: React.CSSProperties =
+    aspectRatio && shapeKind !== "circle"
+      ? { aspectRatio: String(aspectRatio) }
+      : {};
 
   return (
     <>
+      {isOutsideLabel && (
+        <div
+          style={{
+            position: "absolute",
+            ...(labelPosition === "above" ? { bottom: "100%", marginBottom: 4 } : { top: "100%", marginTop: 4 }),
+            left: 0,
+            width: "100%",
+            textAlign: "center",
+            fontSize: font?.fontSize ?? 11,
+            fontFamily: font?.fontFamily ?? "sans-serif",
+            fontWeight: font?.fontWeight === "bold" ? 700 : 400,
+            color: style.textColor ?? "#000",
+            whiteSpace: "pre-line",
+            pointerEvents: "none",
+          }}
+        >
+          {label}
+        </div>
+      )}
       <NodeResizer
         minWidth={60}
         minHeight={30}
@@ -116,7 +145,7 @@ export function ShapeNode({
           border: `2px ${style.borderStyle ?? "solid"} ${style.borderColor ?? "#bbb"}`,
           padding: "10px 20px",
           fontWeight: font?.fontWeight === "bold" ? 700 : 500,
-          fontSize: font?.fontSize ? Math.min(font.fontSize, 18) : 13,
+          fontSize: font?.fontSize ?? 13,
           fontFamily: font?.fontFamily ?? "sans-serif",
           minWidth: 60,
           textAlign: "center",
@@ -124,12 +153,13 @@ export function ShapeNode({
           width: "100%",
           height: "100%",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          alignItems: labelPosition === "top-left" ? "flex-start" : labelPosition === "bottom-center" ? "flex-end" : "center",
+          justifyContent: labelPosition === "top-left" ? "flex-start" : "center",
           ...shapeStyles,
+          ...aspectRatioStyle,
         }}
       >
-        {label}
+        {!isOutsideLabel && label}
       </div>
     </>
   );

@@ -21,6 +21,7 @@ import type {
   ShapePaletteEntry,
   SizePaletteEntry,
   SemanticTypeEntry,
+  GuideLine,
 } from "@objectify/schema";
 import { useLayoutedElements } from "../hooks/useLayoutedElements.js";
 import { ColorBoxNode } from "./nodes/ColorBoxNode.js";
@@ -29,6 +30,7 @@ import { ShapeNode } from "./nodes/ShapeNode.js";
 import { ContextMenu, type ContextMenuState } from "./ContextMenu.js";
 import { CommandBar } from "./CommandBar.js";
 import { flowToSpec } from "../lib/flow-to-spec.js";
+import { GuideLines } from "./GuideLines.js";
 
 const nodeTypes: NodeTypes = {
   colorBox: ColorBoxNode,
@@ -56,7 +58,15 @@ export function FlowDiagram({
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [guides, setGuides] = useState<GuideLine[]>(diagram.guides ?? []);
+  const [showGuides, setShowGuides] = useState(true);
   const flowRef = useRef<HTMLDivElement>(null);
+
+  // Compute canvas dimensions for guide rendering
+  const canvasWidth = 1200;
+  const imgW = diagram.imageDimensions?.width ?? 1200;
+  const imgH = diagram.imageDimensions?.height ?? 800;
+  const canvasHeight = canvasWidth * (imgH / imgW);
 
   // Seed interactive state when layout completes or diagram changes
   useEffect(() => {
@@ -65,6 +75,11 @@ export function FlowDiagram({
       setEdges(initialEdges);
     }
   }, [initialNodes, initialEdges, isLayouting, setNodes, setEdges]);
+
+  // Sync guides when diagram changes
+  useEffect(() => {
+    setGuides(diagram.guides ?? []);
+  }, [diagram]);
 
   const onConnect: OnConnect = useCallback(
     (params) =>
@@ -130,7 +145,7 @@ export function FlowDiagram({
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
   const handleExport = useCallback(() => {
-    const spec = flowToSpec(nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes);
+    const spec = flowToSpec(nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides);
     const json = JSON.stringify(spec, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -139,7 +154,7 @@ export function FlowDiagram({
     a.download = `${diagram.id}-spec.json`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes]);
+  }, [nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides]);
 
   if (isLayouting) {
     return <div className="loading-spinner">Computing layout...</div>;
@@ -175,7 +190,24 @@ export function FlowDiagram({
           zoomable
           style={{ border: "1px solid #e0e0e0" }}
         />
+        {guides.length > 0 && (
+          <GuideLines
+            guides={guides}
+            canvasWidth={canvasWidth}
+            canvasHeight={canvasHeight}
+            visible={showGuides}
+          />
+        )}
         <Panel position="top-right">
+          {guides.length > 0 && (
+            <button
+              className="load-btn"
+              onClick={() => setShowGuides(!showGuides)}
+              style={{ marginRight: 8 }}
+            >
+              {showGuides ? "Hide Guides" : "Show Guides"}
+            </button>
+          )}
           <button className="load-btn" onClick={handleExport}>
             Export JSON
           </button>
@@ -193,7 +225,16 @@ export function FlowDiagram({
         />
       )}
 
-      <CommandBar nodes={nodes} edges={edges} setNodes={setNodes} setEdges={setEdges} />
+      <CommandBar
+        nodes={nodes}
+        edges={edges}
+        setNodes={setNodes}
+        setEdges={setEdges}
+        guides={guides}
+        setGuides={setGuides}
+        canvasWidth={canvasWidth}
+        canvasHeight={canvasHeight}
+      />
     </div>
   );
 }

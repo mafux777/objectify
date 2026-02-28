@@ -199,9 +199,43 @@ Determine the primary flow direction for each diagram:
 
 Write a clear, detailed description of the entire diagram image.
 
+## Guide Line Extraction
+
+Identify the implicit alignment grid in the diagram:
+1. Look for rows of nodes that share the same vertical center (y coordinate). Each such row becomes a horizontal guide.
+2. Look for columns of nodes that share the same horizontal center (x coordinate). Each such column becomes a vertical guide.
+3. For each guide, record:
+   - "id": kebab-case, e.g. "row-0", "row-1", "col-0", "col-3"
+   - "index": sequential number (0-based), rows numbered top-to-bottom, columns left-to-right
+   - "direction": "horizontal" for rows, "vertical" for columns
+   - "position": normalized 0-1 position (y for horizontal, x for vertical) — use the center of the row/column of nodes
+   - "label": optional descriptive label (e.g., "Input Data", "Processing")
+4. On each node, set "guideRow" to the ID of the horizontal guide it aligns with, and "guideColumn" to the ID of the vertical guide it aligns with.
+5. Include guides in each diagram's "guides" array.
+
+## Label Positioning
+
+For each node, determine where its label sits relative to the node bounding box:
+- "center" — text is centered inside the node (most common for regular boxes)
+- "top-left" — text is in the top-left corner (common for group/container labels)
+- "top-center" — text is centered at the top of the node
+- "bottom-center" — text is centered at the bottom of the node
+- "above" — label appears above the node shape (outside the bounding box)
+- "below" — label appears below the node shape (outside the bounding box)
+Set the "labelPosition" field on each node accordingly. Default to "center" if label is inside and centered.
+
+## Edge Label Styling
+
+For each edge with a visible label, estimate the label's visual properties and provide a "labelStyle" object:
+- "fontSize": approximate pixel size
+- "fontFamily": "sans-serif", "serif", or "monospace"
+- "fontWeight": "normal" or "bold"
+- "color": CSS hex color of the label text (from the palette)
+- "position": "center" if label is at the midpoint of the arrow, "source" if near the source node, "target" if near the target node
+
 ## Output Format
 
-Set version to "2.0". Set layoutMode to "spatial" on each diagram. Include imageDimensions on each diagram. Include top-level "palette", "shapePalette", "sizePalette", and "semanticTypes" arrays.
+Set version to "3.0". Set layoutMode to "spatial" on each diagram. Include imageDimensions on each diagram. Include top-level "palette", "shapePalette", "sizePalette", and "semanticTypes" arrays. Include "guides" on each diagram. Include "labelPosition" on each node. Include "labelStyle" on edges with labels.
 
 ## Critical Rules
 - All spatial coordinates MUST be between 0 and 1

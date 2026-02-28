@@ -10,10 +10,18 @@ export function specEdgesToFlowEdges(specEdges: DiagramEdge[]): Edge[] {
     ...(e.sourceAnchor ? { sourceHandle: `source-${e.sourceAnchor}` } : {}),
     ...(e.targetAnchor ? { targetHandle: `target-${e.targetAnchor}` } : {}),
     label: e.label,
-    labelStyle: { fontSize: 11, fontWeight: 500 },
+    labelStyle: {
+      fontSize: e.labelStyle?.fontSize ?? 11,
+      fontWeight: e.labelStyle?.fontWeight === "bold" ? 700 : 500,
+      fontFamily: e.labelStyle?.fontFamily ?? "sans-serif",
+      fill: e.labelStyle?.color ?? "#333",
+    },
     labelBgPadding: [6, 3] as [number, number],
     labelBgBorderRadius: 4,
-    labelBgStyle: { fill: "#fff", fillOpacity: 0.85 },
+    labelBgStyle: {
+      fill: e.labelStyle?.backgroundColor ?? "#fff",
+      fillOpacity: 0.85,
+    },
     animated: e.style?.lineStyle === "dashed",
     style: {
       stroke: e.style?.color ?? "#555",
