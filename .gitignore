@@ -43,3 +43,10 @@ coverage/
 inputs/
 outputs/
 
+# Sample data — ignore all, then whitelist specific files
+packages/web/src/data/*
+!packages/web/src/data/sample.json
+!packages/web/src/data/talos-components.json
+!packages/web/src/data/trading-pipeline.json
+!packages/web/src/data/objectify-workflow.json
+

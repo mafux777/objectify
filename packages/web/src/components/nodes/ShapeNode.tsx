@@ -51,7 +51,10 @@ export function ShapeNode({
 }: NodeProps & { data: ShapeNodeData }) {
   const { label, labels, style, font, shapeKind, aspectRatio } = data;
 
-  const centerLabel = labels?.find((l) => l.position === "center")?.text ?? label;
+  // If labels[] exists but has no center entry, all text is shown externally — don't duplicate.
+  const centerLabel = labels?.length
+    ? (labels.find((l) => l.position === "center")?.text ?? null)
+    : label;
   const hasOutsideLabels = labels?.some((l) => l.position !== "center");
   const isCylinder = shapeKind === "cylinder";
   const shapeStyles = isCylinder ? {} : getShapeStyles(shapeKind);

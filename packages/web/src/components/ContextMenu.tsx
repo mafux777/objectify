@@ -1,5 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { MarkerType, type Node, type Edge } from "@xyflow/react";
+import type { SingleDiagram } from "@objectify/schema";
 import { specMarkerToFlow } from "../lib/spec-to-flow.js";
 
 export type ContextMenuState =
@@ -15,6 +16,7 @@ interface ContextMenuProps {
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
   onClose: () => void;
   saveSnapshot: () => void;
+  diagram: SingleDiagram;
 }
 
 let nodeCounter = 0;
@@ -56,7 +58,9 @@ export function ContextMenu({
   setEdges,
   onClose,
   saveSnapshot,
+  diagram,
 }: ContextMenuProps) {
+  const [showDetails, setShowDetails] = useState(false);
   const deleteNode = useCallback(
     (nodeId: string) => {
       saveSnapshot();
@@ -149,6 +153,35 @@ export function ContextMenu({
   const currentSourceMarker = (edgeData?.sourceMarker as string) ?? "none";
   const currentTargetMarker = (edgeData?.targetMarker as string) ?? "arrow";
 
+  // Lookup original spec data for details panel
+  const specNode =
+    state.type === "node"
+      ? diagram.nodes.find((n) => n.id === state.nodeId)
+      : undefined;
+  const specEdge =
+    state.type === "edge"
+      ? diagram.edges.find((e) => e.id === state.edgeId)
+      : undefined;
+
+  if (showDetails) {
+    const data = specNode ?? specEdge;
+    return (
+      <div
+        className="context-menu"
+        style={{ left: state.x, top: state.y }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="details-header">
+          <span>{state.type === "node" ? "Node" : "Edge"} Details</span>
+          <button onClick={onClose}>&times;</button>
+        </div>
+        <pre className="details-panel">
+          {data ? JSON.stringify(data, null, 2) : "Not found in spec"}
+        </pre>
+      </div>
+    );
+  }
+
   return (
     <div
       className="context-menu"
@@ -157,6 +190,7 @@ export function ContextMenu({
     >
       {state.type === "node" && (
         <>
+          <button onClick={() => setShowDetails(true)}>Details</button>
           <button onClick={() => duplicateNode(state.nodeId)}>Duplicate</button>
           <div className="separator" />
           <button className="danger" onClick={() => deleteNode(state.nodeId)}>
@@ -166,6 +200,8 @@ export function ContextMenu({
       )}
       {state.type === "edge" && edge && (
         <>
+          <button onClick={() => setShowDetails(true)}>Details</button>
+          <div className="separator" />
           <div className="section-label">Routing</div>
           {ROUTING_OPTIONS.map((opt) => (
             <button

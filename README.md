@@ -2,11 +2,13 @@
 
 Convert diagram images into interactive, editable flowcharts using AI vision.
 
-Objectify uses Claude's vision capabilities to analyze PNG/JPEG diagrams and extract structured data—nodes, edges, colors, and spatial positions—then renders them as interactive React Flow diagrams.
+Objectify uses AI vision models to analyze PNG/JPEG diagrams and extract structured data—nodes, edges, colors, and spatial positions—then renders them as interactive React Flow diagrams. It calls models through [OpenRouter](https://openrouter.ai), so you can use Claude, GPT-4o, Gemini, or any other vision-capable model with a single API key.
+
+![How Objectify Works](docs/how-objectify-works.png)
 
 ## Features
 
-- **AI-powered extraction** — Uses Claude to parse diagrams from images
+- **AI-powered extraction** — Uses vision models to parse diagrams from images
 - **Spatial mode** — Preserves original layout positions and bounding boxes
 - **Interactive viewer** — Pan, zoom, and explore diagrams in the browser
 - **Auto-layout** — ELK.js-based automatic layout when spatial data isn't needed
@@ -26,12 +28,14 @@ Objectify uses Claude's vision capabilities to analyze PNG/JPEG diagrams and ext
 ### Prerequisites
 
 - Node.js 18+
-- `ANTHROPIC_API_KEY` environment variable
+- An [OpenRouter API key](https://openrouter.ai/keys)
 
 ### Installation
 
 ```bash
 npm install
+cp .env.example .env
+# Edit .env and add your OpenRouter API key
 ```
 
 ### CLI Usage
@@ -46,8 +50,8 @@ npx objectify diagram.png --spatial
 # Custom output directory
 npx objectify diagram.png -o ./my-output
 
-# Use a different Claude model
-npx objectify diagram.png --model claude-sonnet-4-5-20250514
+# Use a different model (any OpenRouter model ID)
+npx objectify diagram.png --model google/gemini-2.5-pro
 ```
 
 Output is written to `outputs/<image-name>/` by default, containing:
@@ -122,11 +126,10 @@ npm run build -w @objectify/web
 
 ## Tech Stack
 
-- **CLI**: Commander, Anthropic SDK, tsx
+- **CLI**: Commander, OpenRouter API, tsx
 - **Schema**: Zod
 - **Web**: React 19, React Flow, ELK.js, Vite
 
 ## License
 
 MIT
-

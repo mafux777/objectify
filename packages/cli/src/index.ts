@@ -1,8 +1,21 @@
 import { Command } from "commander";
+import fs from "node:fs";
 import path from "node:path";
 import { analyzeDiagram } from "./analyze.js";
 import { writeOutput } from "./output.js";
 import { slugify } from "./slugify.js";
+
+// Load .env from project root
+const envPath = path.resolve(import.meta.dirname, "../../../.env");
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, "utf-8");
+  for (const line of envContent.split("\n")) {
+    const match = line.match(/^(\w+)=(.+)$/);
+    if (match) {
+      process.env[match[1]] = match[2].trim();
+    }
+  }
+}
 
 const program = new Command()
   .name("objectify")
@@ -14,8 +27,8 @@ const program = new Command()
   )
   .option(
     "-m, --model <model>",
-    "Claude model to use",
-    "claude-sonnet-4-5-20250514"
+    "OpenRouter model to use",
+    "anthropic/claude-sonnet-4.6"
   )
   .option(
     "-s, --spatial",
@@ -26,19 +39,27 @@ const program = new Command()
       imagePath: string,
       options: { output?: string; model: string; spatial?: boolean }
     ) => {
+      const apiKey = process.env.OPENROUTER_API_KEY;
+      if (!apiKey) {
+        console.error(
+          "OPENROUTER_API_KEY not found. Set it in .env or as an environment variable.\n" +
+            "Get your key at https://openrouter.ai/keys"
+        );
+        process.exit(1);
+      }
+
       try {
         const spec = await analyzeDiagram(
           imagePath,
+          apiKey,
           options.model,
           options.spatial ?? false
         );
 
         let outputDir: string;
         if (options.output) {
-          // User explicitly specified output directory — use as-is
           outputDir = options.output;
         } else {
-          // Auto-generate: outputs/<slugified-input-name>/
           const baseName = path.basename(imagePath, path.extname(imagePath));
           const slug = slugify(baseName);
           outputDir = path.join(".", "outputs", slug || "untitled");

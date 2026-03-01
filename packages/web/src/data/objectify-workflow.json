@@ -1,0 +1,315 @@
+{
+  "version": "6.0",
+  "description": "This diagram illustrates how Objectify works. A user provides a diagram image, which is sent to the Claude Vision API along with a structured system prompt. The AI analyzes the image and produces a JSON specification describing all visual elements. This spec is loaded into the Web Editor, where a Schema Parser converts it into React Flow nodes and edges. The interactive React Flow Canvas allows the user to manipulate the diagram using editing tools: a Guide System for alignment, a Context Menu for styling, and a Command Bar for text-based commands. All changes are tracked in an Undo/Redo stack. The edited diagram can be exported back to JSON, which can be re-imported for further editing.",
+  "palette": [
+    { "id": "light-green", "hex": "#C8E6C9", "percentage": 10, "name": "Light Green" },
+    { "id": "light-purple", "hex": "#E1BEE7", "percentage": 8, "name": "Light Purple" },
+    { "id": "light-blue", "hex": "#BBDEFB", "percentage": 12, "name": "Light Blue" },
+    { "id": "light-orange", "hex": "#FFE0B2", "percentage": 5, "name": "Light Orange" },
+    { "id": "light-yellow", "hex": "#FFF9C4", "percentage": 5, "name": "Light Yellow" },
+    { "id": "light-gray", "hex": "#E0E0E0", "percentage": 5, "name": "Light Gray" },
+    { "id": "white", "hex": "#FFFFFF", "percentage": 45, "name": "White" },
+    { "id": "dark-text", "hex": "#000000", "percentage": 3, "name": "Dark Text" },
+    { "id": "edge-dark", "hex": "#333333", "percentage": 4, "name": "Edge Dark" },
+    { "id": "edge-light", "hex": "#9E9E9E", "percentage": 3, "name": "Edge Light" }
+  ],
+  "shapePalette": [
+    { "id": "rectangle", "kind": "rectangle", "name": "Rectangle" },
+    { "id": "rounded-rect", "kind": "rounded-rectangle", "name": "Rounded Rectangle" }
+  ],
+  "sizePalette": [
+    { "id": "main-node", "width": 0.11, "height": 0.08, "name": "Main Node" },
+    { "id": "small-node", "width": 0.09, "height": 0.06, "name": "Small Node" },
+    { "id": "wide-node", "width": 0.13, "height": 0.08, "name": "Wide Node" }
+  ],
+  "semanticTypes": [
+    { "id": "input-output", "name": "Input / Output", "description": "Data entering or leaving the system" },
+    { "id": "ai-service", "name": "AI Service", "description": "AI-powered analysis component" },
+    { "id": "data-store", "name": "Data Store", "description": "Structured data specification" },
+    { "id": "configuration", "name": "Configuration", "description": "System configuration or prompt" },
+    { "id": "processing", "name": "Processing", "description": "Data transformation step" },
+    { "id": "ui-component", "name": "UI Component", "description": "Interactive user interface element" },
+    { "id": "tool", "name": "Editing Tool", "description": "Tool for modifying the diagram" },
+    { "id": "state-mgmt", "name": "State Management", "description": "Tracks changes for undo/redo" }
+  ],
+  "diagrams": [
+    {
+      "id": "objectify-workflow",
+      "title": "How Objectify Works",
+      "direction": "RIGHT",
+      "layoutMode": "auto",
+      "nodes": [
+        {
+          "id": "diagram-image",
+          "label": "Diagram Image",
+          "type": "box",
+          "style": { "backgroundColor": "#C8E6C9", "textColor": "#000000", "borderColor": "#4CAF50", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "main-node",
+          "semanticTypeId": "input-output",
+          "guideRow": "row-1",
+          "guideColumn": "col-0",
+          "orderHint": 0
+        },
+        {
+          "id": "system-prompt",
+          "label": "System Prompt",
+          "type": "box",
+          "style": { "backgroundColor": "#FFE0B2", "textColor": "#000000", "borderColor": "#FF9800", "borderStyle": "solid" },
+          "shapeId": "rectangle",
+          "sizeId": "main-node",
+          "semanticTypeId": "configuration",
+          "guideRow": "row-0",
+          "guideColumn": "col-1",
+          "orderHint": 1
+        },
+        {
+          "id": "vision-api",
+          "label": "Claude Vision API",
+          "type": "box",
+          "style": { "backgroundColor": "#E1BEE7", "textColor": "#000000", "borderColor": "#AB47BC", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "wide-node",
+          "semanticTypeId": "ai-service",
+          "guideRow": "row-1",
+          "guideColumn": "col-1",
+          "orderHint": 2
+        },
+        {
+          "id": "json-spec",
+          "label": "JSON Spec",
+          "type": "box",
+          "style": { "backgroundColor": "#BBDEFB", "textColor": "#000000", "borderColor": "#2196F3", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "main-node",
+          "semanticTypeId": "data-store",
+          "guideRow": "row-1",
+          "guideColumn": "col-2",
+          "orderHint": 3
+        },
+        {
+          "id": "schema-parser",
+          "label": "Schema Parser",
+          "type": "box",
+          "style": { "backgroundColor": "#FFF9C4", "textColor": "#000000", "borderColor": "#FBC02D", "borderStyle": "solid" },
+          "shapeId": "rectangle",
+          "sizeId": "main-node",
+          "semanticTypeId": "processing",
+          "guideRow": "row-1",
+          "guideColumn": "col-3",
+          "orderHint": 4
+        },
+        {
+          "id": "flow-canvas",
+          "label": "React Flow Canvas",
+          "type": "box",
+          "style": { "backgroundColor": "#BBDEFB", "textColor": "#000000", "borderColor": "#2196F3", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "wide-node",
+          "semanticTypeId": "ui-component",
+          "guideRow": "row-1",
+          "guideColumn": "col-4",
+          "orderHint": 5
+        },
+        {
+          "id": "exported-json",
+          "label": "Exported JSON",
+          "type": "box",
+          "style": { "backgroundColor": "#C8E6C9", "textColor": "#000000", "borderColor": "#4CAF50", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "main-node",
+          "semanticTypeId": "input-output",
+          "guideRow": "row-1",
+          "guideColumn": "col-5",
+          "orderHint": 6
+        },
+        {
+          "id": "undo-redo",
+          "label": "Undo / Redo",
+          "type": "box",
+          "style": { "backgroundColor": "#E0E0E0", "textColor": "#000000", "borderColor": "#9E9E9E", "borderStyle": "solid" },
+          "shapeId": "rectangle",
+          "sizeId": "small-node",
+          "semanticTypeId": "state-mgmt",
+          "guideRow": "row-0",
+          "guideColumn": "col-4",
+          "orderHint": 7
+        },
+        {
+          "id": "guide-system",
+          "label": "Guide System",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#9E9E9E", "borderStyle": "solid" },
+          "shapeId": "rectangle",
+          "sizeId": "small-node",
+          "semanticTypeId": "tool",
+          "guideRow": "row-2",
+          "guideColumn": "col-3",
+          "orderHint": 8
+        },
+        {
+          "id": "context-menu",
+          "label": "Context Menu",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#9E9E9E", "borderStyle": "solid" },
+          "shapeId": "rectangle",
+          "sizeId": "small-node",
+          "semanticTypeId": "tool",
+          "guideRow": "row-2",
+          "guideColumn": "col-4",
+          "orderHint": 9
+        },
+        {
+          "id": "command-bar",
+          "label": "Command Bar",
+          "type": "box",
+          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#9E9E9E", "borderStyle": "solid" },
+          "shapeId": "rectangle",
+          "sizeId": "small-node",
+          "semanticTypeId": "tool",
+          "guideRow": "row-2",
+          "guideColumn": "col-5",
+          "orderHint": 10
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-main-1",
+          "source": "diagram-image",
+          "target": "vision-api",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "straight", "strokeWidth": 2.5 }
+        },
+        {
+          "id": "e-main-2",
+          "source": "vision-api",
+          "target": "json-spec",
+          "label": "produces",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "straight", "strokeWidth": 2.5 },
+          "labelStyle": { "fontSize": 11, "color": "#333333", "position": "center" }
+        },
+        {
+          "id": "e-main-3",
+          "source": "json-spec",
+          "target": "schema-parser",
+          "label": "loads",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "straight", "strokeWidth": 2.5 },
+          "labelStyle": { "fontSize": 11, "color": "#333333", "position": "center" }
+        },
+        {
+          "id": "e-main-4",
+          "source": "schema-parser",
+          "target": "flow-canvas",
+          "label": "renders",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "straight", "strokeWidth": 2.5 },
+          "labelStyle": { "fontSize": 11, "color": "#333333", "position": "center" }
+        },
+        {
+          "id": "e-main-5",
+          "source": "flow-canvas",
+          "target": "exported-json",
+          "label": "exports",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "straight", "strokeWidth": 2.5 },
+          "labelStyle": { "fontSize": 11, "color": "#333333", "position": "center" }
+        },
+        {
+          "id": "e-config",
+          "source": "system-prompt",
+          "target": "vision-api",
+          "label": "instructs",
+          "sourceAnchor": "6:00",
+          "targetAnchor": "12:00",
+          "style": { "lineStyle": "dashed", "color": "#9E9E9E", "routingType": "bezier", "strokeWidth": 1 },
+          "labelStyle": { "fontSize": 10, "color": "#9E9E9E", "position": "center" }
+        },
+        {
+          "id": "e-tool-1",
+          "source": "guide-system",
+          "target": "flow-canvas",
+          "label": "alignment",
+          "sourceAnchor": "12:00",
+          "targetAnchor": "7:30",
+          "style": { "lineStyle": "solid", "color": "#9E9E9E", "routingType": "step", "strokeWidth": 1.5 },
+          "labelStyle": { "fontSize": 10, "color": "#9E9E9E", "position": "source" }
+        },
+        {
+          "id": "e-tool-2",
+          "source": "context-menu",
+          "target": "flow-canvas",
+          "label": "styles",
+          "sourceAnchor": "12:00",
+          "targetAnchor": "6:00",
+          "style": { "lineStyle": "solid", "color": "#9E9E9E", "routingType": "step", "strokeWidth": 1.5 },
+          "labelStyle": { "fontSize": 10, "color": "#9E9E9E", "position": "source" }
+        },
+        {
+          "id": "e-tool-3",
+          "source": "command-bar",
+          "target": "flow-canvas",
+          "label": "commands",
+          "sourceAnchor": "12:00",
+          "targetAnchor": "4:30",
+          "style": { "lineStyle": "solid", "color": "#9E9E9E", "routingType": "step", "strokeWidth": 1.5 },
+          "labelStyle": { "fontSize": 10, "color": "#9E9E9E", "position": "source" }
+        },
+        {
+          "id": "e-state",
+          "source": "flow-canvas",
+          "target": "undo-redo",
+          "label": "snapshots",
+          "sourceAnchor": "12:00",
+          "targetAnchor": "6:00",
+          "style": { "lineStyle": "dashed", "color": "#9E9E9E", "routingType": "smoothstep", "strokeWidth": 1 },
+          "sourceMarker": "ball",
+          "labelStyle": { "fontSize": 10, "color": "#9E9E9E", "position": "center" }
+        },
+        {
+          "id": "e-feedback",
+          "source": "exported-json",
+          "target": "json-spec",
+          "label": "re-import",
+          "sourceAnchor": "12:00",
+          "targetAnchor": "12:00",
+          "style": { "lineStyle": "dashed", "color": "#333333", "routingType": "step", "strokeWidth": 1.5 },
+          "labelStyle": { "fontSize": 10, "color": "#333333", "position": "center" }
+        }
+      ],
+      "guides": [
+        { "id": "row-0", "index": 0, "direction": "horizontal", "position": 0.15, "label": "Configuration" },
+        { "id": "row-1", "index": 1, "direction": "horizontal", "position": 0.5, "label": "Main Flow" },
+        { "id": "row-2", "index": 2, "direction": "horizontal", "position": 0.85, "label": "Editing Tools" },
+        { "id": "col-0", "index": 0, "direction": "vertical", "position": 0.08, "label": "Input" },
+        { "id": "col-1", "index": 1, "direction": "vertical", "position": 0.22, "label": "Analysis" },
+        { "id": "col-2", "index": 2, "direction": "vertical", "position": 0.38, "label": "Specification" },
+        { "id": "col-3", "index": 3, "direction": "vertical", "position": 0.54, "label": "Parsing" },
+        { "id": "col-4", "index": 4, "direction": "vertical", "position": 0.70, "label": "Canvas" },
+        { "id": "col-5", "index": 5, "direction": "vertical", "position": 0.88, "label": "Output" }
+      ],
+      "legend": {
+        "title": "Legend",
+        "nodeEntries": [
+          { "semanticTypeId": "input-output", "label": "Input / Output", "color": "#C8E6C9", "shapeId": "rounded-rect" },
+          { "semanticTypeId": "ai-service", "label": "AI Service", "color": "#E1BEE7", "shapeId": "rounded-rect" },
+          { "semanticTypeId": "data-store", "label": "Data Store", "color": "#BBDEFB", "shapeId": "rounded-rect" },
+          { "semanticTypeId": "configuration", "label": "Configuration", "color": "#FFE0B2", "shapeId": "rectangle" },
+          { "semanticTypeId": "processing", "label": "Processing", "color": "#FFF9C4", "shapeId": "rectangle" },
+          { "semanticTypeId": "tool", "label": "Editing Tool", "color": "#FFFFFF", "shapeId": "rectangle" }
+        ],
+        "edgeEntries": [
+          { "label": "main flow", "sourceMarker": "none", "targetMarker": "arrow", "lineStyle": "solid", "color": "#333333" },
+          { "label": "configuration", "sourceMarker": "none", "targetMarker": "arrow", "lineStyle": "dashed", "color": "#9E9E9E" },
+          { "label": "provides", "sourceMarker": "ball", "targetMarker": "arrow", "lineStyle": "dashed", "color": "#9E9E9E" }
+        ]
+      }
+    }
+  ]
+}

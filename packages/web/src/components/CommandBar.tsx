@@ -16,9 +16,15 @@ interface CommandBarProps {
   canvasWidth: number;
   canvasHeight: number;
   saveSnapshot: () => void;
+  onChat?: (message: string) => void;
+  isLoading?: boolean;
+  chatError?: string | null;
+  chatSummary?: string | null;
+  chatProgress?: string | null;
+  tokenUsage?: { promptTokens: number; completionTokens: number; totalTokens: number } | null;
 }
 
-export function CommandBar({ nodes, edges, setNodes, setEdges, guides, setGuides, canvasWidth, canvasHeight, saveSnapshot }: CommandBarProps) {
+export function CommandBar({ nodes, edges, setNodes, setEdges, guides, setGuides, canvasWidth, canvasHeight, saveSnapshot, onChat, isLoading, chatError, chatSummary, chatProgress, tokenUsage }: CommandBarProps) {
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +39,13 @@ export function CommandBar({ nodes, edges, setNodes, setEdges, guides, setGuides
 
     const cmd = parseCommand(input);
     if (!cmd) {
-      setError("Unknown command. Try: add box \"Label\", delete \"Label\", connect \"A\" to \"B\"");
+      // Not a structured command — send to LLM as free-text chat
+      if (onChat) {
+        onChat(input);
+        setInput("");
+      } else {
+        setError("Unknown command. Try: add box \"Label\", delete \"Label\", connect \"A\" to \"B\"");
+      }
       return;
     }
 
@@ -224,20 +236,43 @@ export function CommandBar({ nodes, edges, setNodes, setEdges, guides, setGuides
     setInput("");
   }, [input, findNodeByLabel, setNodes, setEdges, guides, setGuides, canvasWidth, canvasHeight, saveSnapshot]);
 
+  const displayError = error || chatError;
+  const showSummary = !isLoading && !displayError && chatSummary && !input;
+
   return (
-    <div className="command-bar">
+    <div className={`command-bar ${isLoading ? "command-bar--loading" : ""}`}>
       <input
-        value={input}
+        value={isLoading ? "" : input}
         onChange={(e) => {
           setInput(e.target.value);
           setError(null);
         }}
         onKeyDown={(e) => {
-          if (e.key === "Enter") execute();
+          if (e.key === "Enter" && !isLoading) execute();
         }}
-        placeholder='Commands: add box "Label", connect "A" to "B", move "A" right 50'
-        style={error ? { borderColor: "#d32f2f" } : undefined}
+        placeholder={isLoading ? "" : "Type a command or ask the AI to edit the diagram"}
+        disabled={isLoading}
+        style={displayError ? { borderColor: "#d32f2f" } : undefined}
       />
+      {isLoading && (
+        <div className="command-bar__thinking">
+          <span className="command-bar__dot" />
+          <span className="command-bar__dot" />
+          <span className="command-bar__dot" />
+          {chatProgress ?? "Thinking\u2026"}
+        </div>
+      )}
+      {showSummary && (
+        <div className="command-bar__summary">{chatSummary}</div>
+      )}
+      {displayError && (
+        <div className="command-bar__error">{displayError}</div>
+      )}
+      {tokenUsage && tokenUsage.totalTokens > 0 && (
+        <div className="command-bar__tokens">
+          Tokens: {tokenUsage.totalTokens.toLocaleString()}
+        </div>
+      )}
     </div>
   );
 }

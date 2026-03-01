@@ -1,6 +1,7 @@
 {
   "name": "objectify",
   "private": true,
+  "license": "MIT",
   "workspaces": [
     "packages/schema",
     "packages/cli",

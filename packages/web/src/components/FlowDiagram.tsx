@@ -36,7 +36,14 @@ import { CustomEdge } from "./edges/CustomEdge.js";
 import { ContextMenu, type ContextMenuState } from "./ContextMenu.js";
 import { CommandBar } from "./CommandBar.js";
 import { Legend } from "./Legend.js";
+import { toPng } from "html-to-image";
 import { flowToDiagram, flowToSpec } from "../lib/flow-to-spec.js";
+import { refineDiagramWithLLM } from "../lib/llm-refine.js";
+import { validateChatInput } from "../lib/llm-validate.js";
+import { type TokenUsage, addTokenUsage } from "../lib/llm-shared.js";
+import { useDocuments } from "../lib/documents/index.js";
+import { spatialLayoutDiagram } from "../lib/spatial-layout.js";
+import { guideLayoutDiagram } from "../lib/guide-layout.js";
 import { GuideLines } from "./GuideLines.js";
 import { LabelConnectors } from "./LabelConnectors.js";
 
@@ -56,7 +63,7 @@ interface FlowDiagramProps {
   diagram: SingleDiagram;
   spec: DiagramSpec;
   activeTab: number;
-  specFilename: string | null;
+  documentId: string;
   palette?: ColorPaletteEntry[];
   shapePalette?: ShapePaletteEntry[];
   sizePalette?: SizePaletteEntry[];
@@ -67,7 +74,7 @@ export function FlowDiagram({
   diagram,
   spec,
   activeTab,
-  specFilename,
+  documentId,
   palette,
   shapePalette,
   sizePalette,
@@ -84,7 +91,13 @@ export function FlowDiagram({
   const [showLegend, setShowLegend] = useState(true);
   const [hoveredGuideId, setHoveredGuideId] = useState<string | null>(null);
   const [focusedEdgeId, setFocusedEdgeId] = useState<string | null>(null);
+  const [isLLMLoading, setIsLLMLoading] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [chatSummary, setChatSummary] = useState<string | null>(null);
+  const [chatProgress, setChatProgress] = useState<string | null>(null);
+  const [tokenUsage, setTokenUsage] = useState<TokenUsage | null>(null);
   const flowRef = useRef<HTMLDivElement>(null);
+  const { dispatch: docDispatch, db } = useDocuments();
 
   const { saveSnapshot, undo, redo, canUndo, canRedo, clearHistory } =
     useUndoHistory(nodes, edges, guides, setNodes, setEdges, setGuides);
@@ -92,7 +105,47 @@ export function FlowDiagram({
   // Auto-save state
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const isInitialMount = useRef(true);
+  const documentIdRef = useRef(documentId);
+  documentIdRef.current = documentId;
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved" | null>(null);
+
+  // Ref to hold the latest spec (kept in sync after LLM refinements).
+  // Auto-save uses this instead of the prop so it picks up palette/size changes.
+  const specRef = useRef(spec);
+  specRef.current = spec;
+
+  // When we dispatch UPDATE_SPEC after LLM refinement, the diagram prop will change,
+  // which would trigger the seed effect and re-layout. This flag skips one seed cycle.
+  const skipSeedRef = useRef(false);
+
+  // --- Per-tab position cache ---
+  // When the user drags nodes and then switches tabs, the seed effect would overwrite
+  // local positions with a fresh layout from the spec.  We cache each tab's live
+  // nodes/edges/guides on switch-away so we can restore them on switch-back.
+  const tabCacheRef = useRef<
+    Map<number, { nodes: Node[]; edges: Edge[]; guides: GuideLine[] }>
+  >(new Map());
+  const prevActiveTabRef = useRef(activeTab);
+  const prevDocumentIdRef = useRef(documentId);
+
+  // Detect tab switch during render (before effects) so we capture the OLD state
+  if (prevActiveTabRef.current !== activeTab) {
+    tabCacheRef.current.set(prevActiveTabRef.current, {
+      nodes,
+      edges,
+      guides,
+    });
+    prevActiveTabRef.current = activeTab;
+    // Clear any stale skipSeedRef from the previous tab's cache restore.
+    // It must not leak into the new tab's seed cycle.
+    skipSeedRef.current = false;
+  }
+
+  // Clear the cache when the document changes (tabs are different)
+  if (prevDocumentIdRef.current !== documentId) {
+    tabCacheRef.current.clear();
+    prevDocumentIdRef.current = documentId;
+  }
 
   // Expose helpers for external tooling (e.g. Claude Code) to query/manipulate selection
   useEffect(() => {
@@ -186,19 +239,76 @@ export function FlowDiagram({
   const imgH = diagram.imageDimensions?.height ?? 800;
   const canvasHeight = canvasWidth * (imgH / imgW);
 
-  // Seed interactive state when layout completes or diagram changes
+  // Seed interactive state when layout completes or diagram changes.
+  // If we have a cached snapshot for this tab (from a prior switch-away), restore
+  // that instead of the freshly-computed layout so dragged positions survive.
   useEffect(() => {
+    if (skipSeedRef.current) {
+      skipSeedRef.current = false;
+      return;
+    }
     if (!isLayouting && initialNodes.length > 0) {
-      setNodes(initialNodes);
-      setEdges(initialEdges);
+      const cached = tabCacheRef.current.get(activeTab);
+      if (cached) {
+        setNodes(cached.nodes);
+        setEdges(cached.edges);
+        setGuides(cached.guides);
+        tabCacheRef.current.delete(activeTab); // one-shot restore
+        // useLayoutedElements will finish and change initialNodes, triggering
+        // this effect again.  Skip that next cycle so the cache isn't overwritten.
+        skipSeedRef.current = true;
+      } else {
+        setNodes(initialNodes);
+        setEdges(initialEdges);
+        setGuides(diagram.guides ?? []);
+      }
       clearHistory();
     }
+    // Note: activeTab is intentionally NOT in deps – the effect should fire when
+    // the *layout* finishes (initialNodes changes), not when the tab index changes.
+    // The cache lookup reads activeTab at execution time, which is always current.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialNodes, initialEdges, isLayouting, setNodes, setEdges, clearHistory]);
 
-  // Sync guides when diagram changes
+  // Flush the outgoing tab's state to DB immediately on tab switch so that
+  // dragged positions persist even if auto-save hasn't fired yet.
+  const prevFlushTabRef = useRef(activeTab);
   useEffect(() => {
-    setGuides(diagram.guides ?? []);
-  }, [diagram]);
+    const prevTab = prevFlushTabRef.current;
+    prevFlushTabRef.current = activeTab;
+    if (prevTab === activeTab) return;
+
+    const cached = tabCacheRef.current.get(prevTab);
+    if (!cached) return;
+
+    // Serialise the outgoing tab's state and write to DB (fire-and-forget).
+    const latestSpec = specRef.current;
+    const prevDiagram = latestSpec.diagrams[prevTab];
+    if (!prevDiagram) return;
+
+    const updatedDiagram = flowToDiagram(cached.nodes, cached.edges, prevDiagram, cached.guides);
+    const updatedSpec: DiagramSpec = {
+      ...latestSpec,
+      diagrams: latestSpec.diagrams.map((d, i) => (i === prevTab ? updatedDiagram : d)),
+    };
+
+    // Also update specRef so subsequent operations see the flushed state
+    specRef.current = updatedSpec;
+
+    const docId = documentIdRef.current;
+    (async () => {
+      try {
+        clearTimeout(saveTimerRef.current);   // cancel any pending debounced save
+        const existing = await db.getDocument(docId);
+        if (existing) {
+          await db.saveDocument({ ...existing, spec: updatedSpec, updatedAt: Date.now() });
+        }
+      } catch {
+        /* best-effort */
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   // Reset isInitialMount and save status when diagram changes
   useEffect(() => {
@@ -206,29 +316,33 @@ export function FlowDiagram({
     setSaveStatus(null);
   }, [diagram.id]);
 
-  // Debounced auto-save: watches nodes/edges/guides, writes back to server
+  // Debounced auto-save: watches nodes/edges/guides, writes to DB
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
-    if (!specFilename) return;
 
     setSaveStatus("unsaved");
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
       setSaveStatus("saving");
       try {
+        const latestSpec = specRef.current;
         const updatedDiagram = flowToDiagram(nodes, edges, diagram, guides);
         const updatedSpec: DiagramSpec = {
-          ...spec,
-          diagrams: spec.diagrams.map((d, i) => i === activeTab ? updatedDiagram : d),
+          ...latestSpec,
+          diagrams: latestSpec.diagrams.map((d, i) => i === activeTab ? updatedDiagram : d),
         };
-        await fetch(`/api/specs/${specFilename}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updatedSpec, null, 2),
-        });
+        const docId = documentIdRef.current;
+        // Write to DB only — do NOT dispatch UPDATE_SPEC here.
+        // Dispatching UPDATE_SPEC would update the library → change activeDocument →
+        // re-render DiagramViewer → new diagram prop → re-layout → new initialNodes →
+        // seed effect sets nodes → triggers auto-save again → infinite loop.
+        const existing = await db.getDocument(docId);
+        if (existing) {
+          await db.saveDocument({ ...existing, spec: updatedSpec, updatedAt: Date.now() });
+        }
         setSaveStatus("saved");
       } catch {
         setSaveStatus("unsaved");
@@ -241,25 +355,24 @@ export function FlowDiagram({
 
   // Manual save helper (used by Ctrl+S)
   const saveNow = useCallback(async () => {
-    if (!specFilename) return;
     clearTimeout(saveTimerRef.current);
     setSaveStatus("saving");
     try {
+      const latestSpec = specRef.current;
       const updatedDiagram = flowToDiagram(nodes, edges, diagram, guides);
       const updatedSpec: DiagramSpec = {
-        ...spec,
-        diagrams: spec.diagrams.map((d, i) => i === activeTab ? updatedDiagram : d),
+        ...latestSpec,
+        diagrams: latestSpec.diagrams.map((d, i) => i === activeTab ? updatedDiagram : d),
       };
-      await fetch(`/api/specs/${specFilename}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedSpec, null, 2),
-      });
+      const existing = await db.getDocument(documentId);
+      if (existing) {
+        await db.saveDocument({ ...existing, spec: updatedSpec, updatedAt: Date.now() });
+      }
       setSaveStatus("saved");
     } catch {
       setSaveStatus("unsaved");
     }
-  }, [specFilename, nodes, edges, diagram, guides, spec, activeTab]);
+  }, [documentId, nodes, edges, diagram, guides, activeTab, db]);
 
   // Keyboard shortcuts: Ctrl/Cmd+Z = undo, Ctrl/Cmd+Shift+Z or Ctrl+Y = redo, Ctrl+S = save
   useEffect(() => {
@@ -537,6 +650,102 @@ export function FlowDiagram({
     [guides, nodes, canvasWidth, canvasHeight, setGuides, setNodes, saveSnapshot]
   );
 
+  const handleChat = useCallback(
+    async (message: string) => {
+      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string;
+      if (!apiKey) {
+        setChatError("No API key configured (VITE_OPENROUTER_API_KEY)");
+        return;
+      }
+      setIsLLMLoading(true);
+      setChatError(null);
+      setChatSummary(null);
+      setChatProgress(null);
+      try {
+        // Step 1: Validate input with cheap model
+        const validation = await validateChatInput(message, apiKey);
+
+        if (validation.classification === "complaint") {
+          await db.logFeedback({
+            userId: db.getUserId(),
+            message,
+            category: "complaint",
+          });
+          setChatSummary("Thanks for the feedback — your message has been logged and our team will review it.");
+          return;
+        }
+
+        if (validation.classification === "invalid") {
+          setChatError(
+            `That doesn't look like a diagram editing request. Try something like "add a node" or "change the color of Auth0". (${validation.reason})`,
+          );
+          return;
+        }
+
+        // Step 2: Valid request — proceed to expensive model
+        const currentSpec = flowToSpec(
+          nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides,
+        );
+        const { spec: newSpec, summary, usage } = await refineDiagramWithLLM(
+          currentSpec,
+          message,
+          apiKey,
+          undefined,
+          ({ attempt, maxAttempts, phase }) => {
+            setChatProgress(
+              phase === "calling"
+                ? null
+                : `Refining (attempt ${attempt}/${maxAttempts})...`,
+            );
+          },
+        );
+        if (usage) {
+          setTokenUsage((prev) => addTokenUsage(prev, usage));
+        }
+        const newDiagram = newSpec.diagrams[0];
+        if (!newDiagram) throw new Error("LLM returned empty diagrams array");
+
+        // Layout the new diagram to get React Flow nodes/edges
+        const hasSpatialData =
+          newDiagram.layoutMode === "spatial" &&
+          newDiagram.nodes.some((n) => n.spatial);
+        const hasGuideData =
+          (newDiagram.guides?.length ?? 0) > 0 &&
+          newDiagram.nodes.some((n) => n.guideRow || n.guideColumn);
+
+        let layoutResult: { nodes: Node[]; edges: Edge[] };
+        if (hasSpatialData) {
+          layoutResult = spatialLayoutDiagram(newDiagram, undefined, newSpec.shapePalette);
+        } else if (hasGuideData) {
+          layoutResult = guideLayoutDiagram(newDiagram, newSpec.shapePalette, newSpec.sizePalette);
+        } else {
+          layoutResult = spatialLayoutDiagram(newDiagram, undefined, newSpec.shapePalette);
+        }
+
+        saveSnapshot();
+        setNodes(layoutResult.nodes);
+        setEdges(layoutResult.edges);
+        if (newDiagram.guides) setGuides(newDiagram.guides);
+
+        // Sync the new spec to the documents context so subsequent
+        // refinements (and auto-saves) use the updated palettes/sizes/etc.
+        // skipSeedRef prevents the diagram prop change from re-triggering layout.
+        specRef.current = newSpec;
+        skipSeedRef.current = true;
+        docDispatch({ type: "UPDATE_SPEC", id: documentIdRef.current, spec: newSpec });
+
+        setChatSummary(summary);
+      } catch (err) {
+        console.error("LLM refinement failed:", err);
+        setChatError(err instanceof Error ? err.message : "LLM request failed");
+      } finally {
+        setIsLLMLoading(false);
+        setChatProgress(null);
+      }
+    },
+    [nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides, saveSnapshot, setNodes, setEdges, setGuides],
+  );
+
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
@@ -591,6 +800,30 @@ export function FlowDiagram({
     a.click();
     URL.revokeObjectURL(url);
   }, [nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides]);
+
+  const handleExportPng = useCallback(async () => {
+    const el = flowRef.current?.querySelector(".react-flow") as HTMLElement | null;
+    if (!el) return;
+    try {
+      const dataUrl = await toPng(el, {
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+      });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `${diagram.id}.png`;
+      a.click();
+    } catch (err) {
+      console.error("PNG export failed:", err);
+    }
+  }, [diagram.id]);
+
+  // Listen for external PNG export requests (e.g. from TabBar context menu)
+  useEffect(() => {
+    const handler = () => { handleExportPng(); };
+    window.addEventListener("objectify:export-png", handler);
+    return () => window.removeEventListener("objectify:export-png", handler);
+  }, [handleExportPng]);
 
   if (isLayouting) {
     return <div className="loading-spinner">Computing layout...</div>;
@@ -724,8 +957,11 @@ export function FlowDiagram({
               {showLegend ? "Hide Legend" : "Show Legend"}
             </button>
           )}
-          <button className="load-btn" onClick={handleExport}>
+          <button className="load-btn" onClick={handleExport} style={{ marginRight: 4 }}>
             Export JSON
+          </button>
+          <button className="load-btn" onClick={handleExportPng}>
+            Export PNG
           </button>
         </Panel>
         {/* Guide hover highlight */}
@@ -767,6 +1003,7 @@ export function FlowDiagram({
           setEdges={setEdges}
           onClose={closeContextMenu}
           saveSnapshot={saveSnapshot}
+          diagram={diagram}
         />
       )}
 
@@ -780,6 +1017,12 @@ export function FlowDiagram({
         canvasWidth={canvasWidth}
         canvasHeight={canvasHeight}
         saveSnapshot={saveSnapshot}
+        onChat={handleChat}
+        isLoading={isLLMLoading}
+        chatError={chatError}
+        chatSummary={chatSummary}
+        chatProgress={chatProgress}
+        tokenUsage={tokenUsage}
       />
     </div>
   );

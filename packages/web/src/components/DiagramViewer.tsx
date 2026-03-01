@@ -1,15 +1,15 @@
 import { useState } from "react";
-import type { DiagramSpec } from "@objectify/schema";
+import type { DiagramDocument } from "../lib/db/types.js";
 import { FlowDiagram } from "./FlowDiagram.js";
 
 interface DiagramViewerProps {
-  spec: DiagramSpec;
-  specFilename: string | null;
+  document: DiagramDocument;
 }
 
-export function DiagramViewer({ spec, specFilename }: DiagramViewerProps) {
+export function DiagramViewer({ document }: DiagramViewerProps) {
   const [activeTab, setActiveTab] = useState(0);
   const [showDescription, setShowDescription] = useState(true);
+  const { spec } = document;
 
   return (
     <>
@@ -51,7 +51,7 @@ export function DiagramViewer({ spec, specFilename }: DiagramViewerProps) {
             diagram={spec.diagrams[activeTab]}
             spec={spec}
             activeTab={activeTab}
-            specFilename={specFilename}
+            documentId={document.id}
             palette={spec.palette}
             shapePalette={spec.shapePalette}
             sizePalette={spec.sizePalette}

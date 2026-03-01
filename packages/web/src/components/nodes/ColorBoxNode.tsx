@@ -17,8 +17,11 @@ export function ColorBoxNode({
 }: NodeProps & { data: ColorBoxData }) {
   const { label, labels, style, font } = data;
 
-  // Primary center label text (from labels[0] if center, else legacy label)
-  const centerLabel = labels?.find((l) => l.position === "center")?.text ?? label;
+  // Primary center label text (from labels[0] if center, else legacy label).
+  // If labels[] exists but has no center entry, all text is shown externally — don't duplicate.
+  const centerLabel = labels?.length
+    ? (labels.find((l) => l.position === "center")?.text ?? null)
+    : label;
   const hasOutsideLabels = labels?.some((l) => l.position !== "center");
 
   return (

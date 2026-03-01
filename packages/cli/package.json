@@ -1,12 +1,12 @@
 {
   "name": "@objectify/cli",
   "version": "0.1.0",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "objectify": "./src/index.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.52.0",
     "@objectify/schema": "*",
     "commander": "^13.0.0"
   },

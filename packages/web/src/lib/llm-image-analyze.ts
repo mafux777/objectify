@@ -1,94 +1,15 @@
-export const SYSTEM_PROMPT = `You are a diagram analysis expert. Your task is to analyze images of diagrams and produce a structured JSON specification that describes all the visual elements.
+import { DiagramSpecSchema, type DiagramSpec } from "@objectify/schema";
+import {
+  type ChatMessage,
+  type LLMProgressCallback,
+  callOpenRouter,
+  extractJsonFromResponse,
+  formatZodErrors,
+  buildRetryMessages,
+} from "./llm-shared.js";
 
-## Analysis Instructions
-
-1. **Identify distinct diagrams**: The image may contain multiple separate diagrams (flows, sequences, etc.). Each gets its own entry in the "diagrams" array. Look for titles, numbered steps, or spatial separation as indicators.
-
-2. **Identify nodes (boxes)**: For each box/rectangle in the diagram:
-   - Assign a unique, descriptive kebab-case ID (e.g., "payment-service", "api-gateway")
-   - Record its exact display label text
-   - Determine if it is a **group** (contains other boxes inside it) or a regular **box**
-   - If it is inside another box, set parentId to that container's ID
-   - Record its background color as a CSS hex color
-   - Record its text color (default #000000 for dark text, #FFFFFF for light-on-dark)
-   - Use orderHint to indicate relative position (0 = leftmost/topmost, incrementing rightward/downward)
-   - Group nodes MUST appear before their children in the nodes array
-
-3. **Identify edges (arrows)**: For each arrow/line connecting boxes:
-   - Assign a unique ID (e.g., "edge-1", "edge-2")
-   - Record source and target node IDs (source is where arrow starts, target is where it points)
-   - Record any label text on or near the arrow
-   - Note if the line is dashed or dotted (default solid)
-   - Determine routingType: "straight" (direct line), "step" (sharp 90° bends), "smoothstep" (rounded 90° bends), "bezier" (smooth curve)
-   - Estimate strokeWidth: 1 (thin), 1.5 (normal/default), 2.5 (thick), 4 (heavy)
-   - Identify endpoint markers: sourceMarker/targetMarker as "arrow", "ball", "socket", or "none"
-
-4. **Color Palette Extraction**: Before assigning colors to any node or edge, perform a color analysis pass:
-   a. Scan the entire image and identify every distinct color used for backgrounds, text, borders, and arrows.
-   b. Cluster similar colors together — if two colors are within ~15 distance in RGB space, merge them into one representative color.
-   c. Build a palette of at most 20 distinct colors. For each color, estimate the percentage of total image area it covers (percentages should sum to approximately 100).
-   d. Give each palette entry: an "id" (kebab-case, e.g. "light-blue", "dark-orange"), the "hex" value (6-digit CSS hex like "#FF9800"), the "percentage" (0-100), and optionally a "name" (human-readable like "Warm Orange").
-   e. For ALL node backgroundColor, textColor, borderColor, and edge color values, use ONLY hex values that appear in your palette. Snap any observed color to the nearest palette entry.
-   f. Include the palette in the top-level "palette" field of the output JSON.
-   g. Assume opacity is always 100% — no transparency, no gradients.
-
-   Common diagram color families for reference (use these as guidance, not requirements):
-   - Orange/amber: #FF9800, #FFE0B2, #FFF3E0
-   - White/light: #FFFFFF, #F5F5F5
-   - Purple/violet: #CE93D8, #E1BEE7
-   - Blue: #BBDEFB, #2196F3
-   - Green: #C8E6C9, #4CAF50
-   - Gray: #E0E0E0, #9E9E9E
-
-5. **Shape Palette Extraction**: Identify the distinct geometric shapes used for nodes:
-   a. Classify each node into one of these shape kinds:
-      - "rectangle" — standard rectangular box (most common, use when uncertain)
-      - "rounded-rectangle" — rectangle with visibly large corner radius (pill-like)
-      - "circle" — equal width and height, fully round
-      - "ellipse" — oval shape
-      - "diamond" — rotated square, typically for decision/condition nodes
-      - "parallelogram" — skewed rectangle, typically for input/output
-      - "hexagon" — six-sided shape
-      - "arrow-shape" — pentagon/chevron pointing in the flow direction
-   b. Build a palette of at most 15 shape entries. For each: "id" (kebab-case), "kind" (from above), "aspectRatio" (width/height ratio, optional), "name" (optional).
-   c. Set "shapeId" on each node to reference the matching shape palette entry.
-   d. If the diagram only uses rectangles, still create a single-entry shape palette.
-   e. Include in the top-level "shapePalette" field.
-
-6. **Size Normalization**: Identify distinct size classes for nodes:
-   a. Estimate each non-group node's relative width and height as normalized 0-1 fractions of the image dimensions.
-   b. Cluster nodes with similar dimensions into the SAME size class. E.g., if "CV API" and "LP Gateway" are roughly the same size, they MUST share a size class.
-   c. When merging similar sizes, ALWAYS favor the LARGER dimensions to ensure the longest label fits comfortably.
-   d. Build a palette of at most 20 size classes. For each: "id" (kebab-case, e.g. "small-service", "medium-box"), "width" (0-1), "height" (0-1), "name" (optional).
-   e. Set "sizeId" on each non-group node. Group nodes do NOT need a sizeId (their size derives from children).
-   f. Include in the top-level "sizePalette" field.
-
-7. **Semantic Type Inference**: Infer a conceptual archetype for each node:
-   a. Analyze labels, roles, and context to determine each node's semantic category.
-   b. Nodes with the same functional role MUST share the same semantic type. Examples: DB #1, DB #2, DB #3 are all "database-replica"; Auth API and User API might both be "backend-service".
-   c. Build a list of distinct semantic types. For each: "id" (kebab-case), "name" (human-readable class name), "description" (brief explanation, optional).
-   d. Set "semanticTypeId" on each node to reference the matching semantic type.
-   e. Include in the top-level "semanticTypes" field.
-
-8. **Flow direction**: For each diagram, determine the primary flow direction:
-   - Use "RIGHT" if the diagram flows left-to-right (most common for sequence/flow diagrams)
-   - Use "DOWN" if the diagram flows top-to-bottom (common for hierarchical/tree diagrams, or when nodes fan out horizontally at the bottom)
-
-9. **Description**: Write a clear, detailed description of the entire diagram image. Explain what each diagram depicts, the flow of data or control, and the relationships between components. This should be understandable by someone who cannot see the image.
-
-## Output Format
-Set version to "1.0". Set layoutMode to "auto" on each diagram. Include top-level "palette", "shapePalette", "sizePalette", and "semanticTypes" arrays.
-
-## Critical Rules
-- Every node that visually contains other nodes MUST have type "group"
-- Every node inside a container MUST set parentId to the container's ID
-- Group nodes must appear BEFORE their children in the nodes array
-- Edge source and target must reference valid node IDs
-- Do not invent nodes or edges that are not visible in the image
-- Do not include pixel coordinates or positions — only logical structure
-- If a node appears in multiple diagrams (same label, same role), give it a DIFFERENT id in each diagram (e.g., "proxy-1" and "proxy-2")`;
-
-export const SPATIAL_SYSTEM_PROMPT = `You are a diagram analysis expert performing PIXEL-LEVEL reverse engineering. Your task is to completely dissect a diagram image — extracting every visual element with its precise position, size, color, and font properties.
+// Adapted from packages/cli/src/prompt.ts SPATIAL_SYSTEM_PROMPT
+const IMAGE_ANALYSIS_PROMPT = `You are a diagram analysis expert performing PIXEL-LEVEL reverse engineering. Your task is to completely dissect a diagram image — extracting every visual element with its precise position, size, color, and font properties.
 
 ## Spatial Extraction Instructions
 
@@ -138,7 +59,7 @@ Apply all the same rules as standard analysis:
 
 ## Freestanding Text
 
-Any text in the image that is NOT inside a box or on an arrow MUST still be captured as one or more nodes. Treat each freestanding text block as a rectangle with a transparent/invisible border (borderColor matching the background or using borderStyle "solid" with the background color). The label is the text content. This includes titles, annotations, notes, captions, legends, and any other readable text. It is always easier for the user to delete an unwanted text node than to recreate missing text from scratch, so err on the side of capturing ALL visible text.
+Any text in the image that is NOT inside a box or on an arrow MUST still be captured as one or more nodes. Treat each freestanding text block as a rectangle with a transparent/invisible border (borderColor matching the background or using borderStyle "solid" with the background color). The label is the text content. This includes titles, annotations, notes, captions, legends, and any other readable text.
 
 ## Edge Identification
 
@@ -166,15 +87,6 @@ Before assigning any colors, perform a systematic color analysis:
 5. ALL node backgroundColor, textColor, borderColor, and ALL edge color values MUST use ONLY hex values from the palette. Snap observed colors to the nearest palette entry.
 6. Assume opacity is always 100% — no transparency, no gradients.
 
-Common diagram color families for reference (guidance, not requirements):
-- Orange/amber: #FF9800, #FFE0B2, #FFF3E0
-- White/light: #FFFFFF, #F5F5F5
-- Purple/violet: #CE93D8, #E1BEE7, #B39DDB
-- Blue: #BBDEFB, #2196F3, #90CAF9
-- Green: #C8E6C9, #4CAF50, #A5D6A7
-- Yellow: #FFF9C4, #FFEB3B
-- Gray: #E0E0E0, #9E9E9E, #BDBDBD
-
 ## Shape Palette Extraction
 
 Identify the distinct geometric shapes used for nodes:
@@ -187,18 +99,18 @@ Identify the distinct geometric shapes used for nodes:
 
 Identify distinct size classes for nodes:
 1. Estimate each non-group node's relative width and height as normalized 0-1 fractions of the image dimensions.
-2. Cluster nodes with similar dimensions into the SAME size class. Nodes that look the same size MUST share a size class.
+2. Cluster nodes with similar dimensions into the SAME size class.
 3. When merging similar sizes, ALWAYS favor the LARGER dimensions to ensure the longest label fits.
 4. Build a palette of at most 20 size classes. For each: "id" (kebab-case), "width" (0-1), "height" (0-1), "name" (optional).
 5. Set "sizeId" on each non-group node. Group nodes do NOT need a sizeId.
-6. IMPORTANT for spatial mode: The size class width/height values should match the actual spatial bounding box dimensions. When multiple nodes share a size class, set the class dimensions to the LARGEST node's spatial dimensions, then update all other nodes' spatial.width and spatial.height to match.
+6. IMPORTANT for spatial mode: The size class width/height values should match the actual spatial bounding box dimensions.
 7. Include in the top-level "sizePalette" field.
 
 ## Semantic Type Inference
 
 Infer a conceptual archetype for each node:
 1. Analyze labels, roles, and context to determine each node's semantic category.
-2. Nodes with the same functional role MUST share a semantic type. Examples: DB #1, DB #2, DB #3 → "database-replica"; Auth API and User API → "backend-service".
+2. Nodes with the same functional role MUST share a semantic type.
 3. Build a list of types. For each: "id" (kebab-case), "name" (human-readable), "description" (optional).
 4. Set "semanticTypeId" on each node.
 5. Include in the top-level "semanticTypes" field.
@@ -223,11 +135,11 @@ Identify the implicit alignment grid in the diagram:
    - "index": sequential number (0-based), rows numbered top-to-bottom, columns left-to-right
    - "direction": "horizontal" for rows, "vertical" for columns
    - "position": normalized 0-1 position (y for horizontal, x for vertical) — use the center of the row/column of nodes
-   - "label": a SHORT descriptive label — maximum 1-2 words (e.g., "Inputs", "Processing", "Output"). Keep labels concise; they appear on the guide lines in the UI and long text does not fit.
+   - "label": a SHORT descriptive label — maximum 1-2 words (e.g., "Inputs", "Processing", "Output")
 4. On each node, set "guideRow" to the ID of the horizontal guide it aligns with, and "guideColumn" to the ID of the vertical guide it aligns with.
 5. Include guides in each diagram's "guides" array.
-6. IMPORTANT: Each (guideRow, guideColumn) pair must be unique — no two nodes may share the same grid cell. If two nodes appear to overlap in the same cell, create additional guide lines to separate them (e.g., add a new row or column).
-7. IMPORTANT: Every guide of the same direction must have a DISTINCT position value. If two columns of nodes share the same x-center, use a SINGLE vertical guide for both. Similarly for rows with the same y-center. Never create two guides at the same position — instead, have multiple nodes reference the same guide.
+6. IMPORTANT: Each (guideRow, guideColumn) pair must be unique — no two nodes may share the same grid cell.
+7. IMPORTANT: Every guide of the same direction must have a DISTINCT position value.
 
 ## Label Positioning
 
@@ -333,3 +245,90 @@ Each edge MUST have a nested "style" object (NOT flat style fields):
 - Edge source and target must reference valid node IDs
 - Do not invent nodes or edges that are not visible in the image
 - If a node appears in multiple diagrams, give it a DIFFERENT id in each diagram`;
+
+/**
+ * Get image dimensions from a data URL using the browser's Image object.
+ */
+function getImageDimensions(
+  dataUrl: string,
+): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () => reject(new Error("Failed to load image"));
+    img.src = dataUrl;
+  });
+}
+
+const MAX_ATTEMPTS = 3;
+
+/**
+ * Analyze a diagram image via LLM vision and return a DiagramSpec.
+ * Retries up to 3 times on schema validation failures, feeding errors back to the LLM.
+ */
+export async function analyzeDiagramImage(
+  base64: string,
+  mediaType: string,
+  width: number,
+  height: number,
+  apiKey: string,
+  model = "anthropic/claude-sonnet-4-6",
+  onProgress?: LLMProgressCallback,
+): Promise<DiagramSpec> {
+  const userText = `Analyze this diagram image and produce the structured JSON specification with full spatial data. The image dimensions are ${width}x${height} pixels. Set imageDimensions to {"width": ${width}, "height": ${height}} on each diagram. Be thorough — capture every box, container, arrow, and label visible in the image with precise bounding boxes.`;
+
+  const messages: ChatMessage[] = [
+    { role: "system", content: IMAGE_ANALYSIS_PROMPT },
+    {
+      role: "user",
+      content: [
+        {
+          type: "image_url",
+          image_url: {
+            url: `data:${mediaType};base64,${base64}`,
+          },
+        },
+        {
+          type: "text",
+          text: userText,
+        },
+      ],
+    },
+  ];
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    onProgress?.({
+      attempt,
+      maxAttempts: MAX_ATTEMPTS,
+      phase: attempt === 1 ? "calling" : "retrying",
+    });
+
+    const { content } = await callOpenRouter(messages, apiKey, model);
+    const parsed = extractJsonFromResponse(content);
+    const result = DiagramSpecSchema.safeParse(parsed);
+
+    if (result.success) {
+      return result.data;
+    }
+
+    console.error(
+      `Image analysis schema validation failed (attempt ${attempt}/${MAX_ATTEMPTS}):`,
+      result.error.issues,
+    );
+
+    lastError = new Error(
+      `Schema validation failed:\n${formatZodErrors(result.error)}`,
+    );
+
+    if (attempt < MAX_ATTEMPTS) {
+      const [assistantMsg, userMsg] = buildRetryMessages(content, result.error);
+      messages.push(assistantMsg, userMsg);
+    }
+  }
+
+  throw lastError!;
+}
+
+export { getImageDimensions };
