@@ -1,16 +1,18 @@
 # Objectify
 
-Convert diagram images into interactive, editable flowcharts using AI vision.
+Create, convert, and iterate on diagrams with AI.
 
-Objectify uses AI vision models to analyze PNG/JPEG diagrams and extract structured data—nodes, edges, colors, and spatial positions—then renders them as interactive React Flow diagrams. It calls models through [OpenRouter](https://openrouter.ai), so you can use Claude, GPT-4o, Gemini, or any other vision-capable model with a single API key.
+Objectify lets you **create diagrams from a text prompt**, **convert existing images** into editable flowcharts, and **chat with your diagram** to refine it iteratively — all powered by AI vision and generation models through [OpenRouter](https://openrouter.ai), so you can use Claude, GPT-4o, Gemini, or any other model with a single API key.
 
 ![How Objectify Works](docs/how-objectify-works.png)
 
 ## Features
 
-- **AI-powered extraction** — Uses vision models to parse diagrams from images
-- **Spatial mode** — Preserves original layout positions and bounding boxes
-- **Interactive viewer** — Pan, zoom, and explore diagrams in the browser
+- **Create from prompt** — Describe a diagram in plain text and let AI generate it
+- **Import from image** — Upload a PNG/JPEG and AI extracts nodes, edges, colors, and layout
+- **Chat with your diagram** — Ask AI to add nodes, restyle, restructure, or explain what it sees
+- **Spatial mode** — Preserves original layout positions and bounding boxes from images
+- **Interactive editor** — Pan, zoom, drag, and edit diagrams in the browser
 - **Auto-layout** — ELK.js-based automatic layout when spatial data isn't needed
 - **Nested groups** — Supports container nodes with children
 - **Color palette extraction** — Captures colors from the source image
@@ -66,9 +68,10 @@ npm run dev
 ```
 
 Open http://localhost:5173, then:
-- Click **Load JSON** to open a `diagram-spec.json` file
-- Or drag and drop a spec file onto the page
-- Use the sample buttons to explore demo diagrams
+- **Create from Prompt** — describe what you want and AI generates the diagram
+- **Import from Image** — upload a diagram image and AI extracts the structure
+- **Import JSON** — load a previously exported `diagram-spec.json` file
+- Once a diagram is open, use the **command bar** to chat with AI and iterate on it
 
 ## Diagram Spec Format
 
