@@ -113,6 +113,18 @@ The schema supports both semantic (v1.0) and spatial (v2.0) specifications:
 }
 ```
 
+## Video Series
+
+A five-part video series covering Objectify from every angle — each video's visuals are diagrams rendered by the product itself.
+
+1. [I Used AI to Make a Tool That Reads Diagrams... Then Made AI Write Scripts About It](https://youtu.be/0B4nD0HL5gM)
+2. [What If AI Agents Could Read Your Whiteboard — And Pay You For It?](https://youtu.be/ChoOoe5ngeg)
+3. [Designing a Language for Diagrams — Semantics and Layout in One Spec](https://youtu.be/G_oCTuF6bTE)
+4. [Building in the Open — How to Contribute](https://youtu.be/o4dq9yHS50A)
+5. [The Prompt IS the Product — How User Feedback Shapes AI Extraction](https://youtu.be/kKQp7eO2Z0I)
+
+See [`video-scripts/VIDEO-PRODUCTION.md`](video-scripts/VIDEO-PRODUCTION.md) for how they were produced.
+
 ## Development
 
 ```bash
