@@ -47,6 +47,7 @@ import { guideLayoutDiagram } from "../lib/guide-layout.js";
 import { GuideLines } from "./GuideLines.js";
 import { LabelConnectors } from "./LabelConnectors.js";
 import { GuidesContext } from "../lib/guides-context.js";
+import { ForceLayoutPanel } from "./ForceLayoutPanel.js";
 
 let detachGuideCounter = 200;
 
@@ -90,6 +91,7 @@ export function FlowDiagram({
   const [showGuides, setShowGuides] = useState(true);
   const [showLabelConnectors, setShowLabelConnectors] = useState(false);
   const [showLegend, setShowLegend] = useState(true);
+  const [showForcePanel, setShowForcePanel] = useState(false);
   const [hoveredGuideId, setHoveredGuideId] = useState<string | null>(null);
   const [focusedEdgeId, setFocusedEdgeId] = useState<string | null>(null);
   const [isLLMLoading, setIsLLMLoading] = useState(false);
@@ -965,6 +967,14 @@ export function FlowDiagram({
               {showLegend ? "Hide Legend" : "Show Legend"}
             </button>
           )}
+          <button
+            className={`load-btn${showForcePanel ? " load-btn--active" : ""}`}
+            onClick={() => setShowForcePanel(!showForcePanel)}
+            style={{ marginRight: 8 }}
+            title="Physics-based layout: objects repel, connectors attract"
+          >
+            Magnetic Layout
+          </button>
           <button className="load-btn" onClick={handleExport} style={{ marginRight: 4 }}>
             Export JSON
           </button>
@@ -1002,6 +1012,20 @@ export function FlowDiagram({
         )}
       </ReactFlow>
       </GuidesContext.Provider>
+
+      {showForcePanel && (
+        <ForceLayoutPanel
+          nodes={nodes}
+          edges={edges}
+          guides={guides}
+          canvasWidth={canvasWidth}
+          canvasHeight={canvasHeight}
+          setNodes={setNodes}
+          setGuides={setGuides}
+          saveSnapshot={saveSnapshot}
+          onClose={() => setShowForcePanel(false)}
+        />
+      )}
 
       {contextMenu && (
         <ContextMenu
