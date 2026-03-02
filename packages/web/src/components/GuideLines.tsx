@@ -2,6 +2,36 @@ import { useCallback, useRef } from "react";
 import { useReactFlow, useViewport, type Node } from "@xyflow/react";
 import type { GuideLine } from "@objectify/schema";
 
+/** Minimum normalized gap between adjacent guides (~18px at 1200px canvas) */
+const MIN_GUIDE_GAP = 0.015;
+
+/**
+ * Constrain a guide's position to stay between its sorted neighbors.
+ * Outermost guides have no outer constraint — they can expand beyond [0, 1].
+ */
+function constrainToNeighbors(
+  rawPosition: number,
+  guideId: string,
+  direction: "horizontal" | "vertical",
+  guides: GuideLine[],
+): number {
+  const sameDir = guides
+    .filter((g) => g.direction === direction)
+    .sort((a, b) => a.position - b.position);
+
+  const idx = sameDir.findIndex((g) => g.id === guideId);
+  if (idx === -1) return rawPosition;
+
+  const prev = idx > 0 ? sameDir[idx - 1] : null;
+  const next = idx < sameDir.length - 1 ? sameDir[idx + 1] : null;
+
+  // Outermost guides have no constraint on their outer side (infinite canvas)
+  const lowerBound = prev ? prev.position + MIN_GUIDE_GAP : -Infinity;
+  const upperBound = next ? next.position - MIN_GUIDE_GAP : Infinity;
+
+  return Math.max(lowerBound, Math.min(upperBound, rawPosition));
+}
+
 interface GuideLinesProps {
   guides: GuideLine[];
   canvasWidth: number;
@@ -26,11 +56,17 @@ export function GuideLines({
   onGuideHover,
 }: GuideLinesProps) {
   const { getViewport } = useReactFlow();
+
+  // Keep a ref to the latest guides for real-time neighbor lookups in onPointerMove
+  const guidesRef = useRef(guides);
+  guidesRef.current = guides;
+
   const dragState = useRef<{
     guideId: string;
     direction: "horizontal" | "vertical";
     startMouse: number; // screen px
     startPosition: number; // normalized 0-1
+    altKey: boolean; // Alt held → free drag (skip neighbor constraints)
   } | null>(null);
 
   const onPointerDown = useCallback(
@@ -46,6 +82,7 @@ export function GuideLines({
         direction: guide.direction,
         startMouse: guide.direction === "horizontal" ? e.clientY : e.clientX,
         startPosition: guide.position,
+        altKey: e.altKey,
       };
     },
     [saveSnapshot]
@@ -62,7 +99,10 @@ export function GuideLines({
       // Convert screen pixels to canvas pixels (account for zoom)
       const canvasDim = ds.direction === "horizontal" ? canvasHeight : canvasWidth;
       const normalizedDelta = mouseDeltaPx / (canvasDim * zoom);
-      const newPosition = Math.max(0, Math.min(1, ds.startPosition + normalizedDelta));
+      const rawPosition = ds.startPosition + normalizedDelta;
+      const newPosition = ds.altKey
+        ? rawPosition // Alt: free drag, no neighbor constraint
+        : constrainToNeighbors(rawPosition, ds.guideId, ds.direction, guidesRef.current);
 
       // Update the guide position
       setGuides((gs) =>

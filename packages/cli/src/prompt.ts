@@ -19,7 +19,7 @@ export const SYSTEM_PROMPT = `You are a diagram analysis expert. Your task is to
    - Record source and target node IDs (source is where arrow starts, target is where it points)
    - Record any label text on or near the arrow
    - Note if the line is dashed or dotted (default solid)
-   - Determine routingType: "straight" (direct line), "step" (sharp 90° bends), "smoothstep" (rounded 90° bends), "bezier" (smooth curve)
+   - Determine routingType: "straight" (direct line), "step" (sharp 90° bends), "smoothstep" (rounded 90° bends), "bezier" (smooth curve). Do NOT set "smooth-repelled" — that is auto-applied for guide-based layouts
    - Estimate strokeWidth: 1 (thin), 1.5 (normal/default), 2.5 (thick), 4 (heavy)
    - Identify endpoint markers: sourceMarker/targetMarker as "arrow", "ball", "socket", or "none"
 
@@ -30,7 +30,7 @@ export const SYSTEM_PROMPT = `You are a diagram analysis expert. Your task is to
    d. Give each palette entry: an "id" (kebab-case, e.g. "light-blue", "dark-orange"), the "hex" value (6-digit CSS hex like "#FF9800"), the "percentage" (0-100), and optionally a "name" (human-readable like "Warm Orange").
    e. For ALL node backgroundColor, textColor, borderColor, and edge color values, use ONLY hex values that appear in your palette. Snap any observed color to the nearest palette entry.
    f. Include the palette in the top-level "palette" field of the output JSON.
-   g. Assume opacity is always 100% — no transparency, no gradients.
+   g. Use the style.opacity field (0–1) for transparency when elements appear semi-transparent. No gradients. Use the node-level zLevel field ('background', 'base', 'raised', 'foreground', 'overlay') to control stacking order when nodes visually overlap; default is 'base'.
 
    Common diagram color families for reference (use these as guidance, not requirements):
    - Orange/amber: #FF9800, #FFE0B2, #FFF3E0
@@ -153,6 +153,7 @@ For each arrow/line:
   - "step" = path with sharp 90° right-angle bends (orthogonal segments, crisp corners)
   - "smoothstep" = path with rounded 90° bends (orthogonal segments, soft curved corners)
   - "bezier" = smooth S-curve or C-curve, no right angles
+  - For guide-based layouts, omit routingType to get the automatic "smooth-repelled" default (routes through channels between guide lines)
 - strokeWidth: estimate relative thickness: 1 (thin/secondary), 1.5 (normal/default), 2.5 (thick/emphasized), 4 (heavy/primary flow)
 - sourceMarker / targetMarker: "arrow" (arrowhead), "ball" (filled circle), "socket" (half-circle arc), "none" (plain line end)
 
@@ -164,7 +165,7 @@ Before assigning any colors, perform a systematic color analysis:
 3. Build a palette of at most 20 distinct colors. For each, estimate percentage of total image area it covers (percentages should sum to approximately 100).
 4. Give each entry: "id" (kebab-case, e.g. "light-blue"), "hex" value (6-digit CSS hex like "#FF9800"), "percentage" (0-100), and optional "name" (human-readable).
 5. ALL node backgroundColor, textColor, borderColor, and ALL edge color values MUST use ONLY hex values from the palette. Snap observed colors to the nearest palette entry.
-6. Assume opacity is always 100% — no transparency, no gradients.
+6. Use the style.opacity field (0–1) for transparency when elements appear semi-transparent. No gradients. Use the node-level zLevel field ('background', 'base', 'raised', 'foreground', 'overlay') to control stacking order when nodes visually overlap; default is 'base'.
 
 Common diagram color families for reference (guidance, not requirements):
 - Orange/amber: #FF9800, #FFE0B2, #FFF3E0
@@ -312,7 +313,7 @@ Each edge MUST have a nested "style" object (NOT flat style fields):
   "style": {
     "lineStyle": "solid" or "dashed" or "dotted",
     "color": "#HEX",
-    "routingType": "straight" or "step" or "smoothstep" or "bezier",
+    "routingType": "straight" or "step" or "smoothstep" or "bezier" or "smooth-repelled",
     "strokeWidth": 1.5
   },
   "sourceAnchor": "...",

@@ -46,6 +46,7 @@ import { spatialLayoutDiagram } from "../lib/spatial-layout.js";
 import { guideLayoutDiagram } from "../lib/guide-layout.js";
 import { GuideLines } from "./GuideLines.js";
 import { LabelConnectors } from "./LabelConnectors.js";
+import { GuidesContext } from "../lib/guides-context.js";
 
 let detachGuideCounter = 200;
 
@@ -238,6 +239,12 @@ export function FlowDiagram({
   const imgW = diagram.imageDimensions?.width ?? 1200;
   const imgH = diagram.imageDimensions?.height ?? 800;
   const canvasHeight = canvasWidth * (imgH / imgW);
+
+  // Provide guide positions to edge components via context
+  const guidesCtxValue = useMemo(
+    () => ({ guides, canvasWidth, canvasHeight }),
+    [guides, canvasWidth, canvasHeight],
+  );
 
   // Seed interactive state when layout completes or diagram changes.
   // If we have a cached snapshot for this tab (from a prior switch-away), restore
@@ -547,7 +554,7 @@ export function FlowDiagram({
           id: newRowId,
           index: guides.filter((g) => g.direction === "horizontal").length,
           direction: "horizontal",
-          position: Math.max(0, Math.min(1, centerY / canvasHeight)),
+          position: centerY / canvasHeight,
           label: `${shortLabel} Row`,
         };
 
@@ -558,7 +565,7 @@ export function FlowDiagram({
           id: newColId,
           index: guides.filter((g) => g.direction === "vertical").length,
           direction: "vertical",
-          position: Math.max(0, Math.min(1, centerX / canvasWidth)),
+          position: centerX / canvasWidth,
           label: `${shortLabel} Col`,
         };
 
@@ -608,10 +615,10 @@ export function FlowDiagram({
       setGuides((gs) =>
         gs.map((g) => {
           if (g.id === rowId) {
-            return { ...g, position: Math.max(0, Math.min(1, centerY / canvasHeight)) };
+            return { ...g, position: centerY / canvasHeight };
           }
           if (g.id === colId) {
-            return { ...g, position: Math.max(0, Math.min(1, centerX / canvasWidth)) };
+            return { ...g, position: centerX / canvasWidth };
           }
           return g;
         })
@@ -831,6 +838,7 @@ export function FlowDiagram({
 
   return (
     <div ref={flowRef} style={{ width: "100%", height: "100%", position: "relative" }}>
+      <GuidesContext.Provider value={guidesCtxValue}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -993,6 +1001,7 @@ export function FlowDiagram({
           `}</style>
         )}
       </ReactFlow>
+      </GuidesContext.Provider>
 
       {contextMenu && (
         <ContextMenu

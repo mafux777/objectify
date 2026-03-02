@@ -45,6 +45,7 @@ export function ColorBoxNode({
           color: style.textColor ?? "#000",
           border: `2px ${style.borderStyle ?? "solid"} ${style.borderColor ?? "#bbb"}`,
           borderRadius: 8,
+          opacity: style.opacity ?? 1,
           padding: "10px 20px",
           fontWeight: font?.fontWeight === "bold" ? 700 : 500,
           fontSize: font?.fontSize ?? 13,

@@ -39,7 +39,7 @@ export function GroupNode({
       <NodeHandles />
 
       {isCloud ? (
-        <div style={{ width: "100%", height: "100%", position: "relative" }}>
+        <div style={{ width: "100%", height: "100%", position: "relative", opacity: style.opacity ?? 1 }}>
           <svg
             viewBox="0 0 200 120"
             preserveAspectRatio="none"
@@ -76,6 +76,7 @@ export function GroupNode({
             backgroundColor: style.backgroundColor + "20",
             border: `2px ${style.borderStyle ?? "solid"} ${style.borderColor ?? style.backgroundColor}`,
             borderRadius: 12,
+            opacity: style.opacity ?? 1,
             width: "100%",
             height: "100%",
             position: "relative",

@@ -11,6 +11,7 @@ import tradingPipeline3aData from "../data/trading-pipeline-3a.json";
 import talosComponentsData from "../data/talos-components.json";
 import objectifyWorkflowData from "../data/objectify-workflow.json";
 import imageImportFlowData from "../data/image-import-flow.json";
+import spatialCalibrationData from "../data/spatial-calibration.json";
 
 const TEMPLATES = [
   { title: "Project Thunderbattle", data: sampleData },
@@ -20,6 +21,7 @@ const TEMPLATES = [
   { title: "Talos Linux Components", data: talosComponentsData },
   { title: "How Objectify Works", data: objectifyWorkflowData },
   { title: "Image Import Flow", data: imageImportFlowData },
+  { title: "Spatial Calibration", data: spatialCalibrationData },
 ];
 
 function formatDate(ts: number): string {

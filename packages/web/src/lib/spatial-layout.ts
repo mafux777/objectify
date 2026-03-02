@@ -2,6 +2,7 @@ import type { Node, Edge } from "@xyflow/react";
 import type { SingleDiagram, DiagramNode, ShapePaletteEntry } from "@objectify/schema";
 import { specEdgesToFlowEdges } from "./spec-to-flow.js";
 import { migrateNodeLabels } from "./label-migration.js";
+import { zLevelToIndex } from "./z-level.js";
 
 const DEFAULT_CANVAS_WIDTH = 1200;
 
@@ -80,6 +81,7 @@ export function spatialLayoutDiagram(
           ...(node.semanticTypeId ? { semanticTypeId: node.semanticTypeId } : {}),
           ...(node.guideRow ? { guideRow: node.guideRow } : {}),
           ...(node.guideColumn ? { guideColumn: node.guideColumn } : {}),
+          ...(node.zLevel ? { zLevel: node.zLevel } : {}),
         },
         ...(node.parentId
           ? { parentId: node.parentId, extent: "parent" as const }
@@ -87,6 +89,7 @@ export function spatialLayoutDiagram(
         ...(isGroup
           ? { style: { width: abs.w, height: abs.h } }
           : {}),
+        zIndex: zLevelToIndex(node.zLevel),
         width: abs.w,
         height: abs.h,
       } satisfies Node;
