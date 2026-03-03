@@ -1,0 +1,202 @@
+{
+  "version": "7.0",
+  "description": "Microservices architecture for testing force-directed layout. Contains 12 interconnected services with varying connectivity — API Gateway is a high-degree hub, while leaf services like Email and Logging have fewer connections. The force layout should naturally give the API Gateway more space (ForceAtlas2 degree-dependent repulsion) and cluster tightly-connected services together.",
+  "palette": [
+    { "id": "blue-light", "hex": "#BBDEFB", "percentage": 20, "name": "Light Blue" },
+    { "id": "blue-medium", "hex": "#42A5F5", "percentage": 5, "name": "Medium Blue" },
+    { "id": "green-light", "hex": "#C8E6C9", "percentage": 15, "name": "Light Green" },
+    { "id": "green-medium", "hex": "#66BB6A", "percentage": 5, "name": "Medium Green" },
+    { "id": "orange-light", "hex": "#FFE0B2", "percentage": 15, "name": "Light Orange" },
+    { "id": "orange-medium", "hex": "#FFA726", "percentage": 5, "name": "Medium Orange" },
+    { "id": "purple-light", "hex": "#E1BEE7", "percentage": 10, "name": "Light Purple" },
+    { "id": "purple-medium", "hex": "#AB47BC", "percentage": 5, "name": "Medium Purple" },
+    { "id": "red-light", "hex": "#FFCDD2", "percentage": 5, "name": "Light Red" },
+    { "id": "gray", "hex": "#333333", "percentage": 10, "name": "Dark Gray" },
+    { "id": "white", "hex": "#FFFFFF", "percentage": 5, "name": "White" }
+  ],
+  "shapePalette": [
+    { "id": "service-rect", "kind": "rounded-rectangle", "name": "Service Box" },
+    { "id": "db-cylinder", "kind": "cylinder", "name": "Database" },
+    { "id": "queue-rect", "kind": "rectangle", "name": "Queue" }
+  ],
+  "sizePalette": [
+    { "id": "service", "width": 0.1, "height": 0.06, "name": "Standard Service" },
+    { "id": "gateway", "width": 0.12, "height": 0.07, "name": "Gateway (larger)" },
+    { "id": "database", "width": 0.08, "height": 0.06, "name": "Database" }
+  ],
+  "semanticTypes": [
+    { "id": "gateway", "name": "API Gateway", "description": "Entry point for external requests" },
+    { "id": "core-service", "name": "Core Service", "description": "Business logic services" },
+    { "id": "data-store", "name": "Data Store", "description": "Databases and caches" },
+    { "id": "infra-service", "name": "Infrastructure Service", "description": "Cross-cutting concerns" }
+  ],
+  "diagrams": [
+    {
+      "id": "microservices",
+      "title": "Microservices Architecture",
+      "direction": "RIGHT",
+      "imageDimensions": { "width": 1400, "height": 900 },
+      "nodes": [
+        {
+          "id": "api-gateway",
+          "label": "API Gateway",
+          "type": "box",
+          "style": { "backgroundColor": "#BBDEFB", "textColor": "#000000", "borderColor": "#42A5F5" },
+          "shapeId": "service-rect",
+          "sizeId": "gateway",
+          "semanticTypeId": "gateway",
+          "guideRow": "row-1",
+          "guideColumn": "col-0"
+        },
+        {
+          "id": "auth-service",
+          "label": "Auth Service",
+          "type": "box",
+          "style": { "backgroundColor": "#E1BEE7", "textColor": "#000000", "borderColor": "#AB47BC" },
+          "shapeId": "service-rect",
+          "sizeId": "service",
+          "semanticTypeId": "core-service",
+          "guideRow": "row-0",
+          "guideColumn": "col-1"
+        },
+        {
+          "id": "user-service",
+          "label": "User Service",
+          "type": "box",
+          "style": { "backgroundColor": "#C8E6C9", "textColor": "#000000", "borderColor": "#66BB6A" },
+          "shapeId": "service-rect",
+          "sizeId": "service",
+          "semanticTypeId": "core-service",
+          "guideRow": "row-1",
+          "guideColumn": "col-1"
+        },
+        {
+          "id": "order-service",
+          "label": "Order Service",
+          "type": "box",
+          "style": { "backgroundColor": "#C8E6C9", "textColor": "#000000", "borderColor": "#66BB6A" },
+          "shapeId": "service-rect",
+          "sizeId": "service",
+          "semanticTypeId": "core-service",
+          "guideRow": "row-2",
+          "guideColumn": "col-1"
+        },
+        {
+          "id": "product-service",
+          "label": "Product Service",
+          "type": "box",
+          "style": { "backgroundColor": "#C8E6C9", "textColor": "#000000", "borderColor": "#66BB6A" },
+          "shapeId": "service-rect",
+          "sizeId": "service",
+          "semanticTypeId": "core-service",
+          "guideRow": "row-0",
+          "guideColumn": "col-2"
+        },
+        {
+          "id": "payment-service",
+          "label": "Payment Service",
+          "type": "box",
+          "style": { "backgroundColor": "#FFE0B2", "textColor": "#000000", "borderColor": "#FFA726" },
+          "shapeId": "service-rect",
+          "sizeId": "service",
+          "semanticTypeId": "core-service",
+          "guideRow": "row-1",
+          "guideColumn": "col-2"
+        },
+        {
+          "id": "notification-service",
+          "label": "Notification",
+          "type": "box",
+          "style": { "backgroundColor": "#FFE0B2", "textColor": "#000000", "borderColor": "#FFA726" },
+          "shapeId": "service-rect",
+          "sizeId": "service",
+          "semanticTypeId": "core-service",
+          "guideRow": "row-2",
+          "guideColumn": "col-2"
+        },
+        {
+          "id": "user-db",
+          "label": "User DB",
+          "type": "box",
+          "style": { "backgroundColor": "#FFCDD2", "textColor": "#000000", "borderColor": "#333333" },
+          "shapeId": "db-cylinder",
+          "sizeId": "database",
+          "semanticTypeId": "data-store",
+          "guideRow": "row-1",
+          "guideColumn": "col-3"
+        },
+        {
+          "id": "order-db",
+          "label": "Order DB",
+          "type": "box",
+          "style": { "backgroundColor": "#FFCDD2", "textColor": "#000000", "borderColor": "#333333" },
+          "shapeId": "db-cylinder",
+          "sizeId": "database",
+          "semanticTypeId": "data-store",
+          "guideRow": "row-2",
+          "guideColumn": "col-3"
+        },
+        {
+          "id": "cache",
+          "label": "Redis Cache",
+          "type": "box",
+          "style": { "backgroundColor": "#FFCDD2", "textColor": "#000000", "borderColor": "#333333" },
+          "shapeId": "db-cylinder",
+          "sizeId": "database",
+          "semanticTypeId": "data-store",
+          "guideRow": "row-0",
+          "guideColumn": "col-3"
+        },
+        {
+          "id": "message-queue",
+          "label": "Message Queue",
+          "type": "box",
+          "style": { "backgroundColor": "#E1BEE7", "textColor": "#000000", "borderColor": "#AB47BC" },
+          "shapeId": "queue-rect",
+          "sizeId": "service",
+          "semanticTypeId": "infra-service",
+          "guideRow": "row-3",
+          "guideColumn": "col-1"
+        },
+        {
+          "id": "logging",
+          "label": "Logging",
+          "type": "box",
+          "style": { "backgroundColor": "#E1BEE7", "textColor": "#000000", "borderColor": "#AB47BC" },
+          "shapeId": "service-rect",
+          "sizeId": "service",
+          "semanticTypeId": "infra-service",
+          "guideRow": "row-3",
+          "guideColumn": "col-2"
+        }
+      ],
+      "edges": [
+        { "id": "e1", "source": "api-gateway", "target": "auth-service", "style": { "lineStyle": "solid", "color": "#333333", "routingType": "smooth-repelled" } },
+        { "id": "e2", "source": "api-gateway", "target": "user-service", "style": { "lineStyle": "solid", "color": "#333333", "routingType": "smooth-repelled" } },
+        { "id": "e3", "source": "api-gateway", "target": "order-service", "style": { "lineStyle": "solid", "color": "#333333", "routingType": "smooth-repelled" } },
+        { "id": "e4", "source": "api-gateway", "target": "product-service", "style": { "lineStyle": "solid", "color": "#333333", "routingType": "smooth-repelled" } },
+        { "id": "e5", "source": "order-service", "target": "payment-service", "label": "pay", "style": { "lineStyle": "solid", "color": "#333333", "routingType": "smooth-repelled" } },
+        { "id": "e6", "source": "order-service", "target": "notification-service", "label": "notify", "style": { "lineStyle": "dashed", "color": "#333333", "routingType": "smooth-repelled" } },
+        { "id": "e7", "source": "user-service", "target": "user-db", "style": { "lineStyle": "solid", "color": "#333333", "routingType": "smooth-repelled" } },
+        { "id": "e8", "source": "order-service", "target": "order-db", "style": { "lineStyle": "solid", "color": "#333333", "routingType": "smooth-repelled" } },
+        { "id": "e9", "source": "product-service", "target": "cache", "style": { "lineStyle": "dashed", "color": "#333333", "routingType": "smooth-repelled" } },
+        { "id": "e10", "source": "user-service", "target": "cache", "style": { "lineStyle": "dashed", "color": "#333333", "routingType": "smooth-repelled" } },
+        { "id": "e11", "source": "order-service", "target": "message-queue", "style": { "lineStyle": "solid", "color": "#333333", "routingType": "smooth-repelled" } },
+        { "id": "e12", "source": "notification-service", "target": "message-queue", "style": { "lineStyle": "solid", "color": "#333333", "routingType": "smooth-repelled" } },
+        { "id": "e13", "source": "payment-service", "target": "notification-service", "label": "receipt", "style": { "lineStyle": "dashed", "color": "#333333", "routingType": "smooth-repelled" } },
+        { "id": "e14", "source": "auth-service", "target": "user-service", "style": { "lineStyle": "solid", "color": "#333333", "routingType": "smooth-repelled" } },
+        { "id": "e15", "source": "logging", "target": "message-queue", "style": { "lineStyle": "dashed", "color": "#333333", "routingType": "smooth-repelled" } }
+      ],
+      "guides": [
+        { "id": "row-0", "index": 0, "direction": "horizontal", "position": 0.15 },
+        { "id": "row-1", "index": 1, "direction": "horizontal", "position": 0.40 },
+        { "id": "row-2", "index": 2, "direction": "horizontal", "position": 0.65 },
+        { "id": "row-3", "index": 3, "direction": "horizontal", "position": 0.88 },
+        { "id": "col-0", "index": 0, "direction": "vertical", "position": 0.12 },
+        { "id": "col-1", "index": 1, "direction": "vertical", "position": 0.35 },
+        { "id": "col-2", "index": 2, "direction": "vertical", "position": 0.60 },
+        { "id": "col-3", "index": 3, "direction": "vertical", "position": 0.85 }
+      ]
+    }
+  ]
+}

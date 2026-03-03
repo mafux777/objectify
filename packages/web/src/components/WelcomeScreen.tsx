@@ -5,23 +5,21 @@ import { uniqueSlug } from "../lib/slugify.js";
 import type { DiagramDocument } from "../lib/db/types.js";
 
 import sampleData from "../data/sample.json";
-import lpConnectorData from "../data/lp-connector.json";
 import tradingPipelineData from "../data/trading-pipeline.json";
-import tradingPipeline3aData from "../data/trading-pipeline-3a.json";
 import talosComponentsData from "../data/talos-components.json";
 import objectifyWorkflowData from "../data/objectify-workflow.json";
-import imageImportFlowData from "../data/image-import-flow.json";
-import spatialCalibrationData from "../data/spatial-calibration.json";
+import forceTestMicroservices from "../data/force-test-microservices.json";
+import forceTestGroups from "../data/force-test-groups.json";
+import forceTestPipeline from "../data/force-test-pipeline.json";
 
 const TEMPLATES = [
   { title: "Project Thunderbattle", data: sampleData },
-  { title: "Auth0 CRUD Architecture", data: lpConnectorData },
   { title: "Trading Pipeline", data: tradingPipelineData },
-  { title: "Algo Trading Pipeline", data: tradingPipeline3aData },
   { title: "Talos Linux Components", data: talosComponentsData },
   { title: "How Objectify Works", data: objectifyWorkflowData },
-  { title: "Image Import Flow", data: imageImportFlowData },
-  { title: "Spatial Calibration", data: spatialCalibrationData },
+  { title: "Microservices (Force Test)", data: forceTestMicroservices },
+  { title: "K8s Cluster (Force Test)", data: forceTestGroups },
+  { title: "Data Pipeline (Force Test)", data: forceTestPipeline },
 ];
 
 function formatDate(ts: number): string {
