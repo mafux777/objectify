@@ -82,6 +82,7 @@ export function spatialLayoutDiagram(
           ...(node.guideRow ? { guideRow: node.guideRow } : {}),
           ...(node.guideColumn ? { guideColumn: node.guideColumn } : {}),
           ...(node.zLevel ? { zLevel: node.zLevel } : {}),
+          ...(node.description ? { description: node.description } : {}),
         },
         ...(node.parentId
           ? { parentId: node.parentId, extent: "parent" as const }

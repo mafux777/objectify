@@ -164,6 +164,7 @@ function flattenElkResult(
         ...(specNode.guideRow ? { guideRow: specNode.guideRow } : {}),
         ...(specNode.guideColumn ? { guideColumn: specNode.guideColumn } : {}),
         ...(specNode.zLevel ? { zLevel: specNode.zLevel } : {}),
+        ...(specNode.description ? { description: specNode.description } : {}),
       },
       ...(parentId
         ? { parentId, extent: "parent" as const }

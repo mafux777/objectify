@@ -7,6 +7,7 @@ import type { DiagramDocument } from "../lib/db/types.js";
 import sampleData from "../data/sample.json";
 import tradingPipelineData from "../data/trading-pipeline.json";
 import talosComponentsData from "../data/talos-components.json";
+import talosObjectModelData from "../data/talos-object-model.json";
 import objectifyWorkflowData from "../data/objectify-workflow.json";
 import forceTestMicroservices from "../data/force-test-microservices.json";
 import forceTestGroups from "../data/force-test-groups.json";
@@ -16,6 +17,7 @@ const TEMPLATES = [
   { title: "Project Thunderbattle", data: sampleData },
   { title: "Trading Pipeline", data: tradingPipelineData },
   { title: "Talos Linux Components", data: talosComponentsData },
+  { title: "Talos Object Model", data: talosObjectModelData },
   { title: "How Objectify Works", data: objectifyWorkflowData },
   { title: "Microservices (Force Test)", data: forceTestMicroservices },
   { title: "K8s Cluster (Force Test)", data: forceTestGroups },
@@ -96,7 +98,6 @@ export function WelcomeScreen() {
   const deleteDocument = useCallback(
     async (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
-      if (!confirm("Delete this diagram? This cannot be undone.")) return;
       await db.deleteDocument(id);
       dispatch({ type: "DELETE_DOCUMENT", id });
     },

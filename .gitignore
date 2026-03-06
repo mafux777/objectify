@@ -52,4 +52,5 @@ packages/web/src/data/*
 !packages/web/src/data/force-test-microservices.json
 !packages/web/src/data/force-test-groups.json
 !packages/web/src/data/force-test-pipeline.json
+!packages/web/src/data/talos-object-model.json
 

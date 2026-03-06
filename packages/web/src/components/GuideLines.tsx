@@ -297,6 +297,7 @@ export function GuideLines({
         )}
 
         {guides.map((guide) => {
+          if (guide.visible === false) return null;
           const labelText = guide.label ?? (guide.direction === "horizontal" ? `R${guide.index}` : `C${guide.index}`);
           const labelWidth = labelText.length * fontSize * 0.65 + labelPad * 2;
           const labelHeight = fontSize + labelPad * 2;

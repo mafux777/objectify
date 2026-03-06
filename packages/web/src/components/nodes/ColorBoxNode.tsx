@@ -9,13 +9,14 @@ type ColorBoxData = {
   labels?: NodeLabel[];
   style: NodeStyle;
   font?: NodeFont;
+  description?: string;
 };
 
 export function ColorBoxNode({
   data,
   selected,
 }: NodeProps & { data: ColorBoxData }) {
-  const { label, labels, style, font } = data;
+  const { label, labels, style, font, description } = data;
 
   // Primary center label text (from labels[0] if center, else legacy label).
   // If labels[] exists but has no center entry, all text is shown externally — don't duplicate.
@@ -40,6 +41,7 @@ export function ColorBoxNode({
       <NodeHandles />
 
       <div
+        title={description}
         style={{
           backgroundColor: style.backgroundColor,
           color: style.textColor ?? "#000",

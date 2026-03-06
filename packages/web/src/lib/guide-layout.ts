@@ -479,6 +479,7 @@ function buildFlowNode(
       ...(node.guideRowBottom ? { guideRowBottom: node.guideRowBottom } : {}),
       ...(node.guideColumnRight ? { guideColumnRight: node.guideColumnRight } : {}),
       ...(node.zLevel ? { zLevel: node.zLevel } : {}),
+      ...(node.description ? { description: node.description } : {}),
     },
     ...(node.parentId
       ? { parentId: node.parentId, extent: "parent" as const }

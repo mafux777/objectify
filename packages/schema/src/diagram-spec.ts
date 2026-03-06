@@ -112,6 +112,10 @@ const NodeSchema = z.object({
     .string()
     .describe("Unique kebab-case identifier, e.g. 'payment-service', 'api-gateway'"),
   label: z.string().describe("Display text shown inside the box"),
+  description: z
+    .string()
+    .optional()
+    .describe("Human-readable description of what this node represents. Shown as a tooltip on hover."),
   type: z
     .enum(["box", "group"])
     .describe(
@@ -324,6 +328,10 @@ const EdgeSchema = z.object({
     .string()
     .optional()
     .describe("Text label displayed on or near the arrow"),
+  description: z
+    .string()
+    .optional()
+    .describe("Human-readable description of what this relationship represents. Shown as a tooltip on hover."),
   style: EdgeStyleSchema.optional(),
   sourceAnchor: ClockAnchorSchema.optional().describe(
     "Anchor position on the source node where the edge originates. " +
@@ -518,6 +526,11 @@ const GuideLineSchema = z.object({
     .string()
     .optional()
     .describe("Optional human-readable label for the guide line"),
+  visible: z
+    .boolean()
+    .default(true)
+    .optional()
+    .describe("Whether to render this guide line visually. Set to false for layout-only boundary guides that should not clutter the diagram."),
 });
 
 // --- Legend schemas ---
@@ -583,6 +596,10 @@ const ImageDimensionsSchema = z.object({
 const SingleDiagramSchema = z.object({
   id: z.string().describe("Unique identifier for this diagram"),
   title: z.string().describe("Title displayed above the diagram"),
+  description: z
+    .string()
+    .optional()
+    .describe("Human-readable description of what this diagram depicts. Shown as a subtitle below the diagram title."),
   direction: z
     .enum(["RIGHT", "DOWN", "LEFT", "UP"])
     .default("RIGHT")
@@ -618,7 +635,7 @@ const SingleDiagramSchema = z.object({
 });
 
 export const DiagramSpecSchema = z.object({
-  version: z.enum(["1.0", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0"]).describe("Schema version. 2.0 includes spatial data. 3.0 adds guide lines and label positioning. 4.0 adds multi-label support. 5.0 adds container group shapes (cloud, cylinder) and ball-socket edge endpoint markers. 6.0 adds step routing type and strokeWidth. 7.0 adds smooth-repelled routing type for guide-based layouts."),
+  version: z.enum(["1.0", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0"]).describe("Schema version. 2.0 includes spatial data. 3.0 adds guide lines and label positioning. 4.0 adds multi-label support. 5.0 adds container group shapes (cloud, cylinder) and ball-socket edge endpoint markers. 6.0 adds step routing type and strokeWidth. 7.0 adds smooth-repelled routing type for guide-based layouts. 8.0 adds per-object description fields on nodes, edges, and diagrams."),
   palette: ColorPaletteSchema.optional().describe(
     "Color palette sampled from the source image. All node/edge colors should reference " +
       "hex values from this palette. Optional for backward compatibility with older specs."

@@ -10,13 +10,14 @@ type GroupNodeData = {
   style: NodeStyle;
   font?: NodeFont;
   shapeKind?: string;
+  description?: string;
 };
 
 export function GroupNode({
   data,
   selected,
 }: NodeProps & { data: GroupNodeData }) {
-  const { label, labels, style, font, shapeKind } = data;
+  const { label, labels, style, font, shapeKind, description } = data;
 
   // For groups, primary label goes at top-left (inside the group header)
   const primaryLabel = labels?.[0]?.text ?? label;
@@ -39,7 +40,7 @@ export function GroupNode({
       <NodeHandles />
 
       {isCloud ? (
-        <div style={{ width: "100%", height: "100%", position: "relative", opacity: style.opacity ?? 1 }}>
+        <div title={description} style={{ width: "100%", height: "100%", position: "relative", opacity: style.opacity ?? 1 }}>
           <svg
             viewBox="0 0 200 120"
             preserveAspectRatio="none"
@@ -72,6 +73,7 @@ export function GroupNode({
         </div>
       ) : (
         <div
+          title={description}
           style={{
             backgroundColor: style.backgroundColor + "20",
             border: `2px ${style.borderStyle ?? "solid"} ${style.borderColor ?? style.backgroundColor}`,

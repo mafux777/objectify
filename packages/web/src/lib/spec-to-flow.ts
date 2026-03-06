@@ -111,6 +111,7 @@ export function specEdgesToFlowEdges(
         ...(e.labelStyle ? { labelStyle: e.labelStyle } : {}),
         ...(e.sourceMarker ? { sourceMarker: e.sourceMarker } : {}),
         ...(e.targetMarker ? { targetMarker: e.targetMarker } : {}),
+        ...(e.description ? { description: e.description } : {}),
       },
     };
   });
