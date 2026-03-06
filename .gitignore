@@ -49,4 +49,8 @@ packages/web/src/data/*
 !packages/web/src/data/talos-components.json
 !packages/web/src/data/trading-pipeline.json
 !packages/web/src/data/objectify-workflow.json
+!packages/web/src/data/force-test-microservices.json
+!packages/web/src/data/force-test-groups.json
+!packages/web/src/data/force-test-pipeline.json
+!packages/web/src/data/talos-object-model.json
 

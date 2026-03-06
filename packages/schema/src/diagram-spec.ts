@@ -37,6 +37,12 @@ const NodeStyleSchema = z.object({
     .enum(["solid", "dashed", "dotted"])
     .default("solid")
     .describe("Border line style"),
+  opacity: z
+    .number()
+    .min(0)
+    .max(1)
+    .default(1)
+    .describe("Element opacity from 0 (fully transparent) to 1 (fully opaque)"),
 });
 
 const NodeSpatialSchema = z.object({
@@ -106,6 +112,10 @@ const NodeSchema = z.object({
     .string()
     .describe("Unique kebab-case identifier, e.g. 'payment-service', 'api-gateway'"),
   label: z.string().describe("Display text shown inside the box"),
+  description: z
+    .string()
+    .optional()
+    .describe("Human-readable description of what this node represents. Shown as a tooltip on hover."),
   type: z
     .enum(["box", "group"])
     .describe(
@@ -129,6 +139,15 @@ const NodeSchema = z.object({
     .optional()
     .describe(
       "Relative position hint: lower numbers appear further left/top in layout"
+    ),
+  zLevel: z
+    .enum(["background", "base", "raised", "foreground", "overlay"])
+    .default("base")
+    .optional()
+    .describe(
+      "Stacking level for the node. Five levels from back to front: " +
+        "'background' (decorative backdrops), 'base' (default), 'raised' (slight emphasis), " +
+        "'foreground' (prominent), 'overlay' (annotations/callouts)."
     ),
   spatial: NodeSpatialSchema.optional().describe(
     "Bounding box in normalized 0-1 coordinates relative to image dimensions. Present in v2.0 spatial specs."
@@ -232,7 +251,7 @@ const EdgeStyleSchema = z.object({
     .default("#333333")
     .describe("CSS hex color for the arrow line"),
   routingType: z
-    .enum(["straight", "step", "smoothstep", "bezier"])
+    .enum(["straight", "step", "smoothstep", "bezier", "smooth-repelled"])
     .default("straight")
     .optional()
     .describe(
@@ -241,6 +260,7 @@ const EdgeStyleSchema = z.object({
         "'step' = orthogonal path with sharp 90° corners (right-angle bends, crisp corners). " +
         "'smoothstep' = orthogonal path with rounded 90° corners (right-angle bends with soft curves at turns). " +
         "'bezier' = smooth S-curve or C-curve between anchors (no sharp corners, no right angles). " +
+        "'smooth-repelled' = orthogonal path with rounded bends that routes through channels between guide lines (auto-default for guide-based layouts — do not set explicitly unless overriding). " +
         "Defaults to 'straight'. Most flowcharts and architecture diagrams use 'straight' or 'smoothstep'."
     ),
   strokeWidth: z
@@ -308,6 +328,10 @@ const EdgeSchema = z.object({
     .string()
     .optional()
     .describe("Text label displayed on or near the arrow"),
+  description: z
+    .string()
+    .optional()
+    .describe("Human-readable description of what this relationship represents. Shown as a tooltip on hover."),
   style: EdgeStyleSchema.optional(),
   sourceAnchor: ClockAnchorSchema.optional().describe(
     "Anchor position on the source node where the edge originates. " +
@@ -502,6 +526,11 @@ const GuideLineSchema = z.object({
     .string()
     .optional()
     .describe("Optional human-readable label for the guide line"),
+  visible: z
+    .boolean()
+    .default(true)
+    .optional()
+    .describe("Whether to render this guide line visually. Set to false for layout-only boundary guides that should not clutter the diagram."),
 });
 
 // --- Legend schemas ---
@@ -567,6 +596,10 @@ const ImageDimensionsSchema = z.object({
 const SingleDiagramSchema = z.object({
   id: z.string().describe("Unique identifier for this diagram"),
   title: z.string().describe("Title displayed above the diagram"),
+  description: z
+    .string()
+    .optional()
+    .describe("Human-readable description of what this diagram depicts. Shown as a subtitle below the diagram title."),
   direction: z
     .enum(["RIGHT", "DOWN", "LEFT", "UP"])
     .default("RIGHT")
@@ -602,7 +635,7 @@ const SingleDiagramSchema = z.object({
 });
 
 export const DiagramSpecSchema = z.object({
-  version: z.enum(["1.0", "2.0", "3.0", "4.0", "5.0", "6.0"]).describe("Schema version. 2.0 includes spatial data. 3.0 adds guide lines and label positioning. 4.0 adds multi-label support. 5.0 adds container group shapes (cloud, cylinder) and ball-socket edge endpoint markers. 6.0 adds step routing type and strokeWidth."),
+  version: z.enum(["1.0", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0"]).describe("Schema version. 2.0 includes spatial data. 3.0 adds guide lines and label positioning. 4.0 adds multi-label support. 5.0 adds container group shapes (cloud, cylinder) and ball-socket edge endpoint markers. 6.0 adds step routing type and strokeWidth. 7.0 adds smooth-repelled routing type for guide-based layouts. 8.0 adds per-object description fields on nodes, edges, and diagrams."),
   palette: ColorPaletteSchema.optional().describe(
     "Color palette sampled from the source image. All node/edge colors should reference " +
       "hex values from this palette. Optional for backward compatibility with older specs."

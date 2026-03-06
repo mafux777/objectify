@@ -11,6 +11,7 @@ type ShapeNodeData = {
   font?: NodeFont;
   shapeKind?: ShapeKind;
   aspectRatio?: number;
+  description?: string;
 };
 
 function getShapeStyles(kind: ShapeKind | undefined): React.CSSProperties {
@@ -49,7 +50,7 @@ export function ShapeNode({
   data,
   selected,
 }: NodeProps & { data: ShapeNodeData }) {
-  const { label, labels, style, font, shapeKind, aspectRatio } = data;
+  const { label, labels, style, font, shapeKind, aspectRatio, description } = data;
 
   // If labels[] exists but has no center entry, all text is shown externally — don't duplicate.
   const centerLabel = labels?.length
@@ -75,7 +76,7 @@ export function ShapeNode({
         )}
         <NodeResizer minWidth={60} minHeight={30} isVisible={!!selected} lineClassName="resizer-line" handleClassName="resizer-handle" />
         {handles}
-        <svg viewBox="0 0 60 50" style={{ width: "100%", height: "100%" }} preserveAspectRatio="none">
+        <svg title={description} viewBox="0 0 60 50" style={{ width: "100%", height: "100%", opacity: style.opacity ?? 1 }} preserveAspectRatio="none">
           {/* Body */}
           <rect x="1" y="10" width="58" height="30" fill={style.backgroundColor} stroke="none" />
           {/* Left/right borders */}
@@ -117,10 +118,12 @@ export function ShapeNode({
       {handles}
 
       <div
+        title={description}
         style={{
           backgroundColor: style.backgroundColor,
           color: style.textColor ?? "#000",
           border: `2px ${style.borderStyle ?? "solid"} ${style.borderColor ?? "#bbb"}`,
+          opacity: style.opacity ?? 1,
           padding: "10px 20px",
           fontWeight: font?.fontWeight === "bold" ? 700 : 500,
           fontSize: font?.fontSize ?? 13,

@@ -67,6 +67,9 @@ export function flowToDiagram(
     if (data.guideColumnRight) {
       node.guideColumnRight = data.guideColumnRight as string;
     }
+    if (data.zLevel) {
+      node.zLevel = data.zLevel as DiagramNode["zLevel"];
+    }
 
     // Export multi-label array; also set legacy label from labels[0]
     if (data.labels) {
@@ -154,7 +157,7 @@ export function flowToDiagram(
     edge.style = {
       lineStyle,
       color,
-      routingType: routingType as "straight" | "step" | "smoothstep" | "bezier",
+      routingType: routingType as "straight" | "step" | "smoothstep" | "bezier" | "smooth-repelled",
       ...(strokeWidth && strokeWidth !== 1.5 ? { strokeWidth } : {}),
     };
 
@@ -196,7 +199,7 @@ export function flowToDiagram(
   }
 
   if (guides && guides.length > 0) {
-    diagram.guides = guides;
+    diagram.guides = normalizeGuidePositions(guides);
   }
 
   if (originalDiagram.legend) {
@@ -231,20 +234,25 @@ export function flowToSpec(
   const hasV6Features = diagram.edges.some(
     (e) => e.style?.strokeWidth !== undefined || e.style?.routingType === "step"
   );
-  const version = hasV6Features
-    ? "6.0"
-    : hasV5Features
-      ? "5.0"
-      : hasMultiLabels
-        ? "4.0"
-        : hasGuides
-          ? "3.0"
-          : originalDiagram.layoutMode === "spatial"
-            ? "2.0"
-            : "1.0";
+  const hasV7Features = diagram.edges.some(
+    (e) => e.style?.routingType === "smooth-repelled"
+  );
+  const version = hasV7Features
+    ? "7.0"
+    : hasV6Features
+      ? "6.0"
+      : hasV5Features
+        ? "5.0"
+        : hasMultiLabels
+          ? "4.0"
+          : hasGuides
+            ? "3.0"
+            : originalDiagram.layoutMode === "spatial"
+              ? "2.0"
+              : "1.0";
 
   return {
-    version: version as "1.0" | "2.0" | "3.0" | "4.0" | "5.0" | "6.0",
+    version: version as "1.0" | "2.0" | "3.0" | "4.0" | "5.0" | "6.0" | "7.0",
     ...(palette && palette.length > 0 ? { palette } : {}),
     ...(shapePalette && shapePalette.length > 0 ? { shapePalette } : {}),
     ...(sizePalette && sizePalette.length > 0 ? { sizePalette } : {}),
@@ -271,6 +279,48 @@ function handleToAnchor(handleId: string): AnchorSide | undefined {
   if (!match) return undefined;
   const anchor = match[1];
   return VALID_ANCHORS.has(anchor) ? (anchor as AnchorSide) : undefined;
+}
+
+/**
+ * Re-normalize guide positions to [0, 1] when any guide has drifted outside
+ * that range (e.g. after infinite-canvas expansion).  This keeps the schema
+ * contract intact while allowing guides to temporarily exceed [0, 1] during
+ * interactive editing.
+ *
+ * Each direction (horizontal / vertical) is normalized independently.
+ * If all positions are already within [0, 1], guides are returned as-is.
+ */
+function normalizeGuidePositions(guides: GuideLine[]): GuideLine[] {
+  const MARGIN = 0.05;
+
+  const horizontal = guides.filter((g) => g.direction === "horizontal");
+  const vertical = guides.filter((g) => g.direction === "vertical");
+
+  function normalizeGroup(group: GuideLine[]): GuideLine[] {
+    if (group.length === 0) return group;
+
+    const positions = group.map((g) => g.position);
+    const min = Math.min(...positions);
+    const max = Math.max(...positions);
+
+    // Already within [0, 1] — no-op
+    if (min >= 0 && max <= 1) return group;
+
+    // Degenerate case: all at the same position
+    if (max === min) return group.map((g) => ({ ...g, position: 0.5 }));
+
+    // Linearly map [min, max] → [MARGIN, 1 - MARGIN]
+    const targetMin = MARGIN;
+    const targetMax = 1 - MARGIN;
+    const scale = (targetMax - targetMin) / (max - min);
+
+    return group.map((g) => ({
+      ...g,
+      position: targetMin + (g.position - min) * scale,
+    }));
+  }
+
+  return [...normalizeGroup(horizontal), ...normalizeGroup(vertical)];
 }
 
 function clamp01(v: number): number {

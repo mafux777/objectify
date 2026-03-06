@@ -11,6 +11,7 @@ import type {
 } from "@objectify/schema";
 import { specEdgesToFlowEdges } from "./spec-to-flow.js";
 import { migrateNodeLabels } from "./label-migration.js";
+import { zLevelToIndex } from "./z-level.js";
 
 const REFERENCE_CANVAS_WIDTH = 1200;
 const REFERENCE_CANVAS_HEIGHT = 800;
@@ -162,6 +163,8 @@ function flattenElkResult(
         ...(specNode.semanticTypeId ? { semanticTypeId: specNode.semanticTypeId } : {}),
         ...(specNode.guideRow ? { guideRow: specNode.guideRow } : {}),
         ...(specNode.guideColumn ? { guideColumn: specNode.guideColumn } : {}),
+        ...(specNode.zLevel ? { zLevel: specNode.zLevel } : {}),
+        ...(specNode.description ? { description: specNode.description } : {}),
       },
       ...(parentId
         ? { parentId, extent: "parent" as const }
@@ -174,6 +177,7 @@ function flattenElkResult(
             },
           }
         : {}),
+      zIndex: zLevelToIndex(specNode.zLevel),
     };
 
     result.push(rfNode);

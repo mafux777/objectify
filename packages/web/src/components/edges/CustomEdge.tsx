@@ -8,6 +8,8 @@ import {
   type EdgeProps,
 } from "@xyflow/react";
 import type { ReactNode } from "react";
+import { useGuides } from "../../lib/guides-context.js";
+import { getRepelledSmoothPath } from "./getRepelledPath.js";
 
 const JUNCTION_GAP = 10;
 
@@ -107,6 +109,9 @@ export function CustomEdge({
   const strokeWidth =
     (data?.strokeWidth as number) ?? (style?.strokeWidth as number) ?? 1.5;
 
+  // Guide context for smooth-repelled routing (hook called unconditionally)
+  const guidesCtx = useGuides();
+
   // Detect junction mode: both ends have ball or socket markers
   const sourceMarkerKind = (data?.sourceMarker as string) ?? "none";
   const targetMarkerKind = (data?.targetMarker as string) ?? "none";
@@ -154,6 +159,35 @@ export function CustomEdge({
         borderRadius: 5,
         offset: 50,
       });
+      break;
+    }
+    case "smooth-repelled": {
+      if (guidesCtx && guidesCtx.guides.length > 0) {
+        [edgePath, labelX, labelY] = getRepelledSmoothPath({
+          sourceX,
+          sourceY,
+          targetX,
+          targetY,
+          sourcePosition: sourcePosition ?? Position.Bottom,
+          targetPosition: targetPosition ?? Position.Top,
+          guides: guidesCtx.guides,
+          canvasWidth: guidesCtx.canvasWidth,
+          canvasHeight: guidesCtx.canvasHeight,
+          edgeId: id,
+        });
+      } else {
+        // Fallback to smoothstep if no guides available
+        [edgePath, labelX, labelY] = getSmoothStepPath({
+          sourceX,
+          sourceY,
+          targetX,
+          targetY,
+          sourcePosition: sourcePosition ?? Position.Bottom,
+          targetPosition: targetPosition ?? Position.Top,
+          borderRadius: 5,
+          offset: 50,
+        });
+      }
       break;
     }
     case "straight":

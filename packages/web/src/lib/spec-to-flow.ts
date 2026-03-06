@@ -60,7 +60,10 @@ function routingToEdgeType(_routingType: string | undefined): string {
   return "customEdge";
 }
 
-export function specEdgesToFlowEdges(specEdges: DiagramEdge[]): Edge[] {
+export function specEdgesToFlowEdges(
+  specEdges: DiagramEdge[],
+  defaultRoutingType: string = "straight",
+): Edge[] {
   return specEdges.map((e) => {
     const edgeLabels = migrateEdgeLabels(e);
     // React Flow only supports one label natively — use the first one
@@ -103,11 +106,12 @@ export function specEdgesToFlowEdges(specEdges: DiagramEdge[]): Edge[] {
       // Store routing/styling data for the unified CustomEdge component
       data: {
         labels: edgeLabels,
-        routingType: e.style?.routingType ?? "straight",
+        routingType: e.style?.routingType ?? defaultRoutingType,
         strokeWidth: e.style?.strokeWidth ?? 1.5,
         ...(e.labelStyle ? { labelStyle: e.labelStyle } : {}),
         ...(e.sourceMarker ? { sourceMarker: e.sourceMarker } : {}),
         ...(e.targetMarker ? { targetMarker: e.targetMarker } : {}),
+        ...(e.description ? { description: e.description } : {}),
       },
     };
   });

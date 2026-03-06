@@ -8,6 +8,7 @@ import type {
 } from "@objectify/schema";
 import { specEdgesToFlowEdges } from "./spec-to-flow.js";
 import { migrateNodeLabels } from "./label-migration.js";
+import { zLevelToIndex } from "./z-level.js";
 
 const REFERENCE_CANVAS_WIDTH = 1200;
 const REFERENCE_CANVAS_HEIGHT = 800;
@@ -379,7 +380,7 @@ export function guideLayoutDiagram(
     console.warn(`[Guide Layout] ${w}`);
   }
 
-  const edges = specEdgesToFlowEdges(diagram.edges);
+  const edges = specEdgesToFlowEdges(diagram.edges, "smooth-repelled");
 
   return { nodes: rfNodes, edges };
 }
@@ -477,6 +478,8 @@ function buildFlowNode(
       ...(node.guideColumn ? { guideColumn: node.guideColumn } : {}),
       ...(node.guideRowBottom ? { guideRowBottom: node.guideRowBottom } : {}),
       ...(node.guideColumnRight ? { guideColumnRight: node.guideColumnRight } : {}),
+      ...(node.zLevel ? { zLevel: node.zLevel } : {}),
+      ...(node.description ? { description: node.description } : {}),
     },
     ...(node.parentId
       ? { parentId: node.parentId, extent: "parent" as const }
@@ -484,6 +487,7 @@ function buildFlowNode(
     ...(isGroup
       ? { style: { width: w, height: h } }
       : {}),
+    zIndex: zLevelToIndex(node.zLevel),
     width: w,
     height: h,
   };

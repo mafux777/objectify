@@ -1,0 +1,147 @@
+{
+  "version": "7.0",
+  "description": "Data processing pipeline with a clean flow from left to right. Tests whether force layout preserves the natural flow direction while creating even, aesthetic spacing. The pipeline has a fan-out from Ingest to three parallel processing streams, then fan-in to Merge and Output.",
+  "palette": [
+    { "id": "teal", "hex": "#80CBC4", "percentage": 25, "name": "Teal" },
+    { "id": "teal-dark", "hex": "#00695C", "percentage": 5, "name": "Dark Teal" },
+    { "id": "indigo", "hex": "#9FA8DA", "percentage": 25, "name": "Indigo" },
+    { "id": "indigo-dark", "hex": "#283593", "percentage": 5, "name": "Dark Indigo" },
+    { "id": "pink", "hex": "#F48FB1", "percentage": 10, "name": "Pink" },
+    { "id": "pink-dark", "hex": "#C2185B", "percentage": 3, "name": "Dark Pink" },
+    { "id": "gray-light", "hex": "#ECEFF1", "percentage": 20, "name": "Light Gray" },
+    { "id": "dark", "hex": "#37474F", "percentage": 7, "name": "Dark" }
+  ],
+  "shapePalette": [
+    { "id": "rect", "kind": "rounded-rectangle", "name": "Process" },
+    { "id": "diamond", "kind": "diamond", "aspectRatio": 1.2, "name": "Decision" },
+    { "id": "parallelogram", "kind": "parallelogram", "name": "I/O" }
+  ],
+  "sizePalette": [
+    { "id": "standard", "width": 0.09, "height": 0.06, "name": "Standard" },
+    { "id": "wide", "width": 0.12, "height": 0.06, "name": "Wide" },
+    { "id": "decision", "width": 0.08, "height": 0.09, "name": "Decision Diamond" }
+  ],
+  "diagrams": [
+    {
+      "id": "data-pipeline",
+      "title": "Data Processing Pipeline",
+      "direction": "RIGHT",
+      "imageDimensions": { "width": 1600, "height": 700 },
+      "nodes": [
+        {
+          "id": "source",
+          "label": "Data Source",
+          "type": "box",
+          "style": { "backgroundColor": "#ECEFF1", "textColor": "#37474F", "borderColor": "#37474F" },
+          "shapeId": "parallelogram",
+          "sizeId": "standard",
+          "guideRow": "row-1",
+          "guideColumn": "col-0"
+        },
+        {
+          "id": "ingest",
+          "label": "Ingest",
+          "type": "box",
+          "style": { "backgroundColor": "#80CBC4", "textColor": "#00695C", "borderColor": "#00695C" },
+          "shapeId": "rect",
+          "sizeId": "standard",
+          "guideRow": "row-1",
+          "guideColumn": "col-1"
+        },
+        {
+          "id": "validate",
+          "label": "Validate",
+          "type": "box",
+          "style": { "backgroundColor": "#80CBC4", "textColor": "#00695C", "borderColor": "#00695C" },
+          "shapeId": "diamond",
+          "sizeId": "decision",
+          "guideRow": "row-1",
+          "guideColumn": "col-2"
+        },
+        {
+          "id": "stream-a",
+          "label": "Stream A\nTransform",
+          "type": "box",
+          "style": { "backgroundColor": "#9FA8DA", "textColor": "#283593", "borderColor": "#283593" },
+          "shapeId": "rect",
+          "sizeId": "standard",
+          "guideRow": "row-0",
+          "guideColumn": "col-3"
+        },
+        {
+          "id": "stream-b",
+          "label": "Stream B\nEnrich",
+          "type": "box",
+          "style": { "backgroundColor": "#9FA8DA", "textColor": "#283593", "borderColor": "#283593" },
+          "shapeId": "rect",
+          "sizeId": "standard",
+          "guideRow": "row-1",
+          "guideColumn": "col-3"
+        },
+        {
+          "id": "stream-c",
+          "label": "Stream C\nFilter",
+          "type": "box",
+          "style": { "backgroundColor": "#9FA8DA", "textColor": "#283593", "borderColor": "#283593" },
+          "shapeId": "rect",
+          "sizeId": "standard",
+          "guideRow": "row-2",
+          "guideColumn": "col-3"
+        },
+        {
+          "id": "merge",
+          "label": "Merge",
+          "type": "box",
+          "style": { "backgroundColor": "#F48FB1", "textColor": "#C2185B", "borderColor": "#C2185B" },
+          "shapeId": "rect",
+          "sizeId": "standard",
+          "guideRow": "row-1",
+          "guideColumn": "col-4"
+        },
+        {
+          "id": "output",
+          "label": "Output Sink",
+          "type": "box",
+          "style": { "backgroundColor": "#ECEFF1", "textColor": "#37474F", "borderColor": "#37474F" },
+          "shapeId": "parallelogram",
+          "sizeId": "standard",
+          "guideRow": "row-1",
+          "guideColumn": "col-5"
+        },
+        {
+          "id": "error-queue",
+          "label": "Error Queue",
+          "type": "box",
+          "style": { "backgroundColor": "#F48FB1", "textColor": "#C2185B", "borderColor": "#C2185B" },
+          "shapeId": "rect",
+          "sizeId": "standard",
+          "guideRow": "row-2",
+          "guideColumn": "col-2"
+        }
+      ],
+      "edges": [
+        { "id": "e1", "source": "source", "target": "ingest", "style": { "lineStyle": "solid", "color": "#37474F", "routingType": "smooth-repelled" } },
+        { "id": "e2", "source": "ingest", "target": "validate", "style": { "lineStyle": "solid", "color": "#37474F", "routingType": "smooth-repelled" } },
+        { "id": "e3", "source": "validate", "target": "stream-a", "label": "valid", "style": { "lineStyle": "solid", "color": "#00695C", "routingType": "smooth-repelled" } },
+        { "id": "e4", "source": "validate", "target": "stream-b", "label": "valid", "style": { "lineStyle": "solid", "color": "#00695C", "routingType": "smooth-repelled" } },
+        { "id": "e5", "source": "validate", "target": "stream-c", "label": "valid", "style": { "lineStyle": "solid", "color": "#00695C", "routingType": "smooth-repelled" } },
+        { "id": "e6", "source": "validate", "target": "error-queue", "label": "invalid", "style": { "lineStyle": "dashed", "color": "#C2185B", "routingType": "smooth-repelled" } },
+        { "id": "e7", "source": "stream-a", "target": "merge", "style": { "lineStyle": "solid", "color": "#283593", "routingType": "smooth-repelled" } },
+        { "id": "e8", "source": "stream-b", "target": "merge", "style": { "lineStyle": "solid", "color": "#283593", "routingType": "smooth-repelled" } },
+        { "id": "e9", "source": "stream-c", "target": "merge", "style": { "lineStyle": "solid", "color": "#283593", "routingType": "smooth-repelled" } },
+        { "id": "e10", "source": "merge", "target": "output", "style": { "lineStyle": "solid", "color": "#37474F", "routingType": "smooth-repelled" } }
+      ],
+      "guides": [
+        { "id": "row-0", "index": 0, "direction": "horizontal", "position": 0.2 },
+        { "id": "row-1", "index": 1, "direction": "horizontal", "position": 0.5 },
+        { "id": "row-2", "index": 2, "direction": "horizontal", "position": 0.8 },
+        { "id": "col-0", "index": 0, "direction": "vertical", "position": 0.08 },
+        { "id": "col-1", "index": 1, "direction": "vertical", "position": 0.22 },
+        { "id": "col-2", "index": 2, "direction": "vertical", "position": 0.38 },
+        { "id": "col-3", "index": 3, "direction": "vertical", "position": 0.58 },
+        { "id": "col-4", "index": 4, "direction": "vertical", "position": 0.76 },
+        { "id": "col-5", "index": 5, "direction": "vertical", "position": 0.92 }
+      ]
+    }
+  ]
+}
