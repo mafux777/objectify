@@ -40,7 +40,9 @@ export function ShareModal({
       await db.submitSharedFeedback({
         userId: db.getUserId(),
         documentTitle,
-        diagramSpec: includeSpec ? spec : { diagrams: [] },
+        diagramSpec: includeSpec
+          ? spec
+          : { ...spec, diagrams: [] },
         chatHistory: includeChat ? chatHistory : [],
         feedbackMessages: feedbackRecords,
         userComment: comment.trim(),
