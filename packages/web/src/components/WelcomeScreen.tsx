@@ -57,34 +57,6 @@ export function WelcomeScreen() {
     [existingSlugs, db, dispatch],
   );
 
-  const createBlank = useCallback(() => {
-    const title = "Untitled Diagram";
-    const slug = uniqueSlug("untitled-diagram", existingSlugs);
-    const doc: DiagramDocument = {
-      id: crypto.randomUUID(),
-      title,
-      slug,
-      spec: {
-        version: "1.0",
-        description: "",
-        diagrams: [
-          {
-            id: "diagram-1",
-            title: "Untitled",
-            direction: "RIGHT",
-            layoutMode: "auto",
-            nodes: [],
-            edges: [],
-          },
-        ],
-      },
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    db.saveDocument(doc);
-    dispatch({ type: "CREATE_DOCUMENT", document: doc });
-  }, [existingSlugs, db, dispatch]);
-
   const openDocument = useCallback(
     async (id: string) => {
       const doc = await db.getDocument(id);
@@ -142,10 +114,6 @@ export function WelcomeScreen() {
 
       {/* Action cards */}
       <div className="welcome-actions">
-        <div className="welcome-action-card" onClick={createBlank}>
-          <span className="icon">+</span>
-          <span className="label">New Blank Diagram</span>
-        </div>
         <div
           className="welcome-action-card"
           onClick={() =>
@@ -156,6 +124,7 @@ export function WelcomeScreen() {
         >
           <span className="icon">&#9998;</span>
           <span className="label">Create from Prompt</span>
+          <span className="action-badge free">Free</span>
         </div>
         <div
           className="welcome-action-card"
@@ -167,6 +136,7 @@ export function WelcomeScreen() {
         >
           <span className="icon">&#128444;</span>
           <span className="label">Import from Image</span>
+          <span className="action-badge credit">1 credit</span>
         </div>
         <div
           className="welcome-action-card"
@@ -174,6 +144,7 @@ export function WelcomeScreen() {
         >
           <span className="icon">&#8681;</span>
           <span className="label">Import JSON</span>
+          <span className="action-badge free">Free</span>
         </div>
         <input
           ref={fileInputRef}

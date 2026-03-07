@@ -39,6 +39,9 @@ coverage/
 # AI assistant files
 .claude/
 
+# Credentials
+cdp_api_key.json
+
 # Input/output data
 inputs/
 outputs/

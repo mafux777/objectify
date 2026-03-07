@@ -2,22 +2,29 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useDocuments } from "../lib/documents/index.js";
 import { uniqueSlug } from "../lib/slugify.js";
 import { analyzeDiagramImage, getImageDimensions } from "../lib/llm-image-analyze.js";
+import { triageImage, type TriageResult } from "../lib/llm-shared.js";
+import { uploadAndConvert } from "../lib/api.js";
+import { useAuth } from "../lib/auth-context.js";
 import type { DiagramDocument } from "../lib/db/types.js";
 
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 
 export function ImageImportModal() {
   const { state, dispatch, db } = useDocuments();
+  const { user, credits, refreshCredits } = useAuth();
   const [open, setOpen] = useState(false);
   const [imageData, setImageData] = useState<{
     base64: string;
     mediaType: string;
     dataUrl: string;
     fileName: string;
+    file?: File;
   } | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progressText, setProgressText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [triage, setTriage] = useState<TriageResult | null>(null);
+  const [triageConfirmed, setTriageConfirmed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -32,6 +39,8 @@ export function ImageImportModal() {
     setOpen(false);
     setImageData(null);
     setError(null);
+    setTriage(null);
+    setTriageConfirmed(false);
   }, [isAnalyzing]);
 
   const processFile = useCallback((file: File) => {
@@ -50,6 +59,7 @@ export function ImageImportModal() {
         mediaType: file.type,
         dataUrl,
         fileName: file.name,
+        file,
       });
     };
     reader.readAsDataURL(file);
@@ -74,36 +84,48 @@ export function ImageImportModal() {
     [processFile],
   );
 
-  const handleAnalyze = useCallback(async () => {
-    if (!imageData) return;
+  const TRIAGE_THRESHOLD = 5;
 
-    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string;
-    if (!apiKey) {
-      setError("No API key configured (VITE_OPENROUTER_API_KEY)");
-      return;
-    }
+  const runFullAnalysis = useCallback(async () => {
+    if (!imageData) return;
 
     setIsAnalyzing(true);
     setError(null);
     dispatch({ type: "SET_CREATING", isCreating: true });
 
     try {
-      const { width, height } = await getImageDimensions(imageData.dataUrl);
-      const spec = await analyzeDiagramImage(
-        imageData.base64,
-        imageData.mediaType,
-        width,
-        height,
-        apiKey,
-        undefined,
-        ({ attempt, maxAttempts, phase }) => {
-          setProgressText(
-            phase === "calling"
-              ? "Analyzing..."
-              : `Refining (attempt ${attempt}/${maxAttempts})...`,
-          );
-        },
-      );
+      let spec;
+
+      if (user && imageData.file) {
+        // Authenticated path: upload to Supabase, use edge function (costs 1 credit)
+        setProgressText("Uploading & analyzing...");
+        spec = await uploadAndConvert(imageData.file);
+        await refreshCredits();
+      } else {
+        // Fallback: direct client-side OpenRouter call
+        const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string;
+        if (!apiKey) {
+          setError("No API key configured (VITE_OPENROUTER_API_KEY)");
+          return;
+        }
+
+        const { width, height } = await getImageDimensions(imageData.dataUrl);
+        spec = await analyzeDiagramImage(
+          imageData.base64,
+          imageData.mediaType,
+          width,
+          height,
+          apiKey,
+          undefined,
+          ({ attempt, maxAttempts, phase }) => {
+            setProgressText(
+              phase === "calling"
+                ? "Analyzing..."
+                : `Refining (attempt ${attempt}/${maxAttempts})...`,
+            );
+          },
+        );
+      }
 
       const title =
         spec.diagrams[0]?.title ??
@@ -124,6 +146,8 @@ export function ImageImportModal() {
       dispatch({ type: "CREATE_DOCUMENT", document: doc });
       setOpen(false);
       setImageData(null);
+      setTriage(null);
+      setTriageConfirmed(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Image analysis failed");
     } finally {
@@ -131,7 +155,58 @@ export function ImageImportModal() {
       setProgressText(null);
       dispatch({ type: "SET_CREATING", isCreating: false });
     }
-  }, [imageData, state.library, db, dispatch]);
+  }, [imageData, user, state.library, db, dispatch, refreshCredits]);
+
+  const handleAnalyze = useCallback(async () => {
+    if (!imageData) return;
+
+    // Credit exhaustion check for authenticated users
+    if (user && credits !== null && credits < 1) {
+      setError("No credits remaining. Visit your dashboard to request more.");
+      return;
+    }
+
+    // If triage already passed or user confirmed the warning, go straight to analysis
+    if (triageConfirmed || (triage && triage.confidence >= TRIAGE_THRESHOLD)) {
+      await runFullAnalysis();
+      return;
+    }
+
+    // Run triage first
+    setIsAnalyzing(true);
+    setError(null);
+    setProgressText("Checking image...");
+
+    try {
+      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string;
+      if (!apiKey) {
+        setError("No API key configured (VITE_OPENROUTER_API_KEY)");
+        return;
+      }
+
+      const result = await triageImage(
+        imageData.base64,
+        imageData.mediaType,
+        apiKey,
+      );
+      setTriage(result);
+
+      if (result.confidence >= TRIAGE_THRESHOLD) {
+        // Good enough — proceed directly to full analysis
+        setIsAnalyzing(false);
+        setProgressText(null);
+        await runFullAnalysis();
+      } else {
+        // Low confidence — pause and show warning, let user decide
+        setIsAnalyzing(false);
+        setProgressText(null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Image check failed");
+      setIsAnalyzing(false);
+      setProgressText(null);
+    }
+  }, [imageData, user, credits, triage, triageConfirmed, runFullAnalysis]);
 
   if (!open) return null;
 
@@ -162,6 +237,8 @@ export function ImageImportModal() {
                 onClick={() => {
                   setImageData(null);
                   setError(null);
+                  setTriage(null);
+                  setTriageConfirmed(false);
                 }}
               >
                 Change
@@ -186,6 +263,42 @@ export function ImageImportModal() {
           style={{ display: "none" }}
           onChange={handleFileChange}
         />
+
+        {user && credits !== null && imageData && !isAnalyzing && (
+          <p style={{ fontSize: 12, color: "#666", margin: "8px 0" }}>
+            This will use 1 credit. You have {credits} remaining.
+          </p>
+        )}
+
+        {triage && triage.confidence < TRIAGE_THRESHOLD && !triageConfirmed && !isAnalyzing && (
+          <div className="triage-warning">
+            <p style={{ margin: "0 0 6px", fontWeight: 600 }}>
+              This doesn't look like a diagram
+            </p>
+            <p style={{ margin: "0 0 8px", fontSize: 13, color: "#666" }}>
+              {triage.warning ?? triage.description}
+              {" "}(confidence: {triage.confidence}/10)
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => {
+                  setTriageConfirmed(true);
+                  runFullAnalysis();
+                }}
+              >
+                Analyze anyway{user ? " (uses 1 credit)" : ""}
+              </button>
+              <button
+                onClick={() => {
+                  setTriage(null);
+                  setImageData(null);
+                }}
+              >
+                Choose a different image
+              </button>
+            </div>
+          </div>
+        )}
 
         {error && <div className="modal-error">{error}</div>}
 

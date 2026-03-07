@@ -22,4 +22,5 @@ export {
   type NodeLabel,
   type EdgeLabel,
   type MarkerKind,
+  type LegendConfig,
 } from "./diagram-spec.js";

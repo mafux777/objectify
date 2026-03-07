@@ -41,7 +41,9 @@ import { flowToDiagram, flowToSpec } from "../lib/flow-to-spec.js";
 import { refineDiagramWithLLM } from "../lib/llm-refine.js";
 import { validateChatInput } from "../lib/llm-validate.js";
 import { type TokenUsage, addTokenUsage } from "../lib/llm-shared.js";
+import type { ChatMessage } from "../lib/db/types.js";
 import { useDocuments } from "../lib/documents/index.js";
+import { ShareModal } from "./ShareModal.js";
 import { spatialLayoutDiagram } from "../lib/spatial-layout.js";
 import { guideLayoutDiagram } from "../lib/guide-layout.js";
 import { GuideLines } from "./GuideLines.js";
@@ -99,6 +101,8 @@ export function FlowDiagram({
   const [chatSummary, setChatSummary] = useState<string | null>(null);
   const [chatProgress, setChatProgress] = useState<string | null>(null);
   const [tokenUsage, setTokenUsage] = useState<TokenUsage | null>(null);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [showShareModal, setShowShareModal] = useState(false);
   const flowRef = useRef<HTMLDivElement>(null);
   const { dispatch: docDispatch, db } = useDocuments();
 
@@ -106,7 +110,7 @@ export function FlowDiagram({
     useUndoHistory(nodes, edges, guides, setNodes, setEdges, setGuides);
 
   // Auto-save state
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const isInitialMount = useRef(true);
   const documentIdRef = useRef(documentId);
   documentIdRef.current = documentId;
@@ -152,7 +156,7 @@ export function FlowDiagram({
 
   // Expose helpers for external tooling (e.g. Claude Code) to query/manipulate selection
   useEffect(() => {
-    (window as Record<string, unknown>).__objectify = {
+    (window as unknown as Record<string, unknown>).__objectify = {
       selectByIds: (ids: string[]) => {
         setNodes((nds) =>
           nds.map((n) => ({ ...n, selected: ids.includes(n.id) }))
@@ -674,20 +678,39 @@ export function FlowDiagram({
         // Step 1: Validate input with cheap model
         const validation = await validateChatInput(message, apiKey);
 
+        // Log user message to chat history
+        const userMsg: ChatMessage = {
+          role: "user",
+          content: message,
+          timestamp: new Date().toISOString(),
+          category: validation.classification,
+        };
+        setChatHistory((prev) => [...prev, userMsg]);
+
         if (validation.classification === "complaint") {
           await db.logFeedback({
             userId: db.getUserId(),
             message,
             category: "complaint",
           });
-          setChatSummary("Thanks for the feedback — your message has been logged and our team will review it.");
+          const reply = "Thanks for the feedback — your message has been logged and our team will review it.";
+          setChatHistory((prev) => [...prev, {
+            role: "assistant" as const,
+            content: reply,
+            timestamp: new Date().toISOString(),
+          }]);
+          setChatSummary(reply);
           return;
         }
 
         if (validation.classification === "invalid") {
-          setChatError(
-            `That doesn't look like a diagram editing request. Try something like "add a node" or "change the color of Auth0". (${validation.reason})`,
-          );
+          const reply = `That doesn't look like a diagram editing request. Try something like "add a node" or "change the color of Auth0". (${validation.reason})`;
+          setChatHistory((prev) => [...prev, {
+            role: "assistant" as const,
+            content: reply,
+            timestamp: new Date().toISOString(),
+          }]);
+          setChatError(reply);
           return;
         }
 
@@ -743,10 +766,23 @@ export function FlowDiagram({
         skipSeedRef.current = true;
         docDispatch({ type: "UPDATE_SPEC", id: documentIdRef.current, spec: newSpec });
 
+        if (summary) {
+          setChatHistory((prev) => [...prev, {
+            role: "assistant" as const,
+            content: summary,
+            timestamp: new Date().toISOString(),
+          }]);
+        }
         setChatSummary(summary);
       } catch (err) {
         console.error("LLM refinement failed:", err);
-        setChatError(err instanceof Error ? err.message : "LLM request failed");
+        const errMsg = err instanceof Error ? err.message : "LLM request failed";
+        setChatHistory((prev) => [...prev, {
+          role: "system" as const,
+          content: `Error: ${errMsg}`,
+          timestamp: new Date().toISOString(),
+        }]);
+        setChatError(errMsg);
       } finally {
         setIsLLMLoading(false);
         setChatProgress(null);
@@ -978,8 +1014,15 @@ export function FlowDiagram({
           <button className="load-btn" onClick={handleExport} style={{ marginRight: 4 }}>
             Export JSON
           </button>
-          <button className="load-btn" onClick={handleExportPng}>
+          <button className="load-btn" onClick={handleExportPng} style={{ marginRight: 4 }}>
             Export PNG
+          </button>
+          <button
+            className="load-btn"
+            onClick={() => setShowShareModal(true)}
+            style={{ background: "#e3f2fd", borderColor: "#90caf9" }}
+          >
+            Share
           </button>
         </Panel>
         {/* Guide hover highlight */}
@@ -1057,6 +1100,16 @@ export function FlowDiagram({
         chatProgress={chatProgress}
         tokenUsage={tokenUsage}
       />
+
+      {showShareModal && (
+        <ShareModal
+          spec={specRef.current}
+          chatHistory={chatHistory}
+          documentTitle={diagram.title ?? "Untitled"}
+          db={db}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   );
 }

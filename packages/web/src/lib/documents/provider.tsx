@@ -2,16 +2,23 @@ import { useReducer, useRef, useEffect, useMemo } from "react";
 import { DocumentContext } from "./context.js";
 import { documentReducer, initialDocumentState } from "./reducer.js";
 import { createDbAdapter } from "../db/index.js";
+import { useAuth } from "../auth-context.js";
 
 export function DocumentProvider({ children }: { children: React.ReactNode }) {
-  const dbRef = useRef(createDbAdapter());
+  const { user } = useAuth();
+  const dbRef = useRef(createDbAdapter(user?.id));
+
+  // Re-create adapter when user changes
+  useEffect(() => {
+    dbRef.current = createDbAdapter(user?.id);
+  }, [user?.id]);
+
   const [state, dispatch] = useReducer(documentReducer, initialDocumentState);
 
-  // Load document library from DB on mount
+  // Load document library from DB on mount and when user changes
   useEffect(() => {
     const db = dbRef.current;
     db.listDocuments().then(async (metas) => {
-      // Load full documents (including specs) for library
       const docs = await Promise.all(
         metas.map((meta) => db.getDocument(meta.id)),
       );
@@ -20,7 +27,7 @@ export function DocumentProvider({ children }: { children: React.ReactNode }) {
       );
       dispatch({ type: "LIBRARY_LOADED", documents: validDocs });
     });
-  }, []);
+  }, [user?.id]);
 
   const activeDocument = useMemo(
     () =>

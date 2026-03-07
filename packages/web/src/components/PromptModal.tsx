@@ -85,6 +85,10 @@ export function PromptModal() {
     <div className="prompt-modal-backdrop" onClick={handleClose}>
       <div className="prompt-modal" onClick={(e) => e.stopPropagation()}>
         <h3>Create Diagram from Prompt</h3>
+        <p style={{ fontSize: 13, color: "#666", margin: "0 0 12px" }}>
+          Tip: Check out the templates on the home screen first — they're a
+          great starting point you can customize with the chat refinement tool.
+        </p>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
