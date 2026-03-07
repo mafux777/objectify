@@ -21,7 +21,7 @@ if [[ -f "$ROOT_DIR/.env" ]]; then
   set +a
 fi
 
-CLOUDFLARE_PROJECT_NAME="${CLOUDFLARE_PROJECT_NAME:-objectify-cwj}"
+CLOUDFLARE_PROJECT_NAME="${CLOUDFLARE_PROJECT_NAME:-objectify}"
 
 SKIP_SUPABASE=false
 SKIP_CLOUDFLARE=false
@@ -97,7 +97,7 @@ if [[ "$SKIP_CLOUDFLARE" == false ]]; then
     exit 1
   fi
   cd "$ROOT_DIR"
-  npx wrangler pages deploy "$WEB_DIR/dist" --project-name="$CLOUDFLARE_PROJECT_NAME"
+  npx wrangler pages deploy "$WEB_DIR/dist" --project-name="$CLOUDFLARE_PROJECT_NAME" --commit-dirty=true
   echo ""
 fi
 
