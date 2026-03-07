@@ -38,6 +38,10 @@ coverage/
 
 # AI assistant files
 .claude/
+PLAN.md
+
+# Scratch/test data
+digestive-system-spec-.json
 
 # Credentials
 cdp_api_key.json
