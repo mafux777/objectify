@@ -632,6 +632,66 @@ const SingleDiagramSchema = z.object({
     "Legend configuration. If present, renders a legend panel showing " +
       "node categories (with color swatches) and edge types (with marker examples)."
   ),
+}).superRefine((diagram, ctx) => {
+  // Every diagram MUST have guides — at minimum one horizontal and one vertical.
+  // Guides are the structural grid that determines node placement and connector routing.
+  const guides = diagram.guides ?? [];
+  const horizontalGuides = guides.filter((g) => g.direction === "horizontal");
+  const verticalGuides = guides.filter((g) => g.direction === "vertical");
+
+  if (horizontalGuides.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["guides"],
+      message:
+        "Diagram is missing horizontal guides. Every diagram must have at least one horizontal guide (row) " +
+        "and one vertical guide (column). Even a single-node diagram needs one row guide and one column guide " +
+        "so the node can be placed at their intersection via guideRow and guideColumn.",
+    });
+  }
+  if (verticalGuides.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["guides"],
+      message:
+        "Diagram is missing vertical guides. Every diagram must have at least one vertical guide (column) " +
+        "and one horizontal guide (row). Even a single-node diagram needs one row guide and one column guide " +
+        "so the node can be placed at their intersection via guideRow and guideColumn.",
+    });
+  }
+
+  // Every edge MUST have explicit sourceAnchor and targetAnchor.
+  // Without anchors, connectors attach at arbitrary points on the node bounding box
+  // instead of at the correct clock positions along the guide grid.
+  for (let i = 0; i < diagram.edges.length; i++) {
+    const edge = diagram.edges[i];
+    if (!edge.sourceAnchor) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["edges", i, "sourceAnchor"],
+        message:
+          `Edge "${edge.id}" (${edge.source} → ${edge.target}) is missing sourceAnchor. ` +
+          `When guides are present, every edge must have explicit sourceAnchor and targetAnchor ` +
+          `using clock notation (e.g. "3:00" for right, "9:00" for left, "6:00" for bottom, "12:00" for top). ` +
+          `For nodes on the same row flowing left-to-right, use sourceAnchor "3:00". ` +
+          `For nodes on the same row flowing right-to-left, use sourceAnchor "9:00". ` +
+          `For wrap-around edges going down to the next row, use sourceAnchor "6:00".`,
+      });
+    }
+    if (!edge.targetAnchor) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["edges", i, "targetAnchor"],
+        message:
+          `Edge "${edge.id}" (${edge.source} → ${edge.target}) is missing targetAnchor. ` +
+          `When guides are present, every edge must have explicit sourceAnchor and targetAnchor ` +
+          `using clock notation (e.g. "3:00" for right, "9:00" for left, "6:00" for bottom, "12:00" for top). ` +
+          `For nodes on the same row receiving from the left, use targetAnchor "9:00". ` +
+          `For nodes on the same row receiving from the right, use targetAnchor "3:00". ` +
+          `For wrap-around edges arriving from the row above, use targetAnchor "12:00".`,
+      });
+    }
+  }
 });
 
 export const DiagramSpecSchema = z.object({

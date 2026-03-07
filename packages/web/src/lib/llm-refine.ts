@@ -23,7 +23,7 @@ Rules:
 - The "spec" value must be a valid DiagramSpec matching the exact same schema as the input
 - The "summary" should describe what you actually changed in plain language — e.g. "Moved the 'Auth0' label inside its container and repositioned 'Org' label to center." If you made no changes, say why.
 - Preserve ALL fields not affected by the user's request (palette, shapePalette, sizePalette, semanticTypes, description, version, etc.)
-- When adding nodes, assign them to existing guides or create new ones if needed
+- Every diagram MUST have guides. At minimum: one horizontal guide (row) and one vertical guide (column). Even a single-node diagram needs guides so the node is placed at their intersection. When adding nodes, assign them to existing guides or create new ones if needed. Every leaf node must have both guideRow and guideColumn set.
 - When removing nodes, also remove any edges that reference them
 - When modifying node styles, use the nested style object: { backgroundColor, textColor, borderColor, borderStyle }
 - When modifying edge styles, use the nested style object: { lineStyle, color, routingType, strokeWidth }
@@ -32,7 +32,23 @@ Rules:
 - Each (guideRow, guideColumn) pair must be unique across nodes
 - Node spatial coordinates are normalized 0-1 (x, y, width, height relative to image dimensions)
 - Guide positions are normalized 0-1
-- If the user asks something that doesn't make sense for the diagram, return the spec unchanged and explain why in the summary`;
+- If the user asks something that doesn't make sense for the diagram, return the spec unchanged and explain why in the summary
+
+CRITICAL — Edge anchors (connectors):
+EVERY edge MUST have both "sourceAnchor" and "targetAnchor" set using clock notation. This is a schema requirement — validation will fail without them.
+
+Clock notation: "12:00" = top center, "3:00" = right center, "6:00" = bottom center, "9:00" = left center. Corner positions: "1:30" = top-right, "4:30" = bottom-right, "7:30" = bottom-left, "10:30" = top-left.
+
+Anchor assignment rules — think about WHERE each node sits on the guide grid:
+1. Same row, flowing left-to-right: sourceAnchor "3:00", targetAnchor "9:00"
+2. Same row, flowing right-to-left: sourceAnchor "9:00", targetAnchor "3:00"
+3. Same column, flowing top-to-bottom: sourceAnchor "6:00", targetAnchor "12:00"
+4. Same column, flowing bottom-to-top: sourceAnchor "12:00", targetAnchor "6:00"
+5. Row wrap (end of one row to start of next row below): sourceAnchor "6:00", targetAnchor "12:00"
+6. Row wrap (end of one row to start of next row above): sourceAnchor "12:00", targetAnchor "6:00"
+7. Diagonal connections (different row AND column): pick the anchor that best represents the direction of travel. E.g., going down-left: sourceAnchor "6:00" or "7:30", targetAnchor "12:00" or "1:30".
+
+The anchor determines the exact point on the node's edge where the connector attaches. Getting this right is essential — without it, connectors float to wrong positions and the diagram looks broken.`;
 
 export interface RefinementResult {
   spec: DiagramSpec;
