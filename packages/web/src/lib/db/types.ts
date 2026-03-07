@@ -8,6 +8,25 @@ export interface FeedbackRecord {
   timestamp: number;
 }
 
+export interface ChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+  timestamp: string;
+  category?: "complaint" | "valid" | "invalid";
+}
+
+export interface SharedFeedback {
+  id: string;
+  userId: string | null;
+  documentTitle: string;
+  diagramSpec: DiagramSpec;
+  chatHistory: ChatMessage[];
+  feedbackMessages: FeedbackRecord[];
+  userComment: string;
+  userAgent: string;
+  createdAt: string;
+}
+
 export interface DiagramDocument {
   id: string;
   title: string;
@@ -41,4 +60,13 @@ export interface DbAdapter {
 
   /** Delete a document by ID. */
   deleteDocument(id: string): Promise<void>;
+
+  /** Submit feedback (diagram + chat history + comments) to the developer. */
+  submitSharedFeedback(feedback: Omit<SharedFeedback, "id" | "createdAt">): Promise<void>;
+
+  /** Retrieve all shared feedback submissions for the current user. */
+  getSharedFeedback(): Promise<SharedFeedback[]>;
+
+  /** Delete the user's account and all associated data. */
+  deleteAccount(): Promise<void>;
 }

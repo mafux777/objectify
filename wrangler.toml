@@ -1,0 +1,10 @@
+name = "objectify"
+compatibility_date = "2024-01-01"
+
+# Cloudflare Pages configuration
+# Build command: cd packages/web && npm run build
+# Output directory: packages/web/dist
+# Set environment variables in Cloudflare dashboard:
+#   VITE_SUPABASE_URL
+#   VITE_SUPABASE_ANON_KEY
+#   VITE_OPENROUTER_API_KEY

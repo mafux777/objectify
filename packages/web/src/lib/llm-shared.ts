@@ -151,6 +151,75 @@ export async function callOpenRouter(
   return { content, usage };
 }
 
+// --- Image triage ---
+
+const TRIAGE_PROMPT = `You are an image classifier for a diagram-to-code tool called Objectify. Your job is to quickly assess whether an uploaded image is a suitable diagram for conversion.
+
+Objectify is designed to convert architecture diagrams, flowcharts, system diagrams, network topologies, ER diagrams, sequence diagrams, org charts, mind maps, and similar structured visual diagrams into editable interactive diagrams.
+
+It is NOT designed for: screenshots of apps/games/websites, photos of people/objects/scenes, charts/graphs with data (bar charts, pie charts, line graphs), plain text/documents, memes, or abstract art.
+
+Analyze the image and respond with ONLY a JSON object (no explanation):
+{
+  "isDiagram": true/false,
+  "confidence": 1-10,
+  "diagramType": "architecture|flowchart|sequence|er|network|org-chart|mind-map|state|class|other-diagram|not-a-diagram",
+  "description": "One sentence describing what the image shows",
+  "warning": null or "A short user-facing warning if this isn't a good fit"
+}
+
+Scoring guide:
+- 9-10: Clear architecture/flow diagram with boxes, arrows, labels
+- 7-8: Diagram-like but informal (hand-drawn whiteboard, rough sketch)
+- 5-6: Borderline — has some structure but not a typical diagram
+- 3-4: Probably not a diagram but has some box/arrow elements
+- 1-2: Clearly not a diagram (photo, screenshot, chart, text)`;
+
+/** Result of the pre-analysis image triage. */
+export interface TriageResult {
+  isDiagram: boolean;
+  confidence: number;
+  diagramType: string;
+  description: string;
+  warning: string | null;
+}
+
+/**
+ * Quick, cheap pre-analysis check: is this image a suitable diagram?
+ * Uses a small max_tokens to keep cost low (~500 tokens round-trip).
+ */
+export async function triageImage(
+  base64: string,
+  mediaType: string,
+  apiKey: string,
+  model = "anthropic/claude-sonnet-4-6",
+): Promise<TriageResult> {
+  const messages: ChatMessage[] = [
+    { role: "system", content: TRIAGE_PROMPT },
+    {
+      role: "user",
+      content: [
+        {
+          type: "image_url",
+          image_url: { url: `data:${mediaType};base64,${base64}` },
+        },
+        { type: "text", text: "Classify this image." },
+      ],
+    },
+  ];
+
+  const { content } = await callOpenRouter(messages, apiKey, model, 256);
+  const parsed = extractJsonFromResponse(content) as Record<string, unknown>;
+
+  return {
+    isDiagram: Boolean(parsed.isDiagram),
+    confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
+    diagramType: String(parsed.diagramType ?? "unknown"),
+    description: String(parsed.description ?? ""),
+    warning: parsed.warning ? String(parsed.warning) : null,
+  };
+}
+
 // --- Retry feedback message builder ---
 
 /**

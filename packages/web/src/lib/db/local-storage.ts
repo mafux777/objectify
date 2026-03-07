@@ -1,7 +1,8 @@
-import type { DbAdapter, FeedbackRecord, DiagramDocument, DiagramDocumentMeta } from "./types.js";
+import type { DbAdapter, FeedbackRecord, SharedFeedback, DiagramDocument, DiagramDocumentMeta } from "./types.js";
 
 const USER_ID_KEY = "objectify:userId";
 const FEEDBACK_KEY = "objectify:feedback";
+const SHARED_FEEDBACK_KEY = "objectify:shared-feedback";
 const DOCS_INDEX_KEY = "objectify:docs-index";
 const DOC_PREFIX = "objectify:doc:";
 
@@ -102,6 +103,49 @@ export class LocalStorageAdapter implements DbAdapter {
     if (!raw) return [];
     try {
       return JSON.parse(raw) as DiagramDocumentMeta[];
+    } catch {
+      return [];
+    }
+  }
+
+  // ── Shared Feedback ─────────────────────────────────────────
+
+  async submitSharedFeedback(
+    feedback: Omit<SharedFeedback, "id" | "createdAt">,
+  ): Promise<void> {
+    const full: SharedFeedback = {
+      ...feedback,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    const existing = this.readSharedFeedback();
+    existing.push(full);
+    localStorage.setItem(SHARED_FEEDBACK_KEY, JSON.stringify(existing));
+  }
+
+  async getSharedFeedback(): Promise<SharedFeedback[]> {
+    return this.readSharedFeedback();
+  }
+
+  async deleteAccount(): Promise<void> {
+    // Clear all objectify localStorage keys
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("objectify:")) {
+        keysToRemove.push(key);
+      }
+    }
+    for (const key of keysToRemove) {
+      localStorage.removeItem(key);
+    }
+  }
+
+  private readSharedFeedback(): SharedFeedback[] {
+    const raw = localStorage.getItem(SHARED_FEEDBACK_KEY);
+    if (!raw) return [];
+    try {
+      return JSON.parse(raw) as SharedFeedback[];
     } catch {
       return [];
     }
