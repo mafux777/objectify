@@ -14,11 +14,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 WEB_DIR="$ROOT_DIR/packages/web"
 
-# Load .env if present (for CLOUDFLARE_PROJECT_NAME etc.)
+# Load .env if present (for CLOUDFLARE_API_TOKEN, CLOUDFLARE_PROJECT_NAME, etc.)
+# We selectively export non-VITE_ vars, since VITE_ vars are build-time only
+# and VITE_AUTH_BYPASS must never leak into production builds.
 if [[ -f "$ROOT_DIR/.env" ]]; then
-  set -a
-  source "$ROOT_DIR/.env"
-  set +a
+  while IFS='=' read -r key value; do
+    [[ -z "$key" || "$key" =~ ^# ]] && continue
+    value="${value#\"}" && value="${value%\"}"  # strip quotes
+    if [[ "$key" == "VITE_AUTH_BYPASS" ]]; then
+      continue  # never export bypass to production builds
+    fi
+    export "$key=$value"
+  done < "$ROOT_DIR/.env"
 fi
 
 CLOUDFLARE_PROJECT_NAME="${CLOUDFLARE_PROJECT_NAME:-objectify}"
@@ -80,7 +87,7 @@ if [[ "$SKIP_SUPABASE" == false ]]; then
   echo ""
 fi
 
-# 3. Build
+# 3. Build (VITE_AUTH_BYPASS is excluded from env loading above)
 if [[ "$SKIP_BUILD" == false ]]; then
   echo "--- Building Web App ---"
   cd "$WEB_DIR"
