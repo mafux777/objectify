@@ -14,6 +14,7 @@ interface AuthState {
   session: Session | null;
   user: User | null;
   credits: number | null;
+  isAdmin: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshCredits: () => Promise<void>;
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           session: null,
           user: null,
           credits: null,
+          isAdmin: true,
           loading: false,
           signOut: async () => {},
           refreshCredits: async () => {},
@@ -42,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [session, setSession] = useState<Session | null>(null);
   const [credits, setCredits] = useState<number | null>(null);
+  const [role, setRole] = useState<string>("user");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -72,16 +75,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!session?.user) return;
     const { data } = await supabase
       .from("profiles")
-      .select("credits")
+      .select("credits, role")
       .eq("id", session.user.id)
       .single();
-    if (data) setCredits(data.credits);
+    if (data) {
+      setCredits(data.credits);
+      setRole(data.role ?? "user");
+    }
   }
 
   async function signOut() {
     await supabase.auth.signOut();
     setSession(null);
     setCredits(null);
+    setRole("user");
   }
 
   return (
@@ -90,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         user: session?.user ?? null,
         credits,
+        isAdmin: role === "admin",
         loading,
         signOut,
         refreshCredits,

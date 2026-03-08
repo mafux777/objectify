@@ -39,6 +39,18 @@ export interface DiagramDocument {
 /** Lightweight metadata returned by listDocuments (no spec payload). */
 export type DiagramDocumentMeta = Omit<DiagramDocument, "spec">;
 
+export interface Template {
+  id: string;
+  name: string;
+  description: string;
+  spec: DiagramSpec;
+  sortOrder: number;
+  featured: boolean;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DbAdapter {
   /** Log a feedback/complaint record. Returns the created record with id and timestamp. */
   logFeedback(record: Omit<FeedbackRecord, "id" | "timestamp">): Promise<FeedbackRecord>;
@@ -69,4 +81,13 @@ export interface DbAdapter {
 
   /** Delete the user's account and all associated data. */
   deleteAccount(): Promise<void>;
+
+  /** List all available templates, ordered by sort_order then created_at. */
+  listTemplates(): Promise<Template[]>;
+
+  /** Create a new template from a diagram spec. Requires admin role. */
+  createTemplate(t: Pick<Template, "name" | "description" | "spec" | "featured">): Promise<Template>;
+
+  /** Delete a template by ID. Requires admin role. */
+  deleteTemplate(id: string): Promise<void>;
 }

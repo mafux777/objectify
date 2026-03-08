@@ -1,30 +1,10 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { DiagramSpecSchema } from "@objectify/schema";
 import { useDocuments } from "../lib/documents/index.js";
 import { uniqueSlug } from "../lib/slugify.js";
 import type { DiagramDocument } from "../lib/db/types.js";
-
-import sampleData from "../data/sample.json";
-import tradingPipelineData from "../data/trading-pipeline.json";
-import talosComponentsData from "../data/talos-components.json";
-import objectifyWorkflowData from "../data/objectify-workflow.json";
-import exampleAData from "../data/example-a-microservices.json";
-import exampleBData from "../data/example-b-cicd-pipeline.json";
-import exampleCData from "../data/example-c-ecommerce-uml.json";
-import sizeCalibrationData from "../data/size-calibration.json";
-import textCapacityData from "../data/text-capacity.json";
-
-const TEMPLATES = [
-  { title: "How Objectify Works", data: objectifyWorkflowData, featured: true },
-  { title: "Size Calibration Grid", data: sizeCalibrationData },
-  { title: "Text Capacity Grid", data: textCapacityData },
-  { title: "Web App Architecture", data: exampleAData },
-  { title: "CI/CD Pipeline", data: exampleBData },
-  { title: "E-Commerce Components", data: exampleCData },
-  { title: "Project Thunderbattle", data: sampleData },
-  { title: "Trading Pipeline", data: tradingPipelineData },
-  { title: "Talos Linux Components", data: talosComponentsData },
-];
+import type { Template } from "../lib/db/index.js";
+import { useAuth } from "../lib/auth-context.js";
 
 function formatDate(ts: number): string {
   return new Date(ts).toLocaleDateString(undefined, {
@@ -38,11 +18,17 @@ const ONBOARDING_SEEN_KEY = "objectify:onboarding-seen";
 
 export function WelcomeScreen() {
   const { state, dispatch, db } = useDocuments();
+  const { isAdmin } = useAuth();
   const [dragOver, setDragOver] = useState(false);
   const [showCallout, setShowCallout] = useState(
     () => !localStorage.getItem(ONBOARDING_SEEN_KEY)
   );
+  const [templates, setTemplates] = useState<Template[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    db.listTemplates().then(setTemplates);
+  }, [db]);
 
   const dismissCallout = useCallback(() => {
     localStorage.setItem(ONBOARDING_SEEN_KEY, "1");
@@ -86,6 +72,43 @@ export function WelcomeScreen() {
       dispatch({ type: "DELETE_DOCUMENT", id });
     },
     [db, dispatch],
+  );
+
+  const saveAsTemplate = useCallback(
+    async (e: React.MouseEvent, docMeta: { id: string; title: string }) => {
+      e.stopPropagation();
+      const doc = await db.getDocument(docMeta.id);
+      if (!doc) return;
+      const name = prompt("Template name:", doc.title);
+      if (!name) return;
+      const description = prompt("Template description:", "") ?? "";
+      try {
+        const created = await db.createTemplate({
+          name,
+          description,
+          spec: doc.spec,
+          featured: false,
+        });
+        setTemplates((prev) => [...prev, created]);
+      } catch (err) {
+        alert(`Failed to save template: ${err instanceof Error ? err.message : "Unknown error"}`);
+      }
+    },
+    [db],
+  );
+
+  const deleteTemplate = useCallback(
+    async (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      if (!confirm("Remove this template?")) return;
+      try {
+        await db.deleteTemplate(id);
+        setTemplates((prev) => prev.filter((t) => t.id !== id));
+      } catch (err) {
+        alert(`Failed to delete template: ${err instanceof Error ? err.message : "Unknown error"}`);
+      }
+    },
+    [db],
   );
 
   const handleFile = useCallback(
@@ -196,6 +219,15 @@ export function WelcomeScreen() {
                   >
                     &times;
                   </button>
+                  {isAdmin && (
+                    <button
+                      className="doc-save-template"
+                      onClick={(e) => saveAsTemplate(e, doc)}
+                      title="Save as Template"
+                    >
+                      &#9733;
+                    </button>
+                  )}
                 </div>
               ))}
           </div>
@@ -212,20 +244,29 @@ export function WelcomeScreen() {
           </div>
         )}
         <div className="welcome-grid">
-          {TEMPLATES.map((t) => (
+          {templates.map((t) => (
             <div
-              key={t.title}
+              key={t.id}
               className={`welcome-doc-card${t.featured ? " welcome-doc-card--featured" : ""}`}
               onClick={() => {
                 if (t.featured && showCallout) dismissCallout();
-                createDocument(t.data, t.title);
+                createDocument(t.spec, t.name);
               }}
             >
               {t.featured && (
                 <div className="featured-badge">Start here</div>
               )}
-              <div className="doc-title">{t.title}</div>
-              <div className="doc-meta">Template</div>
+              <div className="doc-title">{t.name}</div>
+              <div className="doc-meta">{t.description || "Template"}</div>
+              {isAdmin && (
+                <button
+                  className="doc-delete"
+                  onClick={(e) => deleteTemplate(e, t.id)}
+                  title="Remove Template"
+                >
+                  &times;
+                </button>
+              )}
             </div>
           ))}
         </div>

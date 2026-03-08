@@ -52,6 +52,7 @@ import { LabelConnectors } from "./LabelConnectors.js";
 import { GuidesContext } from "../lib/guides-context.js";
 import { ForceLayoutPanel } from "./ForceLayoutPanel.js";
 import { HelpModal } from "./HelpModal.js";
+import { useAuth } from "../lib/auth-context.js";
 import {
   RESIZE_END_EVENT,
   type ResizeEndDetail,
@@ -116,6 +117,7 @@ export function FlowDiagram({
   const [showHelpModal, setShowHelpModal] = useState(false);
   const flowRef = useRef<HTMLDivElement>(null);
   const { dispatch: docDispatch, db } = useDocuments();
+  const { isAdmin } = useAuth();
 
   const { saveSnapshot, undo, redo, canUndo, canRedo, clearHistory } =
     useUndoHistory(nodes, edges, guides, setNodes, setEdges, setGuides);
@@ -1113,6 +1115,40 @@ export function FlowDiagram({
     URL.revokeObjectURL(url);
   }, [nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides]);
 
+  const [templateSaveState, setTemplateSaveState] = useState<"idle" | "confirm" | "saving" | "done">("idle");
+
+  const handleSaveAsTemplate = useCallback(async () => {
+    const currentSpec = flowToSpec(nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides);
+    const title = diagram.title ?? "Untitled";
+
+    try {
+      const existing = await db.listTemplates();
+      const match = existing.find((t) => t.name === title);
+
+      if (match && !window.confirm(`Overwrite template "${title}"?`)) return;
+
+      setTemplateSaveState("saving");
+
+      if (match) {
+        await db.deleteTemplate(match.id);
+      }
+
+      await db.createTemplate({
+        name: title,
+        description: match?.description ?? "",
+        spec: currentSpec,
+        featured: match?.featured ?? false,
+      });
+
+      setTemplateSaveState("done");
+      setTimeout(() => setTemplateSaveState("idle"), 2000);
+    } catch (err) {
+      console.error("Failed to save template:", err);
+      setTemplateSaveState("idle");
+      window.alert(`Failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    }
+  }, [nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides, db]);
+
   const handleExportPng = useCallback(async () => {
     const el = flowRef.current?.querySelector(".react-flow") as HTMLElement | null;
     if (!el) return;
@@ -1383,6 +1419,21 @@ export function FlowDiagram({
           >
             Share
           </button>
+          {isAdmin && (
+            <button
+              className="load-btn"
+              onClick={handleSaveAsTemplate}
+              disabled={templateSaveState === "saving"}
+              style={{
+                background: templateSaveState === "done" ? "#e8f5e9" : "#fff8e1",
+                borderColor: templateSaveState === "done" ? "#81c784" : "#ffe082",
+                marginRight: 4,
+              }}
+              title="Save as Template"
+            >
+              {templateSaveState === "saving" ? "Saving…" : templateSaveState === "done" ? "✓ Saved" : "★ Template"}
+            </button>
+          )}
           <button
             className="load-btn"
             onClick={() => setShowHelpModal(true)}

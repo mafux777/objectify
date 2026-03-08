@@ -1,4 +1,4 @@
-export type { DbAdapter, FeedbackRecord, ChatMessage, SharedFeedback, DiagramDocument, DiagramDocumentMeta } from "./types.js";
+export type { DbAdapter, FeedbackRecord, ChatMessage, SharedFeedback, DiagramDocument, DiagramDocumentMeta, Template } from "./types.js";
 export { LocalStorageAdapter } from "./local-storage.js";
 export { SupabaseAdapter } from "./supabase-adapter.js";
 

@@ -1,10 +1,13 @@
-import type { DbAdapter, FeedbackRecord, SharedFeedback, DiagramDocument, DiagramDocumentMeta } from "./types.js";
+import type { DbAdapter, FeedbackRecord, SharedFeedback, DiagramDocument, DiagramDocumentMeta, Template } from "./types.js";
+import { BUNDLED_TEMPLATES } from "./bundled-templates.js";
 
 const USER_ID_KEY = "objectify:userId";
 const FEEDBACK_KEY = "objectify:feedback";
 const SHARED_FEEDBACK_KEY = "objectify:shared-feedback";
 const DOCS_INDEX_KEY = "objectify:docs-index";
 const DOC_PREFIX = "objectify:doc:";
+const TEMPLATES_KEY = "objectify:templates";
+const DELETED_TEMPLATES_KEY = "objectify:deleted-templates";
 
 export class LocalStorageAdapter implements DbAdapter {
   private userId: string;
@@ -148,6 +151,67 @@ export class LocalStorageAdapter implements DbAdapter {
       return JSON.parse(raw) as SharedFeedback[];
     } catch {
       return [];
+    }
+  }
+
+  // ── Templates ───────────────────────────────────────────────
+
+  async listTemplates(): Promise<Template[]> {
+    const deleted = this.readDeletedTemplateIds();
+    const bundled = BUNDLED_TEMPLATES.filter((t) => !deleted.has(t.id));
+    const custom = this.readCustomTemplates();
+    return [...bundled, ...custom];
+  }
+
+  async createTemplate(
+    t: Pick<Template, "name" | "description" | "spec" | "featured">,
+  ): Promise<Template> {
+    const template: Template = {
+      id: crypto.randomUUID(),
+      name: t.name,
+      description: t.description,
+      spec: t.spec,
+      sortOrder: 999,
+      featured: t.featured,
+      createdBy: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const custom = this.readCustomTemplates();
+    custom.push(template);
+    localStorage.setItem(TEMPLATES_KEY, JSON.stringify(custom));
+    return template;
+  }
+
+  async deleteTemplate(id: string): Promise<void> {
+    // If it's a bundled template, mark it as deleted
+    if (BUNDLED_TEMPLATES.some((t) => t.id === id)) {
+      const deleted = this.readDeletedTemplateIds();
+      deleted.add(id);
+      localStorage.setItem(DELETED_TEMPLATES_KEY, JSON.stringify([...deleted]));
+    }
+    // If it's a custom template, remove it from storage
+    const custom = this.readCustomTemplates().filter((t) => t.id !== id);
+    localStorage.setItem(TEMPLATES_KEY, JSON.stringify(custom));
+  }
+
+  private readCustomTemplates(): Template[] {
+    const raw = localStorage.getItem(TEMPLATES_KEY);
+    if (!raw) return [];
+    try {
+      return JSON.parse(raw) as Template[];
+    } catch {
+      return [];
+    }
+  }
+
+  private readDeletedTemplateIds(): Set<string> {
+    const raw = localStorage.getItem(DELETED_TEMPLATES_KEY);
+    if (!raw) return new Set();
+    try {
+      return new Set(JSON.parse(raw) as string[]);
+    } catch {
+      return new Set();
     }
   }
 }

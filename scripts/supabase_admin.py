@@ -15,9 +15,11 @@ Commands:
     set-credits <email_or_id> <n> Set a user's credit balance
     reset-credits <n>             Set ALL users to n credits
     add-credits <email_or_id> <n> Add n credits to a user
+    set-role <email_or_id> <role> Set a user's role (user or admin)
     conversions [email_or_id]     List conversions (optionally for one user)
     transactions [email_or_id]    List credit transactions
     feedback [email_or_id]        List shared feedback submissions
+    templates                     List all templates
     waitlist                      List waitlist entries
     storage                       Show storage bucket stats
     storage-files [user_id]       List files in diagram-images bucket
@@ -136,7 +138,7 @@ def truncate(s: str, n: int = 60) -> str:
 def cmd_users():
     """List all users with credits and signup info."""
     rows = query("""
-        SELECT p.id, p.email, p.credits, p.created_at,
+        SELECT p.id, p.email, p.credits, p.role, p.created_at,
                u.raw_app_meta_data->>'provider' as provider,
                u.last_sign_in_at
         FROM public.profiles p
@@ -146,7 +148,7 @@ def cmd_users():
     for r in rows:
         r["created_at"] = r["created_at"][:16] if r.get("created_at") else ""
         r["last_sign_in_at"] = r["last_sign_in_at"][:16] if r.get("last_sign_in_at") else ""
-    print_table(rows, ["id", "email", "credits", "provider", "created_at", "last_sign_in_at"])
+    print_table(rows, ["id", "email", "credits", "role", "provider", "created_at", "last_sign_in_at"])
     print(f"\nTotal: {len(rows)} users")
 
 
@@ -392,6 +394,35 @@ def cmd_stats():
     print(f"  Storage:      {s.get('files', 0)} files, {s.get('size', '0 bytes')}")
 
 
+def cmd_set_role(identifier: str, role: str):
+    """Set a user's role (user or admin)."""
+    if role not in ("user", "admin"):
+        print(f"Invalid role '{role}'. Must be 'user' or 'admin'.", file=sys.stderr)
+        sys.exit(1)
+    user = resolve_user(identifier)
+    query(f"UPDATE public.profiles SET role = '{role}' WHERE id = '{user['id']}'")
+    print(f"Set {user['email']} role to '{role}'")
+
+
+def cmd_templates():
+    """List all templates."""
+    rows = query("""
+        SELECT t.id, t.name, t.description, t.sort_order, t.featured,
+               t.created_by, p.email as creator_email,
+               t.created_at, t.updated_at
+        FROM public.templates t
+        LEFT JOIN public.profiles p ON t.created_by = p.id
+        ORDER BY t.sort_order, t.created_at
+    """)
+    for r in rows:
+        r["created_at"] = r["created_at"][:16] if r.get("created_at") else ""
+        r["updated_at"] = r["updated_at"][:16] if r.get("updated_at") else ""
+        r["description"] = truncate(r.get("description") or "", 35)
+        r["creator_email"] = r.get("creator_email") or "(seed)"
+    print_table(rows, ["id", "name", "description", "sort_order", "featured", "creator_email", "created_at"])
+    print(f"\nTotal: {len(rows)} templates")
+
+
 def cmd_sql(sql: str):
     """Run arbitrary SQL."""
     rows = query(sql)
@@ -426,12 +457,16 @@ def main():
             cmd_reset_credits(int(args[1]))
         elif cmd == "add-credits" and len(args) >= 3:
             cmd_add_credits(args[1], int(args[2]))
+        elif cmd == "set-role" and len(args) >= 3:
+            cmd_set_role(args[1], args[2])
         elif cmd == "conversions":
             cmd_conversions(args[1] if len(args) >= 2 else None)
         elif cmd == "transactions":
             cmd_transactions(args[1] if len(args) >= 2 else None)
         elif cmd == "feedback":
             cmd_feedback(args[1] if len(args) >= 2 else None)
+        elif cmd == "templates":
+            cmd_templates()
         elif cmd == "waitlist":
             cmd_waitlist()
         elif cmd == "storage":

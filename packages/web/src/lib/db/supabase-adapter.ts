@@ -4,8 +4,10 @@ import type {
   SharedFeedback,
   DiagramDocument,
   DiagramDocumentMeta,
+  Template,
 } from "./types.js";
 import { supabase } from "../supabase.js";
+import { BUNDLED_TEMPLATES } from "./bundled-templates.js";
 
 /**
  * Supabase-backed DbAdapter for authenticated users.
@@ -162,5 +164,79 @@ export class SupabaseAdapter implements DbAdapter {
       throw new Error("Failed to delete account");
     }
     await supabase.auth.signOut();
+  }
+
+  // ── Templates ───────────────────────────────────────────────
+
+  async listTemplates(): Promise<Template[]> {
+    try {
+      const { data, error } = await supabase
+        .from("templates")
+        .select("*")
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
+
+      if (error || !data || data.length === 0) {
+        return BUNDLED_TEMPLATES;
+      }
+
+      return data.map((row) => ({
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        spec: row.spec,
+        sortOrder: row.sort_order,
+        featured: row.featured,
+        createdBy: row.created_by,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+    } catch {
+      return BUNDLED_TEMPLATES;
+    }
+  }
+
+  async createTemplate(
+    t: Pick<Template, "name" | "description" | "spec" | "featured">,
+  ): Promise<Template> {
+    const { data, error } = await supabase
+      .from("templates")
+      .insert({
+        name: t.name,
+        description: t.description,
+        spec: t.spec,
+        featured: t.featured,
+        sort_order: 999,
+        created_by: this.uid,
+      })
+      .select()
+      .single();
+
+    if (error || !data) {
+      throw new Error(error?.message ?? "Failed to create template");
+    }
+
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      spec: data.spec,
+      sortOrder: data.sort_order,
+      featured: data.featured,
+      createdBy: data.created_by,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
+  }
+
+  async deleteTemplate(id: string): Promise<void> {
+    const { error } = await supabase
+      .from("templates")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      throw new Error(error.message);
+    }
   }
 }
