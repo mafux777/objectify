@@ -28,6 +28,11 @@ if [[ -f "$ROOT_DIR/.env" ]]; then
   done < "$ROOT_DIR/.env"
 fi
 
+# Force VITE_AUTH_BYPASS=false for production builds.
+# Vite reads .env via envDir (which may contain VITE_AUTH_BYPASS=true),
+# but process env vars take precedence over .env files.
+export VITE_AUTH_BYPASS=false
+
 CLOUDFLARE_PROJECT_NAME="${CLOUDFLARE_PROJECT_NAME:-objectify}"
 
 SKIP_SUPABASE=false
