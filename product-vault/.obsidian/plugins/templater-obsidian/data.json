@@ -1,0 +1,46 @@
+{
+  "command_timeout": 5,
+  "templates_folder": "Templates",
+  "templates_pairs": [],
+  "trigger_on_file_creation": true,
+  "auto_jump_to_cursor": true,
+  "enable_system_commands": false,
+  "shell_path": "",
+  "user_scripts_folder": "",
+  "enable_folder_templates": true,
+  "folder_templates": [
+    {
+      "folder": "020-Epics",
+      "template": "Templates/Epic.md"
+    },
+    {
+      "folder": "030-Stories",
+      "template": "Templates/Story.md"
+    },
+    {
+      "folder": "040-Bugs",
+      "template": "Templates/Bug.md"
+    },
+    {
+      "folder": "050-Tasks",
+      "template": "Templates/Task.md"
+    },
+    {
+      "folder": "060-Sprints",
+      "template": "Templates/Sprint.md"
+    },
+    {
+      "folder": "070-Retrospectives",
+      "template": "Templates/Retrospective.md"
+    },
+    {
+      "folder": "080-Meeting-Notes",
+      "template": "Templates/Meeting Notes.md"
+    }
+  ],
+  "syntax_highlighting": true,
+  "syntax_highlighting_mobile": false,
+  "enabled_templates_hotkeys": [],
+  "startup_templates": []
+}
+
