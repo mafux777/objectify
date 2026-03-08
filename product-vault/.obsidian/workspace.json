@@ -11,14 +11,10 @@
             "id": "580c561b73bd9804",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "030-Stories/Magnetic repulsion connectors for guide-based layouts.md",
-                "mode": "preview",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "Magnetic repulsion connectors for guide-based layouts"
+              "title": "Neuer Tab"
             }
           }
         ]
@@ -182,10 +178,35 @@
   },
   "active": "580c561b73bd9804",
   "lastOpenFiles": [
+    "020-Epics/Branded PNG Export.md",
+    "030-Stories/In-app onboarding and usage instructions.md",
+    "Templates/Task.md",
+    "Templates/Story.md",
+    "Templates/Sprint.md",
+    "Templates/Retrospective.md",
+    "Templates/Meeting Notes.md",
+    "Templates/Epic.md",
+    "Templates/Bug.md",
+    "Templates",
+    "SETUP.md",
     "040-Bugs/Guide drag clamped to 0-1 range prevents canvas expansion.md",
+    "040-Bugs",
+    "030-Stories/Magnetic repulsion connectors for guide-based layouts.md",
+    "030-Stories",
+    "020-Epics/YouTube Video Production Pipeline.md",
+    "020-Epics/SaaS Hosted Web App.md",
+    "020-Epics/Product Management Vault.md",
+    "020-Epics/Diagram Rendering and Connectors.md",
+    "020-Epics/Agent Payments and x402 Wallet Integration.md",
+    "020-Epics",
+    "010-Roadmap/Roadmap.md",
+    "010-Roadmap",
     "000-Dashboard/Metrics.md",
     "000-Dashboard/Kanban Board.md",
     "000-Dashboard/Dashboard.md",
-    "030-Stories/Magnetic repulsion connectors for guide-based layouts.md"
+    "000-Dashboard",
+    "test-plan.md",
+    "feature-requests.md",
+    "bugs.md"
   ]
 }

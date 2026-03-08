@@ -710,6 +710,24 @@ body,
   color: #999;
 }
 
+.welcome-doc-card--featured {
+  border-color: #1976d2;
+  background: #f5f9ff;
+}
+
+.featured-badge {
+  display: inline-block;
+  background: #1976d2;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
 .welcome-doc-card .doc-delete {
   position: absolute;
   top: 8px;
@@ -751,6 +769,89 @@ body,
   border-color: #1976d2;
   background: #f0f7ff;
   color: #1976d2;
+}
+
+/* ── First-visit onboarding callout ──────────────────────── */
+
+.onboarding-callout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #1565c0;
+  animation: callout-fade-in 0.3s ease-out;
+}
+
+@keyframes callout-fade-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.callout-dismiss {
+  border: none;
+  background: none;
+  font-size: 18px;
+  color: #90caf9;
+  cursor: pointer;
+  padding: 0 4px;
+  margin-left: 12px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.callout-dismiss:hover {
+  color: #1565c0;
+}
+
+/* ── Help Modal ──────────────────────────────────────────── */
+
+.help-modal {
+  width: 560px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.help-modal h4 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 16px 0 8px;
+  color: #333;
+}
+
+.help-modal h4:first-of-type {
+  margin-top: 0;
+}
+
+.help-modal table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+
+.help-modal td {
+  padding: 5px 8px;
+  font-size: 13px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.help-modal td:first-child {
+  font-family: "SF Mono", Monaco, Consolas, monospace;
+  font-size: 12px;
+  white-space: nowrap;
+  color: #1976d2;
+  width: 40%;
+}
+
+.help-modal p {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+  margin: 4px 0;
 }
 
 /* ── Prompt Modal ──────────────────────────────────────── */

@@ -50,6 +50,7 @@ import { GuideLines } from "./GuideLines.js";
 import { LabelConnectors } from "./LabelConnectors.js";
 import { GuidesContext } from "../lib/guides-context.js";
 import { ForceLayoutPanel } from "./ForceLayoutPanel.js";
+import { HelpModal } from "./HelpModal.js";
 
 let detachGuideCounter = 200;
 
@@ -103,6 +104,7 @@ export function FlowDiagram({
   const [tokenUsage, setTokenUsage] = useState<TokenUsage | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const flowRef = useRef<HTMLDivElement>(null);
   const { dispatch: docDispatch, db } = useDocuments();
 
@@ -849,19 +851,111 @@ export function FlowDiagram({
   const handleExportPng = useCallback(async () => {
     const el = flowRef.current?.querySelector(".react-flow") as HTMLElement | null;
     if (!el) return;
+
+    const PADDING = 40;
+    const PIXEL_RATIO = 2;
+    const FOOTER_HEIGHT = 36;
+    const TAGLINE = "Made with Objectify";
+    const SITE_URL = "objectify.wiki";
+
     try {
-      const dataUrl = await toPng(el, {
-        pixelRatio: 2,
-        backgroundColor: "#ffffff",
+      // Compute bounding box of all nodes in screen coordinates
+      const nodeEls = el.querySelectorAll(".react-flow__node");
+      if (nodeEls.length === 0) return;
+
+      const flowRect = el.getBoundingClientRect();
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      nodeEls.forEach((n) => {
+        const r = n.getBoundingClientRect();
+        minX = Math.min(minX, r.left - flowRect.left);
+        minY = Math.min(minY, r.top - flowRect.top);
+        maxX = Math.max(maxX, r.right - flowRect.left);
+        maxY = Math.max(maxY, r.bottom - flowRect.top);
       });
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `${diagram.id}.png`;
-      a.click();
+
+      const cropX = minX - PADDING;
+      const cropY = minY - PADDING;
+      const cropW = maxX - minX + PADDING * 2;
+      const cropH = maxY - minY + PADDING * 2;
+
+      // Capture diagram without UI chrome
+      const dataUrl = await toPng(el, {
+        pixelRatio: PIXEL_RATIO,
+        backgroundColor: "#ffffff",
+        filter: (node: HTMLElement) => {
+          if (!(node instanceof HTMLElement)) return true;
+          const cls = node.className ?? "";
+          if (typeof cls !== "string") return true;
+          // Filter out minimap, controls, panels, and background grid
+          if (cls.includes("react-flow__minimap")) return false;
+          if (cls.includes("react-flow__controls")) return false;
+          if (cls.includes("react-flow__panel")) return false;
+          if (cls.includes("react-flow__background")) return false;
+          return true;
+        },
+      });
+
+      // Load the screenshot and composite with branded footer
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+      });
+
+      const cw = Math.round(cropW * PIXEL_RATIO);
+      const ch = Math.round(cropH * PIXEL_RATIO);
+      const footerH = FOOTER_HEIGHT * PIXEL_RATIO;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = cw;
+      canvas.height = ch + footerH;
+      const ctx = canvas.getContext("2d")!;
+
+      // Draw cropped diagram
+      ctx.drawImage(
+        img,
+        Math.round(cropX * PIXEL_RATIO), Math.round(cropY * PIXEL_RATIO),
+        cw, ch,
+        0, 0,
+        cw, ch,
+      );
+
+      // Draw branded footer
+      ctx.fillStyle = "#f5f5f5";
+      ctx.fillRect(0, ch, cw, footerH);
+      // Subtle top border
+      ctx.fillStyle = "#e0e0e0";
+      ctx.fillRect(0, ch, cw, PIXEL_RATIO);
+
+      const fontSize = 12 * PIXEL_RATIO;
+      ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+      ctx.fillStyle = "#888888";
+      ctx.textBaseline = "middle";
+      const textY = ch + footerH / 2;
+      const pad = 12 * PIXEL_RATIO;
+      // Left: tagline
+      ctx.textAlign = "left";
+      ctx.fillText(TAGLINE, pad, textY);
+      // Right: URL
+      ctx.textAlign = "right";
+      ctx.fillText(SITE_URL, cw - pad, textY);
+
+      // Download
+      const slug = (diagram.title ?? "diagram").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${slug}-objectify.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }, "image/png");
     } catch (err) {
       console.error("PNG export failed:", err);
     }
-  }, [diagram.id]);
+  }, [diagram.title]);
 
   // Listen for external PNG export requests (e.g. from TabBar context menu)
   useEffect(() => {
@@ -1020,9 +1114,17 @@ export function FlowDiagram({
           <button
             className="load-btn"
             onClick={() => setShowShareModal(true)}
-            style={{ background: "#e3f2fd", borderColor: "#90caf9" }}
+            style={{ background: "#e3f2fd", borderColor: "#90caf9", marginRight: 4 }}
           >
             Share
+          </button>
+          <button
+            className="load-btn"
+            onClick={() => setShowHelpModal(true)}
+            title="Help & keyboard shortcuts"
+            style={{ fontWeight: 700 }}
+          >
+            ?
           </button>
         </Panel>
         {/* Guide hover highlight */}
@@ -1109,6 +1211,10 @@ export function FlowDiagram({
           db={db}
           onClose={() => setShowShareModal(false)}
         />
+      )}
+
+      {showHelpModal && (
+        <HelpModal onClose={() => setShowHelpModal(false)} />
       )}
     </div>
   );

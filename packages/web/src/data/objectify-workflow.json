@@ -20,7 +20,8 @@
   "sizePalette": [
     { "id": "main-node", "width": 0.11, "height": 0.08, "name": "Main Node" },
     { "id": "small-node", "width": 0.09, "height": 0.06, "name": "Small Node" },
-    { "id": "wide-node", "width": 0.13, "height": 0.08, "name": "Wide Node" }
+    { "id": "wide-node", "width": 0.13, "height": 0.08, "name": "Wide Node" },
+    { "id": "instruction-text", "width": 0.28, "height": 0.14, "name": "Instruction Text" }
   ],
   "semanticTypes": [
     { "id": "input-output", "name": "Input / Output", "description": "Data entering or leaving the system" },
@@ -30,7 +31,8 @@
     { "id": "processing", "name": "Processing", "description": "Data transformation step" },
     { "id": "ui-component", "name": "UI Component", "description": "Interactive user interface element" },
     { "id": "tool", "name": "Editing Tool", "description": "Tool for modifying the diagram" },
-    { "id": "state-mgmt", "name": "State Management", "description": "Tracks changes for undo/redo" }
+    { "id": "state-mgmt", "name": "State Management", "description": "Tracks changes for undo/redo" },
+    { "id": "instruction", "name": "Instructions", "description": "Explanatory text for user guidance" }
   ],
   "diagrams": [
     {
@@ -170,6 +172,19 @@
           "guideRow": "row-2",
           "guideColumn": "col-5",
           "orderHint": 10
+        },
+        {
+          "id": "instructions",
+          "label": "Getting Started\n\n• Drag nodes to reposition (siblings on the same guide move together)\n• Alt + drag to detach a node from its guide\n• Shift + drag to snap a node to the nearest guide\n• Right-click any node or edge for styling options\n• Use the command bar below to ask the AI to edit the diagram\n• Ctrl/Cmd + Z to undo, Ctrl/Cmd + Shift + Z to redo",
+          "type": "box",
+          "style": { "backgroundColor": "#F5F5F5", "textColor": "#555555", "borderColor": "#E0E0E0", "borderStyle": "dashed", "opacity": 0.9 },
+          "shapeId": "rounded-rect",
+          "sizeId": "instruction-text",
+          "semanticTypeId": "instruction",
+          "guideRow": "row-3",
+          "guideColumn": "col-instructions",
+          "zLevel": "overlay",
+          "orderHint": 11
         }
       ],
       "edges": [
@@ -292,7 +307,9 @@
         { "id": "col-2", "index": 2, "direction": "vertical", "position": 0.38, "label": "Specification" },
         { "id": "col-3", "index": 3, "direction": "vertical", "position": 0.54, "label": "Parsing" },
         { "id": "col-4", "index": 4, "direction": "vertical", "position": 0.70, "label": "Canvas" },
-        { "id": "col-5", "index": 5, "direction": "vertical", "position": 0.88, "label": "Output" }
+        { "id": "col-5", "index": 5, "direction": "vertical", "position": 0.88, "label": "Output" },
+        { "id": "row-3", "index": 3, "direction": "horizontal", "position": 0.97 },
+        { "id": "col-instructions", "index": 6, "direction": "vertical", "position": 0.50 }
       ],
       "legend": {
         "title": "Legend",

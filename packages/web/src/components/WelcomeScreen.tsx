@@ -7,21 +7,19 @@ import type { DiagramDocument } from "../lib/db/types.js";
 import sampleData from "../data/sample.json";
 import tradingPipelineData from "../data/trading-pipeline.json";
 import talosComponentsData from "../data/talos-components.json";
-import talosObjectModelData from "../data/talos-object-model.json";
 import objectifyWorkflowData from "../data/objectify-workflow.json";
-import forceTestMicroservices from "../data/force-test-microservices.json";
-import forceTestGroups from "../data/force-test-groups.json";
-import forceTestPipeline from "../data/force-test-pipeline.json";
+import exampleAData from "../data/example-a-microservices.json";
+import exampleBData from "../data/example-b-cicd-pipeline.json";
+import exampleCData from "../data/example-c-ecommerce-uml.json";
 
 const TEMPLATES = [
+  { title: "How Objectify Works", data: objectifyWorkflowData, featured: true },
+  { title: "Web App Architecture", data: exampleAData },
+  { title: "CI/CD Pipeline", data: exampleBData },
+  { title: "E-Commerce Components", data: exampleCData },
   { title: "Project Thunderbattle", data: sampleData },
   { title: "Trading Pipeline", data: tradingPipelineData },
   { title: "Talos Linux Components", data: talosComponentsData },
-  { title: "Talos Object Model", data: talosObjectModelData },
-  { title: "How Objectify Works", data: objectifyWorkflowData },
-  { title: "Microservices (Force Test)", data: forceTestMicroservices },
-  { title: "K8s Cluster (Force Test)", data: forceTestGroups },
-  { title: "Data Pipeline (Force Test)", data: forceTestPipeline },
 ];
 
 function formatDate(ts: number): string {
@@ -32,10 +30,20 @@ function formatDate(ts: number): string {
   });
 }
 
+const ONBOARDING_SEEN_KEY = "objectify:onboarding-seen";
+
 export function WelcomeScreen() {
   const { state, dispatch, db } = useDocuments();
   const [dragOver, setDragOver] = useState(false);
+  const [showCallout, setShowCallout] = useState(
+    () => !localStorage.getItem(ONBOARDING_SEEN_KEY)
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const dismissCallout = useCallback(() => {
+    localStorage.setItem(ONBOARDING_SEEN_KEY, "1");
+    setShowCallout(false);
+  }, []);
 
   const existingSlugs = new Set(state.library.map((d) => d.slug));
 
@@ -193,13 +201,25 @@ export function WelcomeScreen() {
       {/* Templates */}
       <div className="welcome-section">
         <h3>Templates</h3>
+        {showCallout && (
+          <div className="onboarding-callout">
+            <span>New to Objectify? Open the featured template below to learn the basics.</span>
+            <button onClick={dismissCallout} className="callout-dismiss">&times;</button>
+          </div>
+        )}
         <div className="welcome-grid">
           {TEMPLATES.map((t) => (
             <div
               key={t.title}
-              className="welcome-doc-card"
-              onClick={() => createDocument(t.data, t.title)}
+              className={`welcome-doc-card${t.featured ? " welcome-doc-card--featured" : ""}`}
+              onClick={() => {
+                if (t.featured && showCallout) dismissCallout();
+                createDocument(t.data, t.title);
+              }}
             >
+              {t.featured && (
+                <div className="featured-badge">Start here</div>
+              )}
               <div className="doc-title">{t.title}</div>
               <div className="doc-meta">Template</div>
             </div>

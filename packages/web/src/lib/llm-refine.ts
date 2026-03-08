@@ -48,7 +48,18 @@ Anchor assignment rules — think about WHERE each node sits on the guide grid:
 6. Row wrap (end of one row to start of next row above): sourceAnchor "12:00", targetAnchor "6:00"
 7. Diagonal connections (different row AND column): pick the anchor that best represents the direction of travel. E.g., going down-left: sourceAnchor "6:00" or "7:30", targetAnchor "12:00" or "1:30".
 
-The anchor determines the exact point on the node's edge where the connector attaches. Getting this right is essential — without it, connectors float to wrong positions and the diagram looks broken.`;
+The anchor determines the exact point on the node's edge where the connector attaches. Getting this right is essential — without it, connectors float to wrong positions and the diagram looks broken.
+
+Text-block / annotation nodes:
+To create freestanding text blocks (instructions, annotations, notes, captions), use a regular "box" node with these style conventions:
+- type: "box"
+- style.backgroundColor: a light neutral like "#F5F5F5" or "transparent"
+- style.borderColor: "#E0E0E0" with borderStyle "dashed" for a subtle outline, or "none" for invisible
+- style.opacity: 0.9 (slightly transparent to distinguish from functional nodes)
+- zLevel: "overlay" (renders above other elements)
+- The label field contains the annotation text. Use \\n for line breaks.
+- Create a wider sizePalette entry if needed (e.g. width 0.25-0.30)
+- Assign to guide intersections like any other node — create new guides if necessary`;
 
 export interface RefinementResult {
   spec: DiagramSpec;

@@ -76,7 +76,8 @@ export function ShapeNode({
         )}
         <NodeResizer minWidth={60} minHeight={30} isVisible={!!selected} lineClassName="resizer-line" handleClassName="resizer-handle" />
         {handles}
-        <svg title={description} viewBox="0 0 60 50" style={{ width: "100%", height: "100%", opacity: style.opacity ?? 1 }} preserveAspectRatio="none">
+        <svg viewBox="0 0 60 50" style={{ width: "100%", height: "100%", opacity: style.opacity ?? 1 }} preserveAspectRatio="none">
+          {description && <title>{description}</title>}
           {/* Body */}
           <rect x="1" y="10" width="58" height="30" fill={style.backgroundColor} stroke="none" />
           {/* Left/right borders */}
