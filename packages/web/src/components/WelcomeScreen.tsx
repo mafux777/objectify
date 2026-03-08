@@ -11,9 +11,13 @@ import objectifyWorkflowData from "../data/objectify-workflow.json";
 import exampleAData from "../data/example-a-microservices.json";
 import exampleBData from "../data/example-b-cicd-pipeline.json";
 import exampleCData from "../data/example-c-ecommerce-uml.json";
+import sizeCalibrationData from "../data/size-calibration.json";
+import textCapacityData from "../data/text-capacity.json";
 
 const TEMPLATES = [
   { title: "How Objectify Works", data: objectifyWorkflowData, featured: true },
+  { title: "Size Calibration Grid", data: sizeCalibrationData },
+  { title: "Text Capacity Grid", data: textCapacityData },
   { title: "Web App Architecture", data: exampleAData },
   { title: "CI/CD Pipeline", data: exampleBData },
   { title: "E-Commerce Components", data: exampleCData },

@@ -49,6 +49,14 @@ export function HelpModal({ onClose }: HelpModalProps) {
               <td>Zoom in / out</td>
             </tr>
             <tr>
+              <td>Resize node</td>
+              <td>Resize the size class (all nodes in that class resize together)</td>
+            </tr>
+            <tr>
+              <td>Alt + resize</td>
+              <td>Create a new size class for this node only</td>
+            </tr>
+            <tr>
               <td>Drag canvas</td>
               <td>Pan the view</td>
             </tr>

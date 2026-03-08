@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Node, Edge } from "@xyflow/react";
 import type {
   SingleDiagram,
+  GuideLine,
   ShapePaletteEntry,
   SizePaletteEntry,
 } from "@objectify/schema";
@@ -16,6 +17,7 @@ export function useLayoutedElements(
 ) {
   const [initialNodes, setInitialNodes] = useState<Node[]>([]);
   const [initialEdges, setInitialEdges] = useState<Edge[]>([]);
+  const [resolvedGuides, setResolvedGuides] = useState<GuideLine[] | null>(null);
   const [isLayouting, setIsLayouting] = useState(true);
 
   useEffect(() => {
@@ -35,6 +37,7 @@ export function useLayoutedElements(
       if (!cancelled) {
         setInitialNodes(result.nodes);
         setInitialEdges(result.edges);
+        setResolvedGuides(null);
         setIsLayouting(false);
       }
     } else if (hasGuideData) {
@@ -42,6 +45,7 @@ export function useLayoutedElements(
       if (!cancelled) {
         setInitialNodes(result.nodes);
         setInitialEdges(result.edges);
+        setResolvedGuides(result.resolvedGuides);
         setIsLayouting(false);
       }
     } else {
@@ -49,6 +53,7 @@ export function useLayoutedElements(
         if (!cancelled) {
           setInitialNodes(result.nodes);
           setInitialEdges(result.edges);
+          setResolvedGuides(null);
           setIsLayouting(false);
         }
       });
@@ -59,5 +64,5 @@ export function useLayoutedElements(
     };
   }, [diagram, shapePalette, sizePalette]);
 
-  return { initialNodes, initialEdges, isLayouting };
+  return { initialNodes, initialEdges, resolvedGuides, isLayouting };
 }

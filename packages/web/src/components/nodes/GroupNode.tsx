@@ -3,6 +3,7 @@ import type { NodeStyle, NodeFont, NodeLabel } from "@objectify/schema";
 import { fontStack } from "../../lib/fonts";
 import { NodeLabels } from "./NodeLabels";
 import { NodeHandles } from "./NodeHandles";
+import { fireResizeEnd } from "../../lib/resize-event.js";
 
 type GroupNodeData = {
   label: string;
@@ -14,6 +15,7 @@ type GroupNodeData = {
 };
 
 export function GroupNode({
+  id,
   data,
   selected,
 }: NodeProps & { data: GroupNodeData }) {
@@ -35,6 +37,9 @@ export function GroupNode({
         isVisible={!!selected}
         lineClassName="resizer-line"
         handleClassName="resizer-handle"
+        onResizeEnd={(event, params) =>
+          fireResizeEnd(id, (data as Record<string, unknown>).sizeId as string | undefined, params.width, params.height, event.sourceEvent)
+        }
       />
 
       <NodeHandles />

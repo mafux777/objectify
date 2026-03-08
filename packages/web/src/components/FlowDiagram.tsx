@@ -21,6 +21,7 @@ import "@xyflow/react/dist/style.css";
 import type {
   DiagramSpec,
   SingleDiagram,
+  DiagramNode,
   ColorPaletteEntry,
   ShapePaletteEntry,
   SizePaletteEntry,
@@ -45,12 +46,20 @@ import type { ChatMessage } from "../lib/db/types.js";
 import { useDocuments } from "../lib/documents/index.js";
 import { ShareModal } from "./ShareModal.js";
 import { spatialLayoutDiagram } from "../lib/spatial-layout.js";
-import { guideLayoutDiagram } from "../lib/guide-layout.js";
+import { guideLayoutDiagram, resolveGuideOverlaps } from "../lib/guide-layout.js";
 import { GuideLines } from "./GuideLines.js";
 import { LabelConnectors } from "./LabelConnectors.js";
 import { GuidesContext } from "../lib/guides-context.js";
 import { ForceLayoutPanel } from "./ForceLayoutPanel.js";
 import { HelpModal } from "./HelpModal.js";
+import {
+  RESIZE_END_EVENT,
+  type ResizeEndDetail,
+} from "../lib/resize-event.js";
+import {
+  updateSizePaletteEntry,
+  addSizePaletteEntry,
+} from "../lib/size-palette-api.js";
 
 let detachGuideCounter = 200;
 
@@ -85,7 +94,7 @@ export function FlowDiagram({
   sizePalette,
   semanticTypes,
 }: FlowDiagramProps) {
-  const { initialNodes, initialEdges, isLayouting } =
+  const { initialNodes, initialEdges, resolvedGuides: layoutGuides, isLayouting } =
     useLayoutedElements(diagram, shapePalette, sizePalette);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -122,6 +131,12 @@ export function FlowDiagram({
   // Auto-save uses this instead of the prop so it picks up palette/size changes.
   const specRef = useRef(spec);
   specRef.current = spec;
+
+  // Refs for save-on-unmount (so cleanup always has current data)
+  const nodesRef = useRef(nodes);   nodesRef.current = nodes;
+  const edgesRef = useRef(edges);   edgesRef.current = edges;
+  const guidesRef = useRef(guides); guidesRef.current = guides;
+  const activeTabRef = useRef(activeTab); activeTabRef.current = activeTab;
 
   // When we dispatch UPDATE_SPEC after LLM refinement, the diagram prop will change,
   // which would trigger the seed effect and re-layout. This flag skips one seed cycle.
@@ -275,7 +290,7 @@ export function FlowDiagram({
       } else {
         setNodes(initialNodes);
         setEdges(initialEdges);
-        setGuides(diagram.guides ?? []);
+        setGuides(layoutGuides ?? diagram.guides ?? []);
       }
       clearHistory();
     }
@@ -368,6 +383,47 @@ export function FlowDiagram({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, edges, guides]);
 
+  // Save-on-unmount: when the component unmounts (document switch via key=),
+  // flush any pending changes to DB immediately. Uses refs so the cleanup
+  // always has the latest data regardless of when the effect was created.
+  useEffect(() => {
+    return () => {
+      clearTimeout(saveTimerRef.current);
+      const currentNodes = nodesRef.current;
+      if (currentNodes.length === 0) return;
+
+      const tabIdx = activeTabRef.current;
+      const latestSpec = specRef.current;
+      const diag = latestSpec.diagrams[tabIdx];
+      if (!diag) return;
+
+      const updatedDiagram = flowToDiagram(currentNodes, edgesRef.current, diag, guidesRef.current);
+      const updatedSpec: DiagramSpec = {
+        ...latestSpec,
+        diagrams: latestSpec.diagrams.map((d, i) => (i === tabIdx ? updatedDiagram : d)),
+      };
+
+      const docId = documentIdRef.current;
+
+      // Update the in-memory document store so switching back loads the latest state.
+      // Safe during unmount — no infinite loop risk since the component is going away.
+      docDispatch({ type: "UPDATE_SPEC", id: docId, spec: updatedSpec });
+
+      // Also persist to IndexedDB (fire-and-forget)
+      (async () => {
+        try {
+          const existing = await db.getDocument(docId);
+          if (existing) {
+            await db.saveDocument({ ...existing, spec: updatedSpec, updatedAt: Date.now() });
+          }
+        } catch {
+          /* best effort */
+        }
+      })();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Manual save helper (used by Ctrl+S)
   const saveNow = useCallback(async () => {
     clearTimeout(saveTimerRef.current);
@@ -409,6 +465,215 @@ export function FlowDiagram({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [undo, redo, saveNow]);
+
+  // --- Semantic resize: update sizePalette on resize end ---
+  // Counter for generating unique size IDs on Alt+resize
+  const sizeIdCounterRef = useRef(0);
+
+  // Track nodes that should show a resize-propagation highlight
+  const [resizeHighlightIds, setResizeHighlightIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const REFERENCE_W = 1200;
+    const imgW = diagram.imageDimensions?.width ?? 1200;
+    const imgH = diagram.imageDimensions?.height ?? 800;
+    const REFERENCE_H = REFERENCE_W * (imgH / imgW);
+
+    /** Re-center a React Flow node on its guide intersection. */
+    const recenterOnGuides = (
+      n: Node,
+      w: number,
+      h: number,
+      guideMap: Map<string, GuideLine>,
+    ): Node => {
+      const d = n.data as Record<string, unknown>;
+      const rowGuide = d.guideRow ? guideMap.get(d.guideRow as string) : undefined;
+      const colGuide = d.guideColumn ? guideMap.get(d.guideColumn as string) : undefined;
+      if (!rowGuide || !colGuide) {
+        // No guide assignment — just update dimensions
+        return {
+          ...n,
+          width: w,
+          height: h,
+          style: { ...(n.style ?? {}), width: w, height: h },
+        };
+      }
+      const centerX = colGuide.position * REFERENCE_W;
+      const centerY = rowGuide.position * REFERENCE_H;
+      return {
+        ...n,
+        position: { x: centerX - w / 2, y: centerY - h / 2 },
+        width: w,
+        height: h,
+        style: { ...(n.style ?? {}), width: w, height: h },
+      };
+    };
+
+    /**
+     * After a size class changes, check whether node bounding boxes now overlap
+     * and push guides apart if needed. Returns resolved guides and a flag.
+     */
+    const resolveAndApplyGuides = (
+      updatedSpec: DiagramSpec,
+      tabIdx: number,
+    ): { guideMap: Map<string, GuideLine>; resolved: GuideLine[]; changed: boolean } => {
+      const diag = updatedSpec.diagrams[tabIdx];
+      const currentGuides = diag?.guides ?? [];
+      if (currentGuides.length === 0) {
+        return { guideMap: new Map(), resolved: currentGuides, changed: false };
+      }
+
+      const updatedSizeMap = new Map(
+        (updatedSpec.sizePalette ?? []).map((e) => [e.id, e]),
+      );
+      const getNodeSizeFn = (node: DiagramNode) => {
+        const entry = node.sizeId ? updatedSizeMap.get(node.sizeId) : undefined;
+        return {
+          w: entry ? Math.round(entry.width * REFERENCE_W) : 160,
+          h: entry ? Math.round(entry.height * REFERENCE_H) : 50,
+        };
+      };
+
+      const resolved = resolveGuideOverlaps(
+        currentGuides,
+        diag.nodes,
+        getNodeSizeFn,
+        REFERENCE_W,
+        REFERENCE_H,
+      );
+
+      const changed = resolved.some(
+        (g, i) => g.position !== currentGuides[i]?.position,
+      );
+
+      return {
+        guideMap: new Map(resolved.map((g) => [g.id, g])),
+        resolved,
+        changed,
+      };
+    };
+
+    const handler = (e: Event) => {
+      const { nodeId, sizeId, width, height, altKey } =
+        (e as CustomEvent<ResizeEndDetail>).detail;
+
+      // Normalize pixel dimensions to 0-1 fractions
+      const normW = Math.max(0.01, Math.min(1, width / REFERENCE_W));
+      const normH = Math.max(0.01, Math.min(1, height / REFERENCE_H));
+      const newPixelW = Math.round(normW * REFERENCE_W);
+      const newPixelH = Math.round(normH * REFERENCE_H);
+
+      saveSnapshot();
+
+      if (altKey || !sizeId) {
+        // --- Alt+resize (or node has no sizeId): create a new size class ---
+        sizeIdCounterRef.current++;
+        const newSizeId = `custom-size-${Date.now()}-${sizeIdCounterRef.current}`;
+        const newEntry = {
+          id: newSizeId,
+          width: normW,
+          height: normH,
+          name: `Custom Size ${sizeIdCounterRef.current}`,
+        };
+
+        const updatedSpec = addSizePaletteEntry(specRef.current, newEntry);
+
+        // Resolve guides after adding the new size (single node, unlikely to
+        // cause overlaps, but be thorough)
+        const { guideMap } = resolveAndApplyGuides(updatedSpec, activeTab);
+
+        specRef.current = updatedSpec;
+
+        // Assign the new sizeId and re-center this node on its guides
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === nodeId
+              ? recenterOnGuides(
+                  { ...n, data: { ...n.data, sizeId: newSizeId } },
+                  newPixelW,
+                  newPixelH,
+                  guideMap,
+                )
+              : n
+          )
+        );
+
+        // Persist the updated spec
+        skipSeedRef.current = true;
+        docDispatch({
+          type: "UPDATE_SPEC",
+          id: documentIdRef.current,
+          spec: updatedSpec,
+        });
+      } else {
+        // --- Normal resize: update the existing sizePalette entry ---
+        let updatedSpec = updateSizePaletteEntry(specRef.current, sizeId, {
+          width: normW,
+          height: normH,
+        });
+
+        // Resolve guide overlaps with the new (potentially larger) sizes
+        const { guideMap, resolved, changed } = resolveAndApplyGuides(
+          updatedSpec,
+          activeTab,
+        );
+
+        // If guides moved, update them in the spec
+        if (changed) {
+          updatedSpec = {
+            ...updatedSpec,
+            diagrams: updatedSpec.diagrams.map((d, i) =>
+              i === activeTab ? { ...d, guides: resolved } : d
+            ),
+          };
+          setGuides(resolved);
+        }
+
+        specRef.current = updatedSpec;
+
+        // Re-center all nodes sharing this sizeId on their guide intersections.
+        // If guides shifted, also re-center ALL guide-positioned nodes.
+        const siblingIds: string[] = [];
+        setNodes((nds) =>
+          nds.map((n) => {
+            const d = n.data as Record<string, unknown>;
+
+            if (d?.sizeId === sizeId) {
+              // This node's size class changed — update dimensions + re-center
+              if (n.id !== nodeId) siblingIds.push(n.id);
+              return recenterOnGuides(n, newPixelW, newPixelH, guideMap);
+            }
+
+            if (changed && d?.guideRow && d?.guideColumn) {
+              // Guides shifted — re-center this node at its (unchanged) size
+              const nodeW = n.width ?? 160;
+              const nodeH = n.height ?? 50;
+              return recenterOnGuides(n, nodeW, nodeH, guideMap);
+            }
+
+            return n;
+          })
+        );
+
+        // Brief visual highlight on siblings
+        if (siblingIds.length > 0) {
+          setResizeHighlightIds(new Set(siblingIds));
+          setTimeout(() => setResizeHighlightIds(new Set()), 800);
+        }
+
+        // Persist the updated spec
+        skipSeedRef.current = true;
+        docDispatch({
+          type: "UPDATE_SPEC",
+          id: documentIdRef.current,
+          spec: updatedSpec,
+        });
+      }
+    };
+
+    window.addEventListener(RESIZE_END_EVENT, handler);
+    return () => window.removeEventListener(RESIZE_END_EVENT, handler);
+  }, [diagram.imageDimensions, activeTab, saveSnapshot, setNodes, setGuides, docDispatch]);
 
   // Wrap onNodesChange to capture snapshot before deletions (Delete key)
   const wrappedOnNodesChange = useCallback(
@@ -1152,6 +1417,22 @@ export function FlowDiagram({
             }
             .react-flow__edge[data-id="${edgeHighlight.edgeId}"] {
               opacity: 1 !important;
+            }
+          `}</style>
+        )}
+
+        {/* Resize propagation highlight on siblings */}
+        {resizeHighlightIds.size > 0 && (
+          <style>{`
+            @keyframes resize-pulse {
+              0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.6); }
+              50% { box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.3); }
+              100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+            }
+            ${Array.from(resizeHighlightIds)
+              .map((id) => `.react-flow__node[data-id="${id}"]`)
+              .join(",\n            ")} {
+              animation: resize-pulse 0.8s ease-out !important;
             }
           `}</style>
         )}

@@ -3,6 +3,7 @@ import type { NodeStyle, NodeFont, ShapeKind, NodeLabel } from "@objectify/schem
 import { fontStack } from "../../lib/fonts";
 import { NodeLabels } from "./NodeLabels";
 import { NodeHandles } from "./NodeHandles";
+import { fireResizeEnd } from "../../lib/resize-event.js";
 
 type ShapeNodeData = {
   label: string;
@@ -47,6 +48,7 @@ function getShapeStyles(kind: ShapeKind | undefined): React.CSSProperties {
 }
 
 export function ShapeNode({
+  id,
   data,
   selected,
 }: NodeProps & { data: ShapeNodeData }) {
@@ -74,32 +76,57 @@ export function ShapeNode({
         {hasOutsideLabels && labels && (
           <NodeLabels labels={labels} defaultFont={font} defaultColor={style.textColor ?? "#000"} />
         )}
-        <NodeResizer minWidth={60} minHeight={30} isVisible={!!selected} lineClassName="resizer-line" handleClassName="resizer-handle" />
+        <NodeResizer minWidth={60} minHeight={30} isVisible={!!selected} lineClassName="resizer-line" handleClassName="resizer-handle"
+          onResizeEnd={(event, params) =>
+            fireResizeEnd(id, (data as Record<string, unknown>).sizeId as string | undefined, params.width, params.height, event.sourceEvent)
+          }
+        />
         {handles}
-        <svg viewBox="0 0 60 50" style={{ width: "100%", height: "100%", opacity: style.opacity ?? 1 }} preserveAspectRatio="none">
-          {description && <title>{description}</title>}
-          {/* Body */}
-          <rect x="1" y="10" width="58" height="30" fill={style.backgroundColor} stroke="none" />
-          {/* Left/right borders */}
-          <line x1="1" y1="10" x2="1" y2="40" stroke={borderColor} strokeWidth="2" />
-          <line x1="59" y1="10" x2="59" y2="40" stroke={borderColor} strokeWidth="2" />
-          {/* Bottom ellipse */}
-          <ellipse cx="30" cy="40" rx="29" ry="8" fill={style.backgroundColor} stroke={borderColor} strokeWidth="2" />
-          {/* Top ellipse (covers body top) */}
-          <ellipse cx="30" cy="10" rx="29" ry="8" fill={style.backgroundColor} stroke={borderColor} strokeWidth="2" />
-          {/* Label */}
-          <text
-            x="30" y="30"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill={style.textColor ?? "#000"}
-            fontWeight={font?.fontWeight === "bold" ? 700 : 500}
-            fontSize={font?.fontSize ?? 13}
-            fontFamily={fontStack(font?.fontFamily)}
-          >
-            {centerLabel}
-          </text>
-        </svg>
+        {/* Container: SVG for cylinder shape, HTML overlay for text */}
+        <div
+          title={description}
+          style={{ position: "relative", width: "100%", height: "100%", opacity: style.opacity ?? 1 }}
+        >
+          {/* Cylinder shape graphics only — no text in SVG */}
+          <svg viewBox="0 0 60 50" style={{ width: "100%", height: "100%", display: "block" }} preserveAspectRatio="none">
+            {/* Body */}
+            <rect x="1" y="10" width="58" height="30" fill={style.backgroundColor} stroke="none" />
+            {/* Left/right borders */}
+            <line x1="1" y1="10" x2="1" y2="40" stroke={borderColor} strokeWidth="2" />
+            <line x1="59" y1="10" x2="59" y2="40" stroke={borderColor} strokeWidth="2" />
+            {/* Bottom ellipse */}
+            <ellipse cx="30" cy="40" rx="29" ry="8" fill={style.backgroundColor} stroke={borderColor} strokeWidth="2" />
+            {/* Top ellipse (covers body top) */}
+            <ellipse cx="30" cy="10" rx="29" ry="8" fill={style.backgroundColor} stroke={borderColor} strokeWidth="2" />
+          </svg>
+          {/* Text overlay — centered in body area between top and bottom caps */}
+          {centerLabel && (
+            <div
+              style={{
+                position: "absolute",
+                top: "22%",
+                left: 0,
+                right: 0,
+                bottom: "14%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                whiteSpace: "pre-line",
+                color: style.textColor ?? "#000",
+                fontWeight: font?.fontWeight === "bold" ? 700 : 500,
+                fontSize: font?.fontSize ?? 13,
+                fontFamily: fontStack(font?.fontFamily),
+                padding: "0 8px",
+                overflow: "hidden",
+                lineHeight: 1.2,
+                pointerEvents: "none",
+              }}
+            >
+              {centerLabel}
+            </div>
+          )}
+        </div>
       </>
     );
   }
@@ -115,6 +142,9 @@ export function ShapeNode({
         isVisible={!!selected}
         lineClassName="resizer-line"
         handleClassName="resizer-handle"
+        onResizeEnd={(event, params) =>
+          fireResizeEnd(id, (data as Record<string, unknown>).sizeId as string | undefined, params.width, params.height, event.sourceEvent)
+        }
       />
       {handles}
 

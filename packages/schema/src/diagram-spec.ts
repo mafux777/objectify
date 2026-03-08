@@ -531,6 +531,11 @@ const GuideLineSchema = z.object({
     .default(true)
     .optional()
     .describe("Whether to render this guide line visually. Set to false for layout-only boundary guides that should not clutter the diagram."),
+  pinned: z
+    .boolean()
+    .default(false)
+    .optional()
+    .describe("When true, this guide's position is a user override. Automatic layout adjustments will not shift pinned guides."),
 });
 
 // --- Legend schemas ---

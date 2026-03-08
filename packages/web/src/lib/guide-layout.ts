@@ -92,18 +92,39 @@ export function resolveGuideOverlaps(
       const overlap = rightEdge + MIN_NODE_GAP - leftEdge;
 
       if (overlap > 0) {
-        // Push the right column (and all subsequent columns) to the right
         const shiftNorm = overlap / canvasWidth;
-        const rightColIdx = cols.indexOf(right.col);
-        if (rightColIdx >= 0) {
-          for (let j = rightColIdx; j < cols.length; j++) {
-            cols[j].position += shiftNorm;
+
+        if (right.col.pinned && left.col.pinned) {
+          // Both pinned: accept the overlap — user chose both positions
+          console.warn(
+            `[Guide Validation] Row "${row.id}": pinned columns "${left.col.id}" and "${right.col.id}" ` +
+              `overlap by ${Math.round(overlap)}px — both pinned, skipping`
+          );
+        } else if (right.col.pinned) {
+          // Right is pinned: shift left column (and predecessors) leftward
+          const leftColIdx = cols.indexOf(left.col);
+          if (leftColIdx >= 0) {
+            for (let j = leftColIdx; j >= 0; j--) {
+              if (!cols[j].pinned) cols[j].position -= shiftNorm;
+            }
           }
+          console.warn(
+            `[Guide Validation] Row "${row.id}": nodes "${left.node.id}" and "${right.node.id}" ` +
+              `overlap by ${Math.round(overlap)}px — shifted column "${left.col.id}" left (right is pinned)`
+          );
+        } else {
+          // Right is unpinned: shift right column (and successors) rightward
+          const rightColIdx = cols.indexOf(right.col);
+          if (rightColIdx >= 0) {
+            for (let j = rightColIdx; j < cols.length; j++) {
+              if (!cols[j].pinned) cols[j].position += shiftNorm;
+            }
+          }
+          console.warn(
+            `[Guide Validation] Row "${row.id}": nodes "${left.node.id}" and "${right.node.id}" ` +
+              `overlap by ${Math.round(overlap)}px — shifted column "${right.col.id}" right`
+          );
         }
-        console.warn(
-          `[Guide Validation] Row "${row.id}": nodes "${left.node.id}" and "${right.node.id}" ` +
-            `overlap by ${Math.round(overlap)}px — shifted column "${right.col.id}" right`
-        );
       }
     }
   }
@@ -133,16 +154,38 @@ export function resolveGuideOverlaps(
 
       if (overlap > 0) {
         const shiftNorm = overlap / canvasHeight;
-        const bottomRowIdx = sortedRows.indexOf(bottom.row);
-        if (bottomRowIdx >= 0) {
-          for (let j = bottomRowIdx; j < sortedRows.length; j++) {
-            sortedRows[j].position += shiftNorm;
+
+        if (bottom.row.pinned && top.row.pinned) {
+          // Both pinned: accept the overlap
+          console.warn(
+            `[Guide Validation] Column "${col.id}": pinned rows "${top.row.id}" and "${bottom.row.id}" ` +
+              `overlap by ${Math.round(overlap)}px — both pinned, skipping`
+          );
+        } else if (bottom.row.pinned) {
+          // Bottom is pinned: shift top row (and predecessors) upward
+          const topRowIdx = sortedRows.indexOf(top.row);
+          if (topRowIdx >= 0) {
+            for (let j = topRowIdx; j >= 0; j--) {
+              if (!sortedRows[j].pinned) sortedRows[j].position -= shiftNorm;
+            }
           }
+          console.warn(
+            `[Guide Validation] Column "${col.id}": nodes "${top.node.id}" and "${bottom.node.id}" ` +
+              `overlap by ${Math.round(overlap)}px — shifted row "${top.row.id}" up (bottom is pinned)`
+          );
+        } else {
+          // Bottom is unpinned: shift bottom row (and successors) downward
+          const bottomRowIdx = sortedRows.indexOf(bottom.row);
+          if (bottomRowIdx >= 0) {
+            for (let j = bottomRowIdx; j < sortedRows.length; j++) {
+              if (!sortedRows[j].pinned) sortedRows[j].position += shiftNorm;
+            }
+          }
+          console.warn(
+            `[Guide Validation] Column "${col.id}": nodes "${top.node.id}" and "${bottom.node.id}" ` +
+              `overlap by ${Math.round(overlap)}px — shifted row "${bottom.row.id}" down`
+          );
         }
-        console.warn(
-          `[Guide Validation] Column "${col.id}": nodes "${top.node.id}" and "${bottom.node.id}" ` +
-            `overlap by ${Math.round(overlap)}px — shifted row "${bottom.row.id}" down`
-        );
       }
     }
   }
@@ -197,7 +240,7 @@ export function guideLayoutDiagram(
   diagram: SingleDiagram,
   shapePalette?: ShapePaletteEntry[],
   sizePalette?: SizePaletteEntry[]
-): { nodes: Node[]; edges: Edge[] } {
+): { nodes: Node[]; edges: Edge[]; resolvedGuides: GuideLine[] } {
   const imgW = diagram.imageDimensions?.width ?? REFERENCE_CANVAS_WIDTH;
   const imgH = diagram.imageDimensions?.height ?? REFERENCE_CANVAS_HEIGHT;
   const canvasWidth = REFERENCE_CANVAS_WIDTH;
@@ -415,7 +458,7 @@ export function guideLayoutDiagram(
 
   const edges = specEdgesToFlowEdges(diagram.edges, "smooth-repelled");
 
-  return { nodes: rfNodes, edges };
+  return { nodes: rfNodes, edges, resolvedGuides };
 }
 
 /**
