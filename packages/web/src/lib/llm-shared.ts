@@ -2,21 +2,21 @@ import type { ZodError } from "zod";
 
 // --- Types ---
 
-/** Message format for OpenRouter chat completions API */
+/** Message format for OpenAI chat completions API */
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string | Array<{ type: string; [key: string]: unknown }>;
 }
 
-/** Token usage from an OpenRouter API call */
+/** Token usage from an OpenAI API call */
 export interface TokenUsage {
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
 }
 
-/** Result from callOpenRouter including content and token usage */
-export interface OpenRouterResult {
+/** Result from callOpenAI including content and token usage */
+export interface OpenAIResult {
   content: string;
   usage: TokenUsage | null;
 }
@@ -103,40 +103,38 @@ export function addTokenUsage(
   };
 }
 
-// --- OpenRouter API call ---
+// --- OpenAI API call ---
 
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 
 /**
- * Call OpenRouter chat completions and return the assistant's content + token usage.
+ * Call OpenAI chat completions and return the assistant's content + token usage.
  * Throws on HTTP errors or empty responses.
  */
-export async function callOpenRouter(
+export async function callOpenAI(
   messages: ChatMessage[],
   apiKey: string,
   model: string,
   maxTokens = 16384,
-): Promise<OpenRouterResult> {
-  const response = await fetch(OPENROUTER_URL, {
+): Promise<OpenAIResult> {
+  const response = await fetch(OPENAI_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://github.com/objectify",
-      "X-Title": "Objectify Diagram Editor",
     },
-    body: JSON.stringify({ model, max_tokens: maxTokens, messages }),
+    body: JSON.stringify({ model, max_completion_tokens: maxTokens, messages }),
   });
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`OpenRouter API error ${response.status}: ${text}`);
+    throw new Error(`OpenAI API error ${response.status}: ${text}`);
   }
 
   const data = await response.json();
   const content = data.choices?.[0]?.message?.content;
   if (!content) {
-    throw new Error("No content in OpenRouter response");
+    throw new Error("No content in OpenAI response");
   }
 
   const rawUsage = data.usage;

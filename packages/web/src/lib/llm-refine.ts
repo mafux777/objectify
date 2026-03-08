@@ -3,7 +3,7 @@ import {
   type ChatMessage,
   type LLMProgressCallback,
   type TokenUsage,
-  callOpenRouter,
+  callOpenAI,
   extractJsonFromResponse,
   formatZodErrors,
   buildRetryMessages,
@@ -51,7 +51,7 @@ export async function refineDiagramWithLLM(
   currentSpec: DiagramSpec,
   userMessage: string,
   apiKey: string,
-  model = "anthropic/claude-sonnet-4.6",
+  model = "gpt-5.2-2025-12-11",
   onProgress?: LLMProgressCallback,
 ): Promise<RefinementResult> {
   const specJson = JSON.stringify(currentSpec, null, 2);
@@ -74,7 +74,7 @@ export async function refineDiagramWithLLM(
       phase: attempt === 1 ? "calling" : "retrying",
     });
 
-    const { content, usage } = await callOpenRouter(messages, apiKey, model);
+    const { content, usage } = await callOpenAI(messages, apiKey, model);
     cumulativeUsage = addTokenUsage(cumulativeUsage, usage);
 
     const parsed = extractJsonFromResponse(content) as Record<string, unknown>;

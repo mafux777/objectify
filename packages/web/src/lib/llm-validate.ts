@@ -26,21 +26,19 @@ Respond with ONLY a JSON object:
 export async function validateChatInput(
   userMessage: string,
   apiKey: string,
-  model = "anthropic/claude-3.5-haiku",
+  model = "gpt-5-mini-2025-08-07",
 ): Promise<ValidationResult> {
   const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
+    "https://api.openai.com/v1/chat/completions",
     {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://github.com/objectify",
-        "X-Title": "Objectify Diagram Editor",
       },
       body: JSON.stringify({
         model,
-        max_tokens: 256,
+        max_completion_tokens: 256,
         messages: [
           { role: "system", content: VALIDATION_SYSTEM_PROMPT },
           { role: "user", content: userMessage },

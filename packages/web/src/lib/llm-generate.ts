@@ -2,7 +2,7 @@ import { DiagramSpecSchema, type DiagramSpec } from "@objectify/schema";
 import {
   type ChatMessage,
   type LLMProgressCallback,
-  callOpenRouter,
+  callOpenAI,
   extractJsonFromResponse,
   formatZodErrors,
   buildRetryMessages,
@@ -66,7 +66,20 @@ Rules:
 - Guide positions are normalized 0-1
 - Use kebab-case IDs for everything
 - Include edges to show relationships/data flow
-- Group nodes (type "group") can contain children via parentId
+- Temporal flow: if the diagram describes a process over time, choose one primary axis and keep progression monotonic on that axis.
+  - Vertical timeline: earlier steps at smaller guideRow values (top), later steps at larger guideRow values (bottom).
+  - Horizontal timeline: earlier steps at smaller guideColumn values (left), later steps at larger guideColumn values (right).
+- Edge anchor semantics:
+  - sourceAnchor means where the edge leaves the source node.
+  - targetAnchor means where the edge enters the target node.
+  - For vertical forward flow, prefer sourceAnchor "bottom" and targetAnchor "top".
+  - For horizontal forward flow, prefer sourceAnchor "right" and targetAnchor "left".
+  - Inputs/prerequisites should enter from upstream sides; outputs/consequences should leave from downstream sides.
+  - Decision branches may exit sideways to improve readability (left/right for vertical timelines, top/bottom for horizontal timelines).
+- Containment rule:
+  - Do not use parentId by default for process steps.
+  - Use parentId only for true visual containment (node is inside a container), not just for phase/category grouping.
+- Group nodes (type "group") may be used as visual section headers/lanes even without parent-child containment.
 - Node labels use clock-position notation. Valid positions: "center", "12:00", "3:00", "6:00", "9:00"
 - Keep it clean and readable — 5-15 nodes is typical`;
 
@@ -79,7 +92,7 @@ const MAX_ATTEMPTS = 3;
 export async function generateDiagramFromPrompt(
   userPrompt: string,
   apiKey: string,
-  model = "anthropic/claude-sonnet-4.6",
+  model = "gpt-5.2-2025-12-11",
   onProgress?: LLMProgressCallback,
 ): Promise<DiagramSpec> {
   const messages: ChatMessage[] = [
@@ -96,7 +109,7 @@ export async function generateDiagramFromPrompt(
       phase: attempt === 1 ? "calling" : "retrying",
     });
 
-    const { content } = await callOpenRouter(messages, apiKey, model);
+    const { content } = await callOpenAI(messages, apiKey, model);
     const parsed = extractJsonFromResponse(content);
     const result = DiagramSpecSchema.safeParse(parsed);
 

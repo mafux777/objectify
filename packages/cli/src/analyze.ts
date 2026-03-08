@@ -62,17 +62,15 @@ export async function analyzeDiagram(
 
   const startTime = Date.now();
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://github.com/mafux777/objectify",
-      "X-Title": "Objectify Diagram Analyzer",
     },
     body: JSON.stringify({
       model,
-      max_tokens: 16384,
+      max_completion_tokens: 16384,
       messages: [
         {
           role: "system",
@@ -101,7 +99,7 @@ export async function analyzeDiagram(
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`OpenRouter API error (${response.status}): ${errorBody}`);
+    throw new Error(`OpenAI API error (${response.status}): ${errorBody}`);
   }
 
   const data = await response.json() as {
@@ -112,7 +110,7 @@ export async function analyzeDiagram(
 
   const content = data.choices?.[0]?.message?.content;
   if (!content) {
-    throw new Error("No content in OpenRouter response");
+    throw new Error("No content in OpenAI response");
   }
 
   console.log(`Response received in ${elapsed}s`);

@@ -2,7 +2,7 @@ import { DiagramSpecSchema, type DiagramSpec } from "@objectify/schema";
 import {
   type ChatMessage,
   type LLMProgressCallback,
-  callOpenRouter,
+  callOpenAI,
   extractJsonFromResponse,
   formatZodErrors,
   buildRetryMessages,
@@ -273,7 +273,7 @@ export async function analyzeDiagramImage(
   width: number,
   height: number,
   apiKey: string,
-  model = "anthropic/claude-sonnet-4-6",
+  model = "gpt-5.2-2025-12-11",
   onProgress?: LLMProgressCallback,
 ): Promise<DiagramSpec> {
   const userText = `Analyze this diagram image and produce the structured JSON specification with full spatial data. The image dimensions are ${width}x${height} pixels. Set imageDimensions to {"width": ${width}, "height": ${height}} on each diagram. Be thorough — capture every box, container, arrow, and label visible in the image with precise bounding boxes.`;
@@ -306,7 +306,7 @@ export async function analyzeDiagramImage(
       phase: attempt === 1 ? "calling" : "retrying",
     });
 
-    const { content } = await callOpenRouter(messages, apiKey, model);
+    const { content } = await callOpenAI(messages, apiKey, model);
     const parsed = extractJsonFromResponse(content);
     const result = DiagramSpecSchema.safeParse(parsed);
 

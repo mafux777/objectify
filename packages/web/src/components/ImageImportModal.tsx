@@ -77,9 +77,9 @@ export function ImageImportModal() {
   const handleAnalyze = useCallback(async () => {
     if (!imageData) return;
 
-    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string;
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string;
     if (!apiKey) {
-      setError("No API key configured (VITE_OPENROUTER_API_KEY)");
+      setError("No API key configured (VITE_OPENAI_API_KEY)");
       return;
     }
 

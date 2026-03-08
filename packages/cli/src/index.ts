@@ -27,8 +27,8 @@ const program = new Command()
   )
   .option(
     "-m, --model <model>",
-    "OpenRouter model to use",
-    "anthropic/claude-sonnet-4.6"
+    "OpenAI model to use",
+    "gpt-5.2-2025-12-11"
   )
   .option(
     "-s, --spatial",
@@ -39,11 +39,11 @@ const program = new Command()
       imagePath: string,
       options: { output?: string; model: string; spatial?: boolean }
     ) => {
-      const apiKey = process.env.OPENROUTER_API_KEY;
+      const apiKey = process.env.OPENAI_API_KEY;
       if (!apiKey) {
         console.error(
-          "OPENROUTER_API_KEY not found. Set it in .env or as an environment variable.\n" +
-            "Get your key at https://openrouter.ai/keys"
+          "OPENAI_API_KEY not found. Set it in .env or as an environment variable.\n" +
+            "Get your key at https://platform.openai.com/api-keys"
         );
         process.exit(1);
       }

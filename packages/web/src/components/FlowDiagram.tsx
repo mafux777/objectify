@@ -106,7 +106,7 @@ export function FlowDiagram({
     useUndoHistory(nodes, edges, guides, setNodes, setEdges, setGuides);
 
   // Auto-save state
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const isInitialMount = useRef(true);
   const documentIdRef = useRef(documentId);
   documentIdRef.current = documentId;
@@ -152,7 +152,7 @@ export function FlowDiagram({
 
   // Expose helpers for external tooling (e.g. Claude Code) to query/manipulate selection
   useEffect(() => {
-    (window as Record<string, unknown>).__objectify = {
+    (window as unknown as Record<string, unknown>).__objectify = {
       selectByIds: (ids: string[]) => {
         setNodes((nds) =>
           nds.map((n) => ({ ...n, selected: ids.includes(n.id) }))
@@ -661,9 +661,9 @@ export function FlowDiagram({
 
   const handleChat = useCallback(
     async (message: string) => {
-      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string;
+      const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string;
       if (!apiKey) {
-        setChatError("No API key configured (VITE_OPENROUTER_API_KEY)");
+        setChatError("No API key configured (VITE_OPENAI_API_KEY)");
         return;
       }
       setIsLLMLoading(true);
