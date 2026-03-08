@@ -151,6 +151,34 @@ export function resolveGuideOverlaps(
 }
 
 /**
+ * Topologically sort group nodes so every parent appears before its children.
+ * This is required by React Flow: a parentId node must precede its children in
+ * the nodes array or the parent relationship is silently ignored.
+ */
+function topoSortGroups(groups: Node[]): Node[] {
+  const result: Node[] = [];
+  const placed = new Set<string>();
+  const remaining = [...groups];
+
+  let progress = true;
+  while (progress && remaining.length > 0) {
+    progress = false;
+    for (let i = remaining.length - 1; i >= 0; i--) {
+      const g = remaining[i];
+      if (!g.parentId || placed.has(g.parentId)) {
+        result.push(g);
+        placed.add(g.id);
+        remaining.splice(i, 1);
+        progress = true;
+      }
+    }
+  }
+  // Any remainder (e.g. circular refs) append as-is
+  result.push(...remaining);
+  return result;
+}
+
+/**
  * Guide-based layout: positions nodes at the intersections of their assigned
  * row (horizontal guide) and column (vertical guide). This makes guides
  * structural — the grid skeleton that determines node placement.
@@ -288,6 +316,7 @@ export function guideLayoutDiagram(
   // Groups with guideRow + guideColumn + sizeId: use guides as top-left corner, sizeId for dimensions.
   // Groups with sizeId only (no guides): derive position from children bbox, use explicit size.
   // Groups without sizeId: auto-size from children bbox + padding.
+  const groupRfNodes: Node[] = [];
   for (const group of groupNodes) {
     const children = rfNodes.filter(
       (n) => n.parentId === group.id
@@ -353,9 +382,13 @@ export function guideLayoutDiagram(
 
     const groupFlowNode = buildFlowNode(group, gx, gy, gw, gh, shapeMap);
     positionedById.set(groupFlowNode.id, groupFlowNode);
-    // Groups must appear before their children in the array
-    rfNodes.unshift(groupFlowNode);
+    groupRfNodes.push(groupFlowNode);
   }
+
+  // Topologically sort groups so parents always precede their children,
+  // then prepend the sorted list to rfNodes in one shot.
+  const sortedGroups = topoSortGroups(groupRfNodes);
+  rfNodes.unshift(...sortedGroups);
 
   // --- Phase 3: Convert children positions to parent-relative ---
   for (const node of rfNodes) {
