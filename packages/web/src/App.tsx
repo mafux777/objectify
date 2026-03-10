@@ -26,6 +26,22 @@ function AppHeader() {
   return (
     <div className="app-header">
       <h1>Objectify</h1>
+      <span
+        title={userId}
+        style={{
+          fontSize: 11,
+          color: "#aaa",
+          userSelect: "all",
+          position: "absolute",
+          left: "50%",
+          transform: "translateX(-50%)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {user?.email
+          ? `${user.email} · ${userId.slice(0, 8)}`
+          : `User: ${userId.slice(0, 8)}`}
+      </span>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {credits !== null && (
           <span
@@ -56,18 +72,7 @@ function AppHeader() {
               Sign Out
             </button>
           </>
-        ) : (
-          <span
-            title={userId}
-            style={{
-              fontSize: 12,
-              color: "#999",
-              userSelect: "all",
-            }}
-          >
-            User: {userId.slice(0, 8)}
-          </span>
-        )}
+        ) : null}
       </div>
     </div>
   );
