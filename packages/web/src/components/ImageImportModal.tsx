@@ -8,6 +8,98 @@ import { useAuth } from "../lib/auth-context.js";
 import type { DiagramDocument } from "../lib/db/types.js";
 
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_DIMENSION = 2048; // px on longest side
+
+/**
+ * Resize an image if its longest side exceeds MAX_DIMENSION.
+ * Returns the (possibly resized) dataUrl, base64, and a File suitable for upload.
+ */
+async function resizeImage(
+  file: File,
+  dataUrl: string,
+): Promise<{
+  dataUrl: string;
+  base64: string;
+  file: File;
+  resized: boolean;
+  origWidth: number;
+  origHeight: number;
+  finalWidth: number;
+  finalHeight: number;
+}> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const { naturalWidth: w, naturalHeight: h } = img;
+      const longest = Math.max(w, h);
+
+      if (longest <= MAX_DIMENSION) {
+        // No resize needed
+        const commaIdx = dataUrl.indexOf(",");
+        resolve({
+          dataUrl,
+          base64: dataUrl.slice(commaIdx + 1),
+          file,
+          resized: false,
+          origWidth: w,
+          origHeight: h,
+          finalWidth: w,
+          finalHeight: h,
+        });
+        return;
+      }
+
+      const scale = MAX_DIMENSION / longest;
+      const newW = Math.round(w * scale);
+      const newH = Math.round(h * scale);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = newW;
+      canvas.height = newH;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, newW, newH);
+
+      // Use JPEG for photos (smaller), keep PNG for PNG inputs
+      const outputType =
+        file.type === "image/png" ? "image/png" : "image/jpeg";
+      const quality = outputType === "image/jpeg" ? 0.85 : undefined;
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Failed to resize image"));
+            return;
+          }
+          const resizedFile = new File([blob], file.name, {
+            type: outputType,
+          });
+          const reader = new FileReader();
+          reader.onload = () => {
+            const resizedDataUrl = reader.result as string;
+            const commaIdx = resizedDataUrl.indexOf(",");
+            resolve({
+              dataUrl: resizedDataUrl,
+              base64: resizedDataUrl.slice(commaIdx + 1),
+              file: resizedFile,
+              resized: true,
+              origWidth: w,
+              origHeight: h,
+              finalWidth: newW,
+              finalHeight: newH,
+            });
+          };
+          reader.onerror = () => reject(new Error("Failed to read resized image"));
+          reader.readAsDataURL(resizedFile);
+        },
+        outputType,
+        quality,
+      );
+    };
+    img.onerror = () => reject(new Error("Failed to load image for resizing"));
+    img.src = dataUrl;
+  });
+}
 
 export function ImageImportModal() {
   const { state, dispatch, db } = useDocuments();
@@ -19,6 +111,14 @@ export function ImageImportModal() {
     dataUrl: string;
     fileName: string;
     file?: File;
+  } | null>(null);
+  const [imageMeta, setImageMeta] = useState<{
+    resized: boolean;
+    origWidth: number;
+    origHeight: number;
+    finalWidth: number;
+    finalHeight: number;
+    origSizeKB: number;
   } | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [progressText, setProgressText] = useState<string | null>(null);
@@ -38,6 +138,7 @@ export function ImageImportModal() {
     if (isAnalyzing) return;
     setOpen(false);
     setImageData(null);
+    setImageMeta(null);
     setError(null);
     setTriage(null);
     setTriageConfirmed(false);
@@ -48,19 +149,37 @@ export function ImageImportModal() {
       setError("Please select a PNG, JPEG, WebP, or GIF image.");
       return;
     }
+    if (file.size > MAX_FILE_SIZE) {
+      setError(
+        `Image is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Please use an image under 10 MB.`,
+      );
+      return;
+    }
     setError(null);
+    const origSizeKB = Math.round(file.size / 1024);
     const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      const commaIdx = dataUrl.indexOf(",");
-      const base64 = dataUrl.slice(commaIdx + 1);
-      setImageData({
-        base64,
-        mediaType: file.type,
-        dataUrl,
-        fileName: file.name,
-        file,
-      });
+    reader.onload = async () => {
+      const rawDataUrl = reader.result as string;
+      try {
+        const result = await resizeImage(file, rawDataUrl);
+        setImageData({
+          base64: result.base64,
+          mediaType: result.file.type,
+          dataUrl: result.dataUrl,
+          fileName: file.name,
+          file: result.file,
+        });
+        setImageMeta({
+          resized: result.resized,
+          origWidth: result.origWidth,
+          origHeight: result.origHeight,
+          finalWidth: result.finalWidth,
+          finalHeight: result.finalHeight,
+          origSizeKB,
+        });
+      } catch {
+        setError("Failed to process image. Try a different file.");
+      }
     };
     reader.readAsDataURL(file);
   }, []);
@@ -146,6 +265,7 @@ export function ImageImportModal() {
       dispatch({ type: "CREATE_DOCUMENT", document: doc });
       setOpen(false);
       setImageData(null);
+      setImageMeta(null);
       setTriage(null);
       setTriageConfirmed(false);
     } catch (err) {
@@ -230,12 +350,27 @@ export function ImageImportModal() {
               alt="Selected diagram"
               className="image-preview"
             />
-            <div className="image-preview-name">{imageData.fileName}</div>
+            <div className="image-preview-name">
+              {imageData.fileName}
+              {imageMeta && (
+                <span style={{ color: "#888", fontSize: 11, marginLeft: 6 }}>
+                  {imageMeta.resized
+                    ? `${imageMeta.origWidth}×${imageMeta.origHeight} → ${imageMeta.finalWidth}×${imageMeta.finalHeight}`
+                    : `${imageMeta.origWidth}×${imageMeta.origHeight}`}
+                  {" · "}
+                  {imageMeta.origSizeKB > 1024
+                    ? `${(imageMeta.origSizeKB / 1024).toFixed(1)} MB`
+                    : `${imageMeta.origSizeKB} KB`}
+                  {imageMeta.resized && " (resized)"}
+                </span>
+              )}
+            </div>
             {!isAnalyzing && (
               <button
                 className="image-preview-change"
                 onClick={() => {
                   setImageData(null);
+                  setImageMeta(null);
                   setError(null);
                   setTriage(null);
                   setTriageConfirmed(false);
@@ -292,6 +427,7 @@ export function ImageImportModal() {
                 onClick={() => {
                   setTriage(null);
                   setImageData(null);
+                  setImageMeta(null);
                 }}
               >
                 Choose a different image
