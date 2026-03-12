@@ -1,71 +1,50 @@
 import { Fragment } from "react";
 import { Handle, Position } from "@xyflow/react";
 import type { ShapeKind } from "@objectify/schema";
+import {
+  ALL_CLOCK_LABELS,
+  ORIGINAL_CLOCK_LABELS,
+  clockToRectHandle,
+  clockToCirclePoint,
+} from "../../lib/clock-math.js";
 
 /**
- * Clock-position handles. Each clock position maps to a React Flow Position
- * (which side of the bounding box) and CSS to place it along that side.
- *
- * Handle IDs: "source-12:00", "target-3:00", etc.
+ * Precomputed handle data for all 24 clock positions on rectangular nodes.
+ * Each entry has the clock label, React Flow Position, and CSS style.
  */
-const CLOCK_HANDLES: {
-  clock: string;
-  position: Position;
-  style: React.CSSProperties;
-}[] = [
-  { clock: "12:00", position: Position.Top, style: { left: "50%" } },
-  { clock: "1:30", position: Position.Right, style: { top: "0%" } },
-  { clock: "3:00", position: Position.Right, style: { top: "50%" } },
-  { clock: "4:30", position: Position.Right, style: { top: "100%" } },
-  { clock: "6:00", position: Position.Bottom, style: { left: "50%" } },
-  { clock: "7:30", position: Position.Left, style: { top: "100%" } },
-  { clock: "9:00", position: Position.Left, style: { top: "50%" } },
-  { clock: "10:30", position: Position.Left, style: { top: "0%" } },
-];
+const CLOCK_HANDLES = ALL_CLOCK_LABELS.map((clock) => ({
+  clock,
+  ...clockToRectHandle(clock),
+  isOriginal: ORIGINAL_CLOCK_LABELS.has(clock),
+}));
 
 /**
- * For circular nodes, diagonal handles (1:30, 4:30, 7:30, 10:30) must sit on
- * the circle perimeter rather than the bounding-box corners.
- *
- * For a circle inscribed in its square bounding box the perimeter at 45° is at
- *   50% ± 50% × cos(45°) ≈ 14.64% / 85.36%
- * We override the handle's CSS to use absolute top/left positioning so the
- * handle is no longer pinned to the bounding-box edge.
+ * Precomputed circle-perimeter overrides for all 24 clock positions.
+ * Cardinal positions (12:00, 3:00, 6:00, 9:00) don't need overrides because
+ * they sit at the midpoint of their edge, which coincides with the circle.
+ * All others get absolute positioning on the circle perimeter.
  */
-const DIAG = 50 + 50 * Math.cos(Math.PI / 4); // ~85.36
-const INV = 100 - DIAG; // ~14.64
-
-const CIRCLE_DIAGONAL_OVERRIDES: Record<string, React.CSSProperties> = {
-  "1:30": {
-    top: `${INV}%`,
-    left: `${DIAG}%`,
+const CIRCLE_OVERRIDES: Record<string, React.CSSProperties> = {};
+for (const clock of ALL_CLOCK_LABELS) {
+  // Cardinal positions sit naturally at 50% of their edge — no override needed
+  if (clock === "12:00" || clock === "3:00" || clock === "6:00" || clock === "9:00") {
+    continue;
+  }
+  const { top, left } = clockToCirclePoint(clock);
+  CIRCLE_OVERRIDES[clock] = {
+    top,
+    left,
     right: "auto",
     transform: "translate(-50%, -50%)",
-  },
-  "4:30": {
-    top: `${DIAG}%`,
-    left: `${DIAG}%`,
-    right: "auto",
-    transform: "translate(-50%, -50%)",
-  },
-  "7:30": {
-    top: `${DIAG}%`,
-    left: `${INV}%`,
-    transform: "translate(-50%, -50%)",
-  },
-  "10:30": {
-    top: `${INV}%`,
-    left: `${INV}%`,
-    transform: "translate(-50%, -50%)",
-  },
-};
+  };
+}
 
 function isCircularShape(kind: ShapeKind | undefined): boolean {
   return kind === "circle" || kind === "ellipse";
 }
 
-/** Hidden zero-size handle for backward compatibility with legacy "source-top" etc. */
-const LEGACY_HIDDEN: React.CSSProperties = {
+/** Hidden zero-size style for handles that exist only as routing targets. */
+const MINOR_HIDDEN: React.CSSProperties = {
   opacity: 0,
   width: 0,
   height: 0,
@@ -73,6 +52,9 @@ const LEGACY_HIDDEN: React.CSSProperties = {
   minHeight: 0,
   pointerEvents: "none",
 };
+
+/** Hidden zero-size handle for backward compatibility with legacy "source-top" etc. */
+const LEGACY_HIDDEN: React.CSSProperties = { ...MINOR_HIDDEN };
 
 const LEGACY_HANDLES: {
   side: string;
@@ -90,11 +72,17 @@ export function NodeHandles({ shapeKind }: { shapeKind?: ShapeKind } = {}) {
 
   return (
     <>
-      {CLOCK_HANDLES.map(({ clock, position, style }) => {
+      {CLOCK_HANDLES.map(({ clock, position, style, isOriginal }) => {
+        // For circular nodes, use perimeter overrides for non-cardinal positions
         const handleStyle =
-          circular && CIRCLE_DIAGONAL_OVERRIDES[clock]
-            ? CIRCLE_DIAGONAL_OVERRIDES[clock]
+          circular && CIRCLE_OVERRIDES[clock]
+            ? CIRCLE_OVERRIDES[clock]
             : style;
+
+        // New (non-original) positions are invisible routing-only targets
+        const finalStyle = isOriginal
+          ? handleStyle
+          : { ...handleStyle, ...MINOR_HIDDEN };
 
         return (
           <Fragment key={clock}>
@@ -102,15 +90,15 @@ export function NodeHandles({ shapeKind }: { shapeKind?: ShapeKind } = {}) {
               type="target"
               position={position}
               id={`target-${clock}`}
-              className="anchor-handle"
-              style={handleStyle}
+              className={isOriginal ? "anchor-handle" : "anchor-handle-minor"}
+              style={finalStyle}
             />
             <Handle
               type="source"
               position={position}
               id={`source-${clock}`}
-              className="anchor-handle"
-              style={handleStyle}
+              className={isOriginal ? "anchor-handle" : "anchor-handle-minor"}
+              style={finalStyle}
             />
           </Fragment>
         );

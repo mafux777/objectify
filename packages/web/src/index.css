@@ -160,6 +160,16 @@ body,
   opacity: 1;
 }
 
+/* Minor handles (new clock positions): invisible routing-only targets */
+.anchor-handle-minor {
+  width: 0 !important;
+  height: 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* NodeResizer styles */
 .resizer-line {
   border-color: #1976d2 !important;

@@ -53,6 +53,9 @@ import { GuidesContext } from "../lib/guides-context.js";
 import { ForceLayoutPanel } from "./ForceLayoutPanel.js";
 import { HelpModal } from "./HelpModal.js";
 import { useAuth } from "../lib/auth-context.js";
+import { useClockFaceDrag } from "../hooks/useClockFaceDrag.js";
+import { ClockFaceDragContext } from "../lib/clock-face-context.js";
+import { ClockFaceOverlay } from "./ClockFaceOverlay.js";
 import {
   RESIZE_END_EVENT,
   type ResizeEndDetail,
@@ -121,6 +124,9 @@ export function FlowDiagram({
 
   const { saveSnapshot, undo, redo, canUndo, canRedo, clearHistory } =
     useUndoHistory(nodes, edges, guides, setNodes, setEdges, setGuides);
+
+  const { dragState: clockFaceDragState, startDrag: clockFaceStartDrag } =
+    useClockFaceDrag({ nodes, edges, setEdges, saveSnapshot, flowRef });
 
   // Auto-save state
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -1272,6 +1278,7 @@ export function FlowDiagram({
   return (
     <div ref={flowRef} style={{ width: "100%", height: "100%", position: "relative" }}>
       <GuidesContext.Provider value={guidesCtxValue}>
+      <ClockFaceDragContext.Provider value={{ startDrag: clockFaceStartDrag }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -1349,6 +1356,15 @@ export function FlowDiagram({
           edges={edges}
           visible={showLabelConnectors}
         />
+        {clockFaceDragState && (
+          <ClockFaceOverlay
+            nodeCenterX={clockFaceDragState.nodeCenterX}
+            nodeCenterY={clockFaceDragState.nodeCenterY}
+            nodeWidth={clockFaceDragState.nodeWidth}
+            nodeHeight={clockFaceDragState.nodeHeight}
+            highlightedClock={clockFaceDragState.highlightedClock}
+          />
+        )}
         <Panel position="top-right">
           {saveStatus && (
             <span style={{ opacity: 0.5, fontSize: 12, marginRight: 8 }}>
@@ -1488,6 +1504,7 @@ export function FlowDiagram({
           `}</style>
         )}
       </ReactFlow>
+      </ClockFaceDragContext.Provider>
       </GuidesContext.Provider>
 
       {showForcePanel && (

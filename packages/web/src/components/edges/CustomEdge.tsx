@@ -9,6 +9,7 @@ import {
 } from "@xyflow/react";
 import type { ReactNode } from "react";
 import { useGuides } from "../../lib/guides-context.js";
+import { useClockFaceDragContext } from "../../lib/clock-face-context.js";
 import { getRepelledSmoothPath } from "./getRepelledPath.js";
 
 const JUNCTION_GAP = 10;
@@ -111,6 +112,41 @@ export function CustomEdge({
 
   // Guide context for smooth-repelled routing (hook called unconditionally)
   const guidesCtx = useGuides();
+  const clockFaceDrag = useClockFaceDragContext();
+
+  // Endpoint drag handles shown when edge is selected
+  const endpointHandles = selected ? (
+    <>
+      <circle
+        cx={sourceX}
+        cy={sourceY}
+        r={5}
+        fill="#1976d2"
+        stroke="#fff"
+        strokeWidth={1.5}
+        style={{ cursor: "grab", pointerEvents: "all" }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          clockFaceDrag?.startDrag(id, "source", e);
+        }}
+      />
+      <circle
+        cx={targetX}
+        cy={targetY}
+        r={5}
+        fill="#1976d2"
+        stroke="#fff"
+        strokeWidth={1.5}
+        style={{ cursor: "grab", pointerEvents: "all" }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          clockFaceDrag?.startDrag(id, "target", e);
+        }}
+      />
+    </>
+  ) : null;
 
   // Detect junction mode: both ends have ball or socket markers
   const sourceMarkerKind = (data?.sourceMarker as string) ?? "none";
@@ -311,6 +347,8 @@ export function CustomEdge({
             </div>
           </EdgeLabelRenderer>
         )}
+
+        {endpointHandles}
       </>
     );
   }
@@ -375,6 +413,8 @@ export function CustomEdge({
           </div>
         </EdgeLabelRenderer>
       )}
+
+      {endpointHandles}
     </>
   );
 }

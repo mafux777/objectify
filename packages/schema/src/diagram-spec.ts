@@ -8,14 +8,17 @@ const AnchorSideSchema = z
 
 const ClockAnchorSchema = z
   .enum([
-    "12:00", "1:30", "3:00", "4:30", "6:00", "7:30", "9:00", "10:30",
+    "12:00", "12:30", "1:00", "1:30", "2:00", "2:30",
+    "3:00", "3:30", "4:00", "4:30", "5:00", "5:30",
+    "6:00", "6:30", "7:00", "7:30", "8:00", "8:30",
+    "9:00", "9:30", "10:00", "10:30", "11:00", "11:30",
     // Legacy aliases for backward compatibility:
     "top", "right", "bottom", "left",
   ])
   .describe(
-    "Anchor position on a node using clock notation. " +
-      "12:00=top-center, 3:00=right-center, 6:00=bottom-center, 9:00=left-center. " +
-      "1:30=top-right corner, 4:30=bottom-right, 7:30=bottom-left, 10:30=top-left. " +
+    "Anchor position on a node using clock notation (24 positions at 15° intervals). " +
+      "Full hours: 12:00=top, 3:00=right, 6:00=bottom, 9:00=left. " +
+      "Half hours fill in between (e.g. 1:30=top-right, 4:30=bottom-right). " +
       "Legacy values 'top','right','bottom','left' are accepted as aliases."
   );
 
