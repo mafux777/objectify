@@ -18,7 +18,7 @@ const ONBOARDING_SEEN_KEY = "objectify:onboarding-seen";
 
 export function WelcomeScreen() {
   const { state, dispatch, db } = useDocuments();
-  const { isAdmin } = useAuth();
+  const { isAdmin, credits, isAnonymous, walletAddress } = useAuth();
   const [dragOver, setDragOver] = useState(false);
   const [showCallout, setShowCallout] = useState(
     () => !localStorage.getItem(ONBOARDING_SEEN_KEY)
@@ -34,6 +34,13 @@ export function WelcomeScreen() {
     localStorage.setItem(ONBOARDING_SEEN_KEY, "1");
     setShowCallout(false);
   }, []);
+
+  const noCredits = credits !== null && credits < 1;
+  const creditHint = isAnonymous
+    ? "Sign up for free credits"
+    : walletAddress
+      ? `Send USDC to ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+      : "No credits remaining";
 
   const existingSlugs = new Set(state.library.map((d) => d.slug));
 
@@ -54,6 +61,12 @@ export function WelcomeScreen() {
     },
     [existingSlugs, db, dispatch],
   );
+
+  // Expose createDocument for Playwright tests
+  useEffect(() => {
+    (window as any).__objectifyTest = { createDocument };
+    return () => { delete (window as any).__objectifyTest; };
+  }, [createDocument]);
 
   const openDocument = useCallback(
     async (id: string) => {
@@ -145,13 +158,13 @@ export function WelcomeScreen() {
   return (
     <div className="welcome-screen">
       <h2>Objectify</h2>
-      <div className="subtitle">Visual architecture diagrams, powered by AI</div>
+      <div className="subtitle">Professional diagrams — great for humans and LLMs alike</div>
 
       {/* Action cards */}
       <div className="welcome-actions">
         <div
-          className="welcome-action-card"
-          onClick={() =>
+          className={`welcome-action-card${noCredits ? " welcome-action-card--disabled" : ""}`}
+          onClick={noCredits ? undefined : () =>
             window.dispatchEvent(
               new CustomEvent("objectify:create-from-prompt"),
             )
@@ -159,11 +172,13 @@ export function WelcomeScreen() {
         >
           <span className="icon">&#9998;</span>
           <span className="label">Create from Prompt</span>
-          <span className="action-badge free">Free</span>
+          <span className={`action-badge ${noCredits ? "empty" : "credit"}`}>
+            {noCredits ? creditHint : "1 credit"}
+          </span>
         </div>
         <div
-          className="welcome-action-card"
-          onClick={() =>
+          className={`welcome-action-card${noCredits ? " welcome-action-card--disabled" : ""}`}
+          onClick={noCredits ? undefined : () =>
             window.dispatchEvent(
               new CustomEvent("objectify:import-from-image"),
             )
@@ -171,7 +186,9 @@ export function WelcomeScreen() {
         >
           <span className="icon">&#128444;</span>
           <span className="label">Import from Image</span>
-          <span className="action-badge credit">1 credit</span>
+          <span className={`action-badge ${noCredits ? "empty" : "credit"}`}>
+            {noCredits ? creditHint : "1 credit"}
+          </span>
         </div>
         <div
           className="welcome-action-card"

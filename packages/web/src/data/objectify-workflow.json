@@ -1,38 +1,35 @@
 {
   "version": "6.0",
-  "description": "This diagram illustrates how Objectify works. A user provides a diagram image, which is sent to the Claude Vision API along with a structured system prompt. The AI analyzes the image and produces a JSON specification describing all visual elements. This spec is loaded into the Web Editor, where a Schema Parser converts it into React Flow nodes and edges. The interactive React Flow Canvas allows the user to manipulate the diagram using editing tools: a Guide System for alignment, a Context Menu for styling, and a Command Bar for text-based commands. All changes are tracked in an Undo/Redo stack. The edited diagram can be exported back to JSON, which can be re-imported for further editing.",
+  "description": "How Objectify works: two ways to create diagrams (prompt or image), two ways to edit them (visual editor or AI chat), and two outputs (JSON for LLMs, PNG for humans).",
   "palette": [
-    { "id": "light-green", "hex": "#C8E6C9", "percentage": 10, "name": "Light Green" },
-    { "id": "light-purple", "hex": "#E1BEE7", "percentage": 8, "name": "Light Purple" },
-    { "id": "light-blue", "hex": "#BBDEFB", "percentage": 12, "name": "Light Blue" },
-    { "id": "light-orange", "hex": "#FFE0B2", "percentage": 5, "name": "Light Orange" },
-    { "id": "light-yellow", "hex": "#FFF9C4", "percentage": 5, "name": "Light Yellow" },
-    { "id": "light-gray", "hex": "#E0E0E0", "percentage": 5, "name": "Light Gray" },
+    { "id": "green-bg", "hex": "#C8E6C9", "percentage": 10, "name": "Green" },
+    { "id": "purple-bg", "hex": "#E1BEE7", "percentage": 8, "name": "Purple" },
+    { "id": "blue-bg", "hex": "#BBDEFB", "percentage": 12, "name": "Blue" },
+    { "id": "amber-bg", "hex": "#FFE0B2", "percentage": 5, "name": "Amber" },
+    { "id": "gray-bg", "hex": "#F5F5F5", "percentage": 5, "name": "Light Gray" },
     { "id": "white", "hex": "#FFFFFF", "percentage": 45, "name": "White" },
     { "id": "dark-text", "hex": "#000000", "percentage": 3, "name": "Dark Text" },
     { "id": "edge-dark", "hex": "#333333", "percentage": 4, "name": "Edge Dark" },
     { "id": "edge-light", "hex": "#9E9E9E", "percentage": 3, "name": "Edge Light" }
   ],
   "shapePalette": [
-    { "id": "rectangle", "kind": "rectangle", "name": "Rectangle" },
-    { "id": "rounded-rect", "kind": "rounded-rectangle", "name": "Rounded Rectangle" }
+    { "id": "rounded-rect", "kind": "rounded-rectangle", "name": "Rounded Rectangle" },
+    { "id": "rect", "kind": "rectangle", "name": "Rectangle" }
   ],
   "sizePalette": [
-    { "id": "main-node", "width": 0.11, "height": 0.08, "name": "Main Node" },
-    { "id": "small-node", "width": 0.09, "height": 0.06, "name": "Small Node" },
-    { "id": "wide-node", "width": 0.13, "height": 0.08, "name": "Wide Node" },
+    { "id": "main-node", "width": 0.11, "height": 0.09, "name": "Main Node" },
+    { "id": "small-node", "width": 0.09, "height": 0.07, "name": "Small Node" },
+    { "id": "info-box", "width": 0.14, "height": 0.14, "name": "Info Box" },
     { "id": "instruction-text", "width": 0.28, "height": 0.14, "name": "Instruction Text" }
   ],
   "semanticTypes": [
-    { "id": "input-output", "name": "Input / Output", "description": "Data entering or leaving the system" },
-    { "id": "ai-service", "name": "AI Service", "description": "AI-powered analysis component" },
-    { "id": "data-store", "name": "Data Store", "description": "Structured data specification" },
-    { "id": "configuration", "name": "Configuration", "description": "System configuration or prompt" },
-    { "id": "processing", "name": "Processing", "description": "Data transformation step" },
-    { "id": "ui-component", "name": "UI Component", "description": "Interactive user interface element" },
-    { "id": "tool", "name": "Editing Tool", "description": "Tool for modifying the diagram" },
-    { "id": "state-mgmt", "name": "State Management", "description": "Tracks changes for undo/redo" },
-    { "id": "instruction", "name": "Instructions", "description": "Explanatory text for user guidance" }
+    { "id": "create", "name": "Create", "description": "Ways to create a new diagram" },
+    { "id": "ai", "name": "AI Service", "description": "AI-powered processing" },
+    { "id": "diagram", "name": "Diagram", "description": "The diagram itself" },
+    { "id": "edit", "name": "Edit", "description": "Ways to manipulate the diagram" },
+    { "id": "output", "name": "Output", "description": "Export formats" },
+    { "id": "info", "name": "Details", "description": "Explanatory info box" },
+    { "id": "instruction", "name": "Instructions", "description": "Getting started guide" }
   ],
   "diagrams": [
     {
@@ -40,142 +37,198 @@
       "title": "How Objectify Works",
       "direction": "RIGHT",
       "layoutMode": "auto",
+      "legend": {
+        "title": "Legend",
+        "nodeEntries": [
+          { "semanticTypeId": "create", "label": "Create (input)", "color": "#C8E6C9", "shapeId": "rounded-rect" },
+          { "semanticTypeId": "ai", "label": "AI Processing", "color": "#E1BEE7", "shapeId": "rounded-rect" },
+          { "semanticTypeId": "diagram", "label": "Your Diagram", "color": "#BBDEFB", "shapeId": "rounded-rect" },
+          { "semanticTypeId": "edit", "label": "Edit & Refine", "color": "#FFE0B2", "shapeId": "rounded-rect" },
+          { "semanticTypeId": "output", "label": "Output", "color": "#C8E6C9", "shapeId": "rounded-rect" },
+          { "semanticTypeId": "info", "label": "Details", "color": "#F5F5F5", "shapeId": "rect" }
+        ],
+        "edgeEntries": [
+          { "label": "Flow", "sourceMarker": "none", "targetMarker": "arrow", "lineStyle": "solid", "color": "#333333" },
+          { "label": "Details", "sourceMarker": "none", "targetMarker": "arrow", "lineStyle": "dashed", "color": "#9E9E9E" }
+        ]
+      },
       "nodes": [
         {
-          "id": "diagram-image",
-          "label": "Diagram Image",
+          "id": "from-prompt",
+          "label": "Create from\nPrompt",
           "type": "box",
-          "style": { "backgroundColor": "#C8E6C9", "textColor": "#000000", "borderColor": "#4CAF50", "borderStyle": "solid" },
+          "style": { "backgroundColor": "#C8E6C9", "textColor": "#1B5E20", "borderColor": "#4CAF50", "borderStyle": "solid" },
           "shapeId": "rounded-rect",
           "sizeId": "main-node",
-          "semanticTypeId": "input-output",
-          "guideRow": "row-1",
-          "guideColumn": "col-0",
-          "orderHint": 0
-        },
-        {
-          "id": "system-prompt",
-          "label": "System Prompt",
-          "type": "box",
-          "style": { "backgroundColor": "#FFE0B2", "textColor": "#000000", "borderColor": "#FF9800", "borderStyle": "solid" },
-          "shapeId": "rectangle",
-          "sizeId": "main-node",
-          "semanticTypeId": "configuration",
+          "semanticTypeId": "create",
           "guideRow": "row-0",
-          "guideColumn": "col-1",
-          "orderHint": 1
+          "guideColumn": "col-0",
+          "labels": [{ "text": "Create from\nPrompt", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
         },
         {
-          "id": "vision-api",
-          "label": "Claude Vision API",
+          "id": "from-image",
+          "label": "Import from\nImage",
           "type": "box",
-          "style": { "backgroundColor": "#E1BEE7", "textColor": "#000000", "borderColor": "#AB47BC", "borderStyle": "solid" },
-          "shapeId": "rounded-rect",
-          "sizeId": "wide-node",
-          "semanticTypeId": "ai-service",
-          "guideRow": "row-1",
-          "guideColumn": "col-1",
-          "orderHint": 2
-        },
-        {
-          "id": "json-spec",
-          "label": "JSON Spec",
-          "type": "box",
-          "style": { "backgroundColor": "#BBDEFB", "textColor": "#000000", "borderColor": "#2196F3", "borderStyle": "solid" },
+          "style": { "backgroundColor": "#C8E6C9", "textColor": "#1B5E20", "borderColor": "#4CAF50", "borderStyle": "solid" },
           "shapeId": "rounded-rect",
           "sizeId": "main-node",
-          "semanticTypeId": "data-store",
+          "semanticTypeId": "create",
+          "guideRow": "row-2",
+          "guideColumn": "col-0",
+          "labels": [{ "text": "Import from\nImage", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
+        },
+        {
+          "id": "info-prompt",
+          "label": "Describe what you want\nin plain English. The AI\ngenerates a complete\ndiagram spec.",
+          "type": "box",
+          "style": { "backgroundColor": "#F5F5F5", "textColor": "#424242", "borderColor": "#BDBDBD", "borderStyle": "solid" },
+          "shapeId": "rect",
+          "sizeId": "info-box",
+          "semanticTypeId": "info",
+          "guideRow": "row-0",
+          "guideColumn": "col-info-create",
+          "labels": [{ "text": "Describe what you want\nin plain English. The AI\ngenerates a complete\ndiagram spec.", "position": "center", "font": { "fontSize": 11 } }]
+        },
+        {
+          "id": "info-image",
+          "label": "Upload a photo or\nscreenshot. Vision AI\nextracts the structure\ninto an editable diagram.",
+          "type": "box",
+          "style": { "backgroundColor": "#F5F5F5", "textColor": "#424242", "borderColor": "#BDBDBD", "borderStyle": "solid" },
+          "shapeId": "rect",
+          "sizeId": "info-box",
+          "semanticTypeId": "info",
+          "guideRow": "row-2",
+          "guideColumn": "col-info-create",
+          "labels": [{ "text": "Upload a photo or\nscreenshot. Vision AI\nextracts the structure\ninto an editable diagram.", "position": "center", "font": { "fontSize": 11 } }]
+        },
+
+        {
+          "id": "ai-generates",
+          "label": "AI\nGenerates",
+          "type": "box",
+          "style": { "backgroundColor": "#E1BEE7", "textColor": "#4A148C", "borderColor": "#AB47BC", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "small-node",
+          "semanticTypeId": "ai",
+          "guideRow": "row-1",
+          "guideColumn": "col-1",
+          "labels": [{ "text": "AI\nGenerates", "position": "center", "font": { "fontSize": 12, "fontWeight": "bold" } }]
+        },
+
+        {
+          "id": "diagram",
+          "label": "Your\nDiagram",
+          "type": "box",
+          "style": { "backgroundColor": "#BBDEFB", "textColor": "#0D47A1", "borderColor": "#42A5F5", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "main-node",
+          "semanticTypeId": "diagram",
           "guideRow": "row-1",
           "guideColumn": "col-2",
-          "orderHint": 3
+          "labels": [{ "text": "Your\nDiagram", "position": "center", "font": { "fontSize": 14, "fontWeight": "bold" } }]
         },
+
         {
-          "id": "schema-parser",
-          "label": "Schema Parser",
+          "id": "editor-ui",
+          "label": "Visual\nEditor",
           "type": "box",
-          "style": { "backgroundColor": "#FFF9C4", "textColor": "#000000", "borderColor": "#FBC02D", "borderStyle": "solid" },
-          "shapeId": "rectangle",
-          "sizeId": "main-node",
-          "semanticTypeId": "processing",
-          "guideRow": "row-1",
-          "guideColumn": "col-3",
-          "orderHint": 4
-        },
-        {
-          "id": "flow-canvas",
-          "label": "React Flow Canvas",
-          "type": "box",
-          "style": { "backgroundColor": "#BBDEFB", "textColor": "#000000", "borderColor": "#2196F3", "borderStyle": "solid" },
-          "shapeId": "rounded-rect",
-          "sizeId": "wide-node",
-          "semanticTypeId": "ui-component",
-          "guideRow": "row-1",
-          "guideColumn": "col-4",
-          "orderHint": 5
-        },
-        {
-          "id": "exported-json",
-          "label": "Exported JSON",
-          "type": "box",
-          "style": { "backgroundColor": "#C8E6C9", "textColor": "#000000", "borderColor": "#4CAF50", "borderStyle": "solid" },
+          "style": { "backgroundColor": "#FFE0B2", "textColor": "#E65100", "borderColor": "#FF9800", "borderStyle": "solid" },
           "shapeId": "rounded-rect",
           "sizeId": "main-node",
-          "semanticTypeId": "input-output",
-          "guideRow": "row-1",
-          "guideColumn": "col-5",
-          "orderHint": 6
-        },
-        {
-          "id": "undo-redo",
-          "label": "Undo / Redo",
-          "type": "box",
-          "style": { "backgroundColor": "#E0E0E0", "textColor": "#000000", "borderColor": "#9E9E9E", "borderStyle": "solid" },
-          "shapeId": "rectangle",
-          "sizeId": "small-node",
-          "semanticTypeId": "state-mgmt",
+          "semanticTypeId": "edit",
           "guideRow": "row-0",
-          "guideColumn": "col-4",
-          "orderHint": 7
+          "guideColumn": "col-3",
+          "labels": [{ "text": "Visual\nEditor", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
         },
         {
-          "id": "guide-system",
-          "label": "Guide System",
+          "id": "ai-chat",
+          "label": "AI Chat\nRefinement",
           "type": "box",
-          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#9E9E9E", "borderStyle": "solid" },
-          "shapeId": "rectangle",
-          "sizeId": "small-node",
-          "semanticTypeId": "tool",
+          "style": { "backgroundColor": "#FFE0B2", "textColor": "#E65100", "borderColor": "#FF9800", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "main-node",
+          "semanticTypeId": "edit",
           "guideRow": "row-2",
           "guideColumn": "col-3",
-          "orderHint": 8
+          "labels": [{ "text": "AI Chat\nRefinement", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
         },
         {
-          "id": "context-menu",
-          "label": "Context Menu",
+          "id": "info-editor",
+          "label": "Drag nodes, resize,\nright-click to style.\nGuide system for\nalignment. Undo/redo.",
           "type": "box",
-          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#9E9E9E", "borderStyle": "solid" },
-          "shapeId": "rectangle",
-          "sizeId": "small-node",
-          "semanticTypeId": "tool",
+          "style": { "backgroundColor": "#F5F5F5", "textColor": "#424242", "borderColor": "#BDBDBD", "borderStyle": "solid" },
+          "shapeId": "rect",
+          "sizeId": "info-box",
+          "semanticTypeId": "info",
+          "guideRow": "row-0",
+          "guideColumn": "col-info-edit",
+          "labels": [{ "text": "Drag nodes, resize,\nright-click to style.\nGuide system for\nalignment. Undo/redo.", "position": "center", "font": { "fontSize": 11 } }]
+        },
+        {
+          "id": "info-chat",
+          "label": "Type a command like\n\"add a database node\"\nor \"change colors to\nblue\". AI edits the spec.",
+          "type": "box",
+          "style": { "backgroundColor": "#F5F5F5", "textColor": "#424242", "borderColor": "#BDBDBD", "borderStyle": "solid" },
+          "shapeId": "rect",
+          "sizeId": "info-box",
+          "semanticTypeId": "info",
           "guideRow": "row-2",
-          "guideColumn": "col-4",
-          "orderHint": 9
+          "guideColumn": "col-info-edit",
+          "labels": [{ "text": "Type a command like\n\"add a database node\"\nor \"change colors to\nblue\". AI edits the spec.", "position": "center", "font": { "fontSize": 11 } }]
+        },
+
+        {
+          "id": "export-json",
+          "label": "Export\nJSON",
+          "type": "box",
+          "style": { "backgroundColor": "#C8E6C9", "textColor": "#1B5E20", "borderColor": "#4CAF50", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "main-node",
+          "semanticTypeId": "output",
+          "guideRow": "row-0",
+          "guideColumn": "col-5",
+          "labels": [{ "text": "Export\nJSON", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
         },
         {
-          "id": "command-bar",
-          "label": "Command Bar",
+          "id": "export-png",
+          "label": "Export\nPNG",
           "type": "box",
-          "style": { "backgroundColor": "#FFFFFF", "textColor": "#000000", "borderColor": "#9E9E9E", "borderStyle": "solid" },
-          "shapeId": "rectangle",
-          "sizeId": "small-node",
-          "semanticTypeId": "tool",
+          "style": { "backgroundColor": "#C8E6C9", "textColor": "#1B5E20", "borderColor": "#4CAF50", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "main-node",
+          "semanticTypeId": "output",
           "guideRow": "row-2",
           "guideColumn": "col-5",
-          "orderHint": 10
+          "labels": [{ "text": "Export\nPNG", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
         },
+        {
+          "id": "info-json",
+          "label": "Machine-readable spec.\nFeed it to an LLM or\nagent. Share with\nteammates or tools.",
+          "type": "box",
+          "style": { "backgroundColor": "#F5F5F5", "textColor": "#424242", "borderColor": "#BDBDBD", "borderStyle": "solid" },
+          "shapeId": "rect",
+          "sizeId": "info-box",
+          "semanticTypeId": "info",
+          "guideRow": "row-0",
+          "guideColumn": "col-info-out",
+          "labels": [{ "text": "Machine-readable spec.\nFeed it to an LLM or\nagent. Share with\nteammates or tools.", "position": "center", "font": { "fontSize": 11 } }]
+        },
+        {
+          "id": "info-png",
+          "label": "Pixel-perfect image.\nShare in docs, slides,\nor chat. Great for\nhuman communication.",
+          "type": "box",
+          "style": { "backgroundColor": "#F5F5F5", "textColor": "#424242", "borderColor": "#BDBDBD", "borderStyle": "solid" },
+          "shapeId": "rect",
+          "sizeId": "info-box",
+          "semanticTypeId": "info",
+          "guideRow": "row-2",
+          "guideColumn": "col-info-out",
+          "labels": [{ "text": "Pixel-perfect image.\nShare in docs, slides,\nor chat. Great for\nhuman communication.", "position": "center", "font": { "fontSize": 11 } }]
+        },
+
         {
           "id": "instructions",
-          "label": "Getting Started\n\n• Drag nodes to reposition (siblings on the same guide move together)\n• Alt + drag to detach a node from its guide\n• Shift + drag to snap a node to the nearest guide\n• Right-click any node or edge for styling options\n• Use the command bar below to ask the AI to edit the diagram\n• Ctrl/Cmd + Z to undo, Ctrl/Cmd + Shift + Z to redo",
+          "label": "Getting Started\n\n\u2022 Drag nodes to reposition (siblings on the same guide move together)\n\u2022 Alt + drag to detach a node from its guide\n\u2022 Right-click any node or edge for styling options\n\u2022 Use the chat bar below to ask the AI to edit the diagram\n\u2022 Ctrl/Cmd + Z to undo, Ctrl/Cmd + Shift + Z to redo",
           "type": "box",
           "style": { "backgroundColor": "#F5F5F5", "textColor": "#555555", "borderColor": "#E0E0E0", "borderStyle": "dashed", "opacity": 0.9 },
           "shapeId": "rounded-rect",
@@ -183,150 +236,163 @@
           "semanticTypeId": "instruction",
           "guideRow": "row-3",
           "guideColumn": "col-instructions",
-          "zLevel": "overlay",
-          "orderHint": 11
+          "zLevel": "overlay"
         }
       ],
       "edges": [
         {
-          "id": "e-main-1",
-          "source": "diagram-image",
-          "target": "vision-api",
+          "id": "e-prompt-ai",
+          "source": "from-prompt",
+          "target": "ai-generates",
           "sourceAnchor": "3:00",
-          "targetAnchor": "9:00",
-          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "straight", "strokeWidth": 2.5 }
+          "targetAnchor": "10:30",
+          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "bezier", "strokeWidth": 2.5 },
+          "labels": [{ "text": "1 credit", "position": "center", "font": { "fontSize": 10 } }]
         },
         {
-          "id": "e-main-2",
-          "source": "vision-api",
-          "target": "json-spec",
-          "label": "produces",
+          "id": "e-image-ai",
+          "source": "from-image",
+          "target": "ai-generates",
           "sourceAnchor": "3:00",
-          "targetAnchor": "9:00",
-          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "straight", "strokeWidth": 2.5 },
-          "labelStyle": { "fontSize": 11, "color": "#333333", "position": "center" }
+          "targetAnchor": "7:30",
+          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "bezier", "strokeWidth": 2.5 },
+          "labels": [{ "text": "1 credit", "position": "center", "font": { "fontSize": 10 } }]
         },
         {
-          "id": "e-main-3",
-          "source": "json-spec",
-          "target": "schema-parser",
-          "label": "loads",
-          "sourceAnchor": "3:00",
-          "targetAnchor": "9:00",
-          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "straight", "strokeWidth": 2.5 },
-          "labelStyle": { "fontSize": 11, "color": "#333333", "position": "center" }
-        },
-        {
-          "id": "e-main-4",
-          "source": "schema-parser",
-          "target": "flow-canvas",
-          "label": "renders",
-          "sourceAnchor": "3:00",
-          "targetAnchor": "9:00",
-          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "straight", "strokeWidth": 2.5 },
-          "labelStyle": { "fontSize": 11, "color": "#333333", "position": "center" }
-        },
-        {
-          "id": "e-main-5",
-          "source": "flow-canvas",
-          "target": "exported-json",
-          "label": "exports",
-          "sourceAnchor": "3:00",
-          "targetAnchor": "9:00",
-          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "straight", "strokeWidth": 2.5 },
-          "labelStyle": { "fontSize": 11, "color": "#333333", "position": "center" }
-        },
-        {
-          "id": "e-config",
-          "source": "system-prompt",
-          "target": "vision-api",
-          "label": "instructs",
+          "id": "e-prompt-info",
+          "source": "from-prompt",
+          "target": "info-prompt",
           "sourceAnchor": "6:00",
           "targetAnchor": "12:00",
-          "style": { "lineStyle": "dashed", "color": "#9E9E9E", "routingType": "bezier", "strokeWidth": 1 },
-          "labelStyle": { "fontSize": 10, "color": "#9E9E9E", "position": "center" }
+          "style": { "lineStyle": "dashed", "color": "#BDBDBD", "routingType": "bezier" },
+          "labels": []
         },
         {
-          "id": "e-tool-1",
-          "source": "guide-system",
-          "target": "flow-canvas",
-          "label": "alignment",
-          "sourceAnchor": "12:00",
-          "targetAnchor": "7:30",
-          "style": { "lineStyle": "solid", "color": "#9E9E9E", "routingType": "step", "strokeWidth": 1.5 },
-          "labelStyle": { "fontSize": 10, "color": "#9E9E9E", "position": "source" }
-        },
-        {
-          "id": "e-tool-2",
-          "source": "context-menu",
-          "target": "flow-canvas",
-          "label": "styles",
-          "sourceAnchor": "12:00",
-          "targetAnchor": "6:00",
-          "style": { "lineStyle": "solid", "color": "#9E9E9E", "routingType": "step", "strokeWidth": 1.5 },
-          "labelStyle": { "fontSize": 10, "color": "#9E9E9E", "position": "source" }
-        },
-        {
-          "id": "e-tool-3",
-          "source": "command-bar",
-          "target": "flow-canvas",
-          "label": "commands",
-          "sourceAnchor": "12:00",
-          "targetAnchor": "4:30",
-          "style": { "lineStyle": "solid", "color": "#9E9E9E", "routingType": "step", "strokeWidth": 1.5 },
-          "labelStyle": { "fontSize": 10, "color": "#9E9E9E", "position": "source" }
-        },
-        {
-          "id": "e-state",
-          "source": "flow-canvas",
-          "target": "undo-redo",
-          "label": "snapshots",
-          "sourceAnchor": "12:00",
-          "targetAnchor": "6:00",
-          "style": { "lineStyle": "dashed", "color": "#9E9E9E", "routingType": "smoothstep", "strokeWidth": 1 },
-          "sourceMarker": "ball",
-          "labelStyle": { "fontSize": 10, "color": "#9E9E9E", "position": "center" }
-        },
-        {
-          "id": "e-feedback",
-          "source": "exported-json",
-          "target": "json-spec",
-          "label": "re-import",
-          "sourceAnchor": "12:00",
+          "id": "e-image-info",
+          "source": "from-image",
+          "target": "info-image",
+          "sourceAnchor": "6:00",
           "targetAnchor": "12:00",
-          "style": { "lineStyle": "dashed", "color": "#333333", "routingType": "step", "strokeWidth": 1.5 },
-          "labelStyle": { "fontSize": 10, "color": "#333333", "position": "center" }
+          "style": { "lineStyle": "dashed", "color": "#BDBDBD", "routingType": "bezier" },
+          "labels": []
+        },
+        {
+          "id": "e-ai-diagram",
+          "source": "ai-generates",
+          "target": "diagram",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "bezier", "strokeWidth": 2.5 },
+          "labels": [{ "text": "produces", "position": "center", "font": { "fontSize": 10 } }]
+        },
+
+        {
+          "id": "e-diagram-editor",
+          "source": "diagram",
+          "target": "editor-ui",
+          "sourceAnchor": "1:30",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#FF9800", "routingType": "bezier", "strokeWidth": 2 },
+          "labels": []
+        },
+        {
+          "id": "e-editor-diagram",
+          "source": "editor-ui",
+          "target": "diagram",
+          "sourceAnchor": "7:30",
+          "targetAnchor": "12:00",
+          "style": { "lineStyle": "solid", "color": "#FF9800", "routingType": "bezier", "strokeWidth": 2 },
+          "labels": [{ "text": "refine", "position": "center", "font": { "fontSize": 10 } }]
+        },
+        {
+          "id": "e-diagram-chat",
+          "source": "diagram",
+          "target": "ai-chat",
+          "sourceAnchor": "4:30",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#FF9800", "routingType": "bezier", "strokeWidth": 2 },
+          "labels": []
+        },
+        {
+          "id": "e-chat-diagram",
+          "source": "ai-chat",
+          "target": "diagram",
+          "sourceAnchor": "10:30",
+          "targetAnchor": "6:00",
+          "style": { "lineStyle": "solid", "color": "#FF9800", "routingType": "bezier", "strokeWidth": 2 },
+          "labels": [{ "text": "refine", "position": "center", "font": { "fontSize": 10 } }]
+        },
+        {
+          "id": "e-editor-info",
+          "source": "editor-ui",
+          "target": "info-editor",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "dashed", "color": "#BDBDBD", "routingType": "bezier" },
+          "labels": []
+        },
+        {
+          "id": "e-chat-info",
+          "source": "ai-chat",
+          "target": "info-chat",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "dashed", "color": "#BDBDBD", "routingType": "bezier" },
+          "labels": []
+        },
+
+        {
+          "id": "e-diagram-json",
+          "source": "diagram",
+          "target": "export-json",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "bezier", "strokeWidth": 2.5 },
+          "labels": []
+        },
+        {
+          "id": "e-diagram-png",
+          "source": "diagram",
+          "target": "export-png",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#333333", "routingType": "bezier", "strokeWidth": 2.5 },
+          "labels": []
+        },
+        {
+          "id": "e-json-info",
+          "source": "export-json",
+          "target": "info-json",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "dashed", "color": "#BDBDBD", "routingType": "bezier" },
+          "labels": []
+        },
+        {
+          "id": "e-png-info",
+          "source": "export-png",
+          "target": "info-png",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "dashed", "color": "#BDBDBD", "routingType": "bezier" },
+          "labels": []
         }
       ],
       "guides": [
-        { "id": "row-0", "index": 0, "direction": "horizontal", "position": 0.15, "label": "Configuration" },
-        { "id": "row-1", "index": 1, "direction": "horizontal", "position": 0.5, "label": "Main Flow" },
-        { "id": "row-2", "index": 2, "direction": "horizontal", "position": 0.85, "label": "Editing Tools" },
-        { "id": "col-0", "index": 0, "direction": "vertical", "position": 0.08, "label": "Input" },
-        { "id": "col-1", "index": 1, "direction": "vertical", "position": 0.22, "label": "Analysis" },
-        { "id": "col-2", "index": 2, "direction": "vertical", "position": 0.38, "label": "Specification" },
-        { "id": "col-3", "index": 3, "direction": "vertical", "position": 0.54, "label": "Parsing" },
-        { "id": "col-4", "index": 4, "direction": "vertical", "position": 0.70, "label": "Canvas" },
-        { "id": "col-5", "index": 5, "direction": "vertical", "position": 0.88, "label": "Output" },
+        { "id": "row-0", "index": 0, "direction": "horizontal", "position": 0.12, "label": "Prompt / Editor / JSON" },
+        { "id": "row-1", "index": 1, "direction": "horizontal", "position": 0.40, "label": "Core Flow" },
+        { "id": "row-2", "index": 2, "direction": "horizontal", "position": 0.68, "label": "Image / Chat / PNG" },
         { "id": "row-3", "index": 3, "direction": "horizontal", "position": 0.97 },
-        { "id": "col-instructions", "index": 6, "direction": "vertical", "position": 0.50 }
-      ],
-      "legend": {
-        "title": "Legend",
-        "nodeEntries": [
-          { "semanticTypeId": "input-output", "label": "Input / Output", "color": "#C8E6C9", "shapeId": "rounded-rect" },
-          { "semanticTypeId": "ai-service", "label": "AI Service", "color": "#E1BEE7", "shapeId": "rounded-rect" },
-          { "semanticTypeId": "data-store", "label": "Data Store", "color": "#BBDEFB", "shapeId": "rounded-rect" },
-          { "semanticTypeId": "configuration", "label": "Configuration", "color": "#FFE0B2", "shapeId": "rectangle" },
-          { "semanticTypeId": "processing", "label": "Processing", "color": "#FFF9C4", "shapeId": "rectangle" },
-          { "semanticTypeId": "tool", "label": "Editing Tool", "color": "#FFFFFF", "shapeId": "rectangle" }
-        ],
-        "edgeEntries": [
-          { "label": "main flow", "sourceMarker": "none", "targetMarker": "arrow", "lineStyle": "solid", "color": "#333333" },
-          { "label": "configuration", "sourceMarker": "none", "targetMarker": "arrow", "lineStyle": "dashed", "color": "#9E9E9E" },
-          { "label": "provides", "sourceMarker": "ball", "targetMarker": "arrow", "lineStyle": "dashed", "color": "#9E9E9E" }
-        ]
-      }
+        { "id": "col-0", "index": 0, "direction": "vertical", "position": 0.06, "label": "Create" },
+        { "id": "col-info-create", "index": 1, "direction": "vertical", "position": 0.18, "label": "" },
+        { "id": "col-1", "index": 2, "direction": "vertical", "position": 0.30, "label": "AI" },
+        { "id": "col-2", "index": 3, "direction": "vertical", "position": 0.42, "label": "Diagram" },
+        { "id": "col-3", "index": 4, "direction": "vertical", "position": 0.54, "label": "Edit" },
+        { "id": "col-info-edit", "index": 5, "direction": "vertical", "position": 0.66, "label": "" },
+        { "id": "col-5", "index": 6, "direction": "vertical", "position": 0.78, "label": "Export" },
+        { "id": "col-info-out", "index": 7, "direction": "vertical", "position": 0.90, "label": "" },
+        { "id": "col-instructions", "index": 8, "direction": "vertical", "position": 0.50 }
+      ]
     }
   ]
 }

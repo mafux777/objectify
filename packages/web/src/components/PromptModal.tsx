@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useDocuments } from "../lib/documents/index.js";
+import { useAuth } from "../lib/auth-context.js";
+import { supabase } from "../lib/supabase.js";
 import { uniqueSlug } from "../lib/slugify.js";
 import { generateDiagramFromPrompt } from "../lib/llm-generate.js";
 import type { DiagramDocument } from "../lib/db/types.js";
 
 export function PromptModal() {
   const { state, dispatch, db } = useDocuments();
+  const { user, credits, isAnonymous, walletAddress, refreshCredits } = useAuth();
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -29,6 +32,16 @@ export function PromptModal() {
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) return;
+
+    // Credit check
+    if (user && credits !== null && credits < 1) {
+      setError(
+        isAnonymous
+          ? "No credits remaining. Sign up with a verified email to get free credits."
+          : `No credits remaining. Send at least 5 USDC to ${walletAddress ?? "your wallet"} to reload.`,
+      );
+      return;
+    }
 
     const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string;
     if (!apiKey) {
@@ -67,6 +80,16 @@ export function PromptModal() {
       };
 
       await db.saveDocument(doc);
+
+      // Deduct 1 credit
+      if (user) {
+        await supabase.rpc("deduct_credit", {
+          uid: user.id,
+          conversion_id: doc.id,
+        });
+        await refreshCredits();
+      }
+
       dispatch({ type: "CREATE_DOCUMENT", document: doc });
       setOpen(false);
       setPrompt("");
@@ -77,7 +100,7 @@ export function PromptModal() {
       setProgressText(null);
       dispatch({ type: "SET_CREATING", isCreating: false });
     }
-  }, [prompt, state.library, db, dispatch]);
+  }, [prompt, state.library, db, dispatch, user, credits, refreshCredits]);
 
   if (!open) return null;
 
@@ -101,6 +124,11 @@ export function PromptModal() {
             }
           }}
         />
+        {user && credits !== null && !isGenerating && (
+          <p style={{ fontSize: 12, color: "#666", margin: "8px 0 0" }}>
+            This will use 1 credit. You have {credits} remaining.
+          </p>
+        )}
         {error && <div className="modal-error">{error}</div>}
         <div className="modal-actions">
           <button onClick={handleClose} disabled={isGenerating}>

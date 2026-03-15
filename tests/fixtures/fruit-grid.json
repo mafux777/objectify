@@ -1,0 +1,105 @@
+{
+  "version": "4.0",
+  "description": "3x3 grid of fruit varieties for editor testing",
+  "palette": [
+    { "id": "red", "hex": "#FFCDD2", "name": "Red", "percentage": 15 },
+    { "id": "red-text", "hex": "#B71C1C", "name": "Red Text", "percentage": 5 },
+    { "id": "orange", "hex": "#FFE0B2", "name": "Orange", "percentage": 15 },
+    { "id": "orange-text", "hex": "#E65100", "name": "Orange Text", "percentage": 5 },
+    { "id": "yellow", "hex": "#FFF9C4", "name": "Yellow", "percentage": 15 },
+    { "id": "yellow-text", "hex": "#F57F17", "name": "Yellow Text", "percentage": 5 },
+    { "id": "gray", "hex": "#666666", "name": "Gray", "percentage": 40 }
+  ],
+  "shapePalette": [
+    { "id": "rounded", "kind": "rounded-rectangle", "name": "Rounded" }
+  ],
+  "sizePalette": [
+    { "id": "fruit-box", "width": 0.12, "height": 0.08, "name": "Fruit Box" }
+  ],
+  "semanticTypes": [
+    { "id": "apple", "name": "Apple" },
+    { "id": "orange-fruit", "name": "Orange" },
+    { "id": "banana", "name": "Banana" }
+  ],
+  "diagrams": [
+    {
+      "id": "fruit-grid",
+      "title": "Fruit Grid",
+      "direction": "RIGHT",
+      "layoutMode": "auto",
+      "imageDimensions": { "width": 1200, "height": 800 },
+      "guides": [
+        { "id": "row-0", "index": 0, "direction": "horizontal", "position": 0.25, "label": "Row 1" },
+        { "id": "row-1", "index": 1, "direction": "horizontal", "position": 0.50, "label": "Row 2" },
+        { "id": "row-2", "index": 2, "direction": "horizontal", "position": 0.75, "label": "Row 3" },
+        { "id": "col-apples", "index": 0, "direction": "vertical", "position": 0.25, "label": "Apples" },
+        { "id": "col-oranges", "index": 1, "direction": "vertical", "position": 0.50, "label": "Oranges" },
+        { "id": "col-bananas", "index": 2, "direction": "vertical", "position": 0.75, "label": "Bananas" }
+      ],
+      "nodes": [
+        {
+          "id": "fuji", "label": "Fuji", "type": "box",
+          "style": { "backgroundColor": "#FFCDD2", "textColor": "#B71C1C", "borderColor": "#EF9A9A", "borderStyle": "solid" },
+          "shapeId": "rounded", "sizeId": "fruit-box", "semanticTypeId": "apple",
+          "guideRow": "row-0", "guideColumn": "col-apples", "orderHint": 0
+        },
+        {
+          "id": "navel", "label": "Navel", "type": "box",
+          "style": { "backgroundColor": "#FFE0B2", "textColor": "#E65100", "borderColor": "#FFCC80", "borderStyle": "solid" },
+          "shapeId": "rounded", "sizeId": "fruit-box", "semanticTypeId": "orange-fruit",
+          "guideRow": "row-0", "guideColumn": "col-oranges", "orderHint": 1
+        },
+        {
+          "id": "cavendish", "label": "Cavendish", "type": "box",
+          "style": { "backgroundColor": "#FFF9C4", "textColor": "#F57F17", "borderColor": "#FFF176", "borderStyle": "solid" },
+          "shapeId": "rounded", "sizeId": "fruit-box", "semanticTypeId": "banana",
+          "guideRow": "row-0", "guideColumn": "col-bananas", "orderHint": 2
+        },
+        {
+          "id": "granny-smith", "label": "Granny Smith", "type": "box",
+          "style": { "backgroundColor": "#FFCDD2", "textColor": "#B71C1C", "borderColor": "#EF9A9A", "borderStyle": "solid" },
+          "shapeId": "rounded", "sizeId": "fruit-box", "semanticTypeId": "apple",
+          "guideRow": "row-1", "guideColumn": "col-apples", "orderHint": 3
+        },
+        {
+          "id": "valencia", "label": "Valencia", "type": "box",
+          "style": { "backgroundColor": "#FFE0B2", "textColor": "#E65100", "borderColor": "#FFCC80", "borderStyle": "solid" },
+          "shapeId": "rounded", "sizeId": "fruit-box", "semanticTypeId": "orange-fruit",
+          "guideRow": "row-1", "guideColumn": "col-oranges", "orderHint": 4
+        },
+        {
+          "id": "plantain", "label": "Plantain", "type": "box",
+          "style": { "backgroundColor": "#FFF9C4", "textColor": "#F57F17", "borderColor": "#FFF176", "borderStyle": "solid" },
+          "shapeId": "rounded", "sizeId": "fruit-box", "semanticTypeId": "banana",
+          "guideRow": "row-1", "guideColumn": "col-bananas", "orderHint": 5
+        },
+        {
+          "id": "honeycrisp", "label": "Honeycrisp", "type": "box",
+          "style": { "backgroundColor": "#FFCDD2", "textColor": "#B71C1C", "borderColor": "#EF9A9A", "borderStyle": "solid" },
+          "shapeId": "rounded", "sizeId": "fruit-box", "semanticTypeId": "apple",
+          "guideRow": "row-2", "guideColumn": "col-apples", "orderHint": 6
+        },
+        {
+          "id": "blood-orange", "label": "Blood Orange", "type": "box",
+          "style": { "backgroundColor": "#FFE0B2", "textColor": "#E65100", "borderColor": "#FFCC80", "borderStyle": "solid" },
+          "shapeId": "rounded", "sizeId": "fruit-box", "semanticTypeId": "orange-fruit",
+          "guideRow": "row-2", "guideColumn": "col-oranges", "orderHint": 7
+        },
+        {
+          "id": "lady-finger", "label": "Lady Finger", "type": "box",
+          "style": { "backgroundColor": "#FFF9C4", "textColor": "#F57F17", "borderColor": "#FFF176", "borderStyle": "solid" },
+          "shapeId": "rounded", "sizeId": "fruit-box", "semanticTypeId": "banana",
+          "guideRow": "row-2", "guideColumn": "col-bananas", "orderHint": 8
+        }
+      ],
+      "edges": [
+        { "id": "e-r0-1", "source": "fuji", "target": "navel", "style": { "lineStyle": "solid", "color": "#666666", "routingType": "smoothstep", "strokeWidth": 1.5 }, "sourceAnchor": "right", "targetAnchor": "left", "targetMarker": "arrow" },
+        { "id": "e-r0-2", "source": "navel", "target": "cavendish", "style": { "lineStyle": "solid", "color": "#666666", "routingType": "smoothstep", "strokeWidth": 1.5 }, "sourceAnchor": "right", "targetAnchor": "left", "targetMarker": "arrow" },
+        { "id": "e-r1-1", "source": "granny-smith", "target": "valencia", "style": { "lineStyle": "solid", "color": "#666666", "routingType": "smoothstep", "strokeWidth": 1.5 }, "sourceAnchor": "right", "targetAnchor": "left", "targetMarker": "arrow" },
+        { "id": "e-r1-2", "source": "valencia", "target": "plantain", "style": { "lineStyle": "solid", "color": "#666666", "routingType": "smoothstep", "strokeWidth": 1.5 }, "sourceAnchor": "right", "targetAnchor": "left", "targetMarker": "arrow" },
+        { "id": "e-r2-1", "source": "honeycrisp", "target": "blood-orange", "style": { "lineStyle": "solid", "color": "#666666", "routingType": "smoothstep", "strokeWidth": 1.5 }, "sourceAnchor": "right", "targetAnchor": "left", "targetMarker": "arrow" },
+        { "id": "e-r2-2", "source": "blood-orange", "target": "lady-finger", "style": { "lineStyle": "solid", "color": "#666666", "routingType": "smoothstep", "strokeWidth": 1.5 }, "sourceAnchor": "right", "targetAnchor": "left", "targetMarker": "arrow" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,509 @@
+{
+  "version": "4.0",
+  "description": "Multi-layered system architecture for group reparenting tests",
+  "palette": [
+    {
+      "id": "blue-bg",
+      "hex": "#E3F2FD",
+      "percentage": 20
+    },
+    {
+      "id": "green-bg",
+      "hex": "#E8F5E9",
+      "percentage": 20
+    },
+    {
+      "id": "orange-bg",
+      "hex": "#FFF3E0",
+      "percentage": 20
+    },
+    {
+      "id": "gray-bg",
+      "hex": "#F5F5F5",
+      "percentage": 20
+    },
+    {
+      "id": "dark",
+      "hex": "#333333",
+      "percentage": 10
+    },
+    {
+      "id": "white",
+      "hex": "#FFFFFF",
+      "percentage": 10
+    }
+  ],
+  "shapePalette": [
+    {
+      "id": "rounded",
+      "kind": "rounded-rectangle"
+    }
+  ],
+  "sizePalette": [
+    {
+      "id": "component",
+      "width": 0.12,
+      "height": 0.06
+    },
+    {
+      "id": "layer",
+      "width": 0.35,
+      "height": 0.3
+    },
+    {
+      "id": "outer",
+      "width": 0.85,
+      "height": 0.85
+    }
+  ],
+  "semanticTypes": [
+    {
+      "id": "container",
+      "name": "Container"
+    },
+    {
+      "id": "service",
+      "name": "Service"
+    }
+  ],
+  "diagrams": [
+    {
+      "id": "system-layers",
+      "title": "System Layers",
+      "direction": "RIGHT",
+      "layoutMode": "spatial",
+      "imageDimensions": {
+        "width": 1200,
+        "height": 800
+      },
+      "guides": [
+        {
+          "id": "row-upper",
+          "index": 0,
+          "direction": "horizontal",
+          "position": 0.3,
+          "label": "Upper"
+        },
+        {
+          "id": "row-lower",
+          "index": 1,
+          "direction": "horizontal",
+          "position": 0.7,
+          "label": "Lower"
+        },
+        {
+          "id": "col-left",
+          "index": 0,
+          "direction": "vertical",
+          "position": 0.25,
+          "label": "Left"
+        },
+        {
+          "id": "col-center",
+          "index": 1,
+          "direction": "vertical",
+          "position": 0.5,
+          "label": "Center"
+        },
+        {
+          "id": "col-right",
+          "index": 2,
+          "direction": "vertical",
+          "position": 0.75,
+          "label": "Right"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "system",
+          "label": "System Architecture",
+          "type": "group",
+          "style": {
+            "backgroundColor": "#F5F5F5",
+            "textColor": "#333333",
+            "borderColor": "#BDBDBD",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "semanticTypeId": "container",
+          "spatial": {
+            "x": 0.05,
+            "y": 0.05,
+            "width": 0.9,
+            "height": 0.9
+          },
+          "labelPosition": "top-left",
+          "orderHint": 0
+        },
+        {
+          "id": "presentation",
+          "label": "Presentation",
+          "type": "group",
+          "parentId": "system",
+          "style": {
+            "backgroundColor": "#E3F2FD",
+            "textColor": "#1565C0",
+            "borderColor": "#90CAF9",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "semanticTypeId": "container",
+          "spatial": {
+            "x": 0.08,
+            "y": 0.12,
+            "width": 0.35,
+            "height": 0.35
+          },
+          "labelPosition": "top-left",
+          "orderHint": 1
+        },
+        {
+          "id": "business",
+          "label": "Business Logic",
+          "type": "group",
+          "parentId": "system",
+          "style": {
+            "backgroundColor": "#E8F5E9",
+            "textColor": "#2E7D32",
+            "borderColor": "#A5D6A7",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "semanticTypeId": "container",
+          "spatial": {
+            "x": 0.5,
+            "y": 0.12,
+            "width": 0.35,
+            "height": 0.35
+          },
+          "labelPosition": "top-left",
+          "orderHint": 2
+        },
+        {
+          "id": "data-layer",
+          "label": "Data Layer",
+          "type": "group",
+          "parentId": "system",
+          "style": {
+            "backgroundColor": "#FFF3E0",
+            "textColor": "#E65100",
+            "borderColor": "#FFCC80",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "semanticTypeId": "container",
+          "spatial": {
+            "x": 0.08,
+            "y": 0.55,
+            "width": 0.77,
+            "height": 0.3
+          },
+          "labelPosition": "top-left",
+          "orderHint": 3
+        },
+        {
+          "id": "web-ui",
+          "label": "Web UI",
+          "type": "box",
+          "parentId": "presentation",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#90CAF9",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "component",
+          "semanticTypeId": "service",
+          "spatial": {
+            "x": 0.1,
+            "y": 0.2,
+            "width": 0.12,
+            "height": 0.06
+          },
+          "guideRow": "row-upper",
+          "guideColumn": "col-left",
+          "orderHint": 4
+        },
+        {
+          "id": "mobile-app",
+          "label": "Mobile App",
+          "type": "box",
+          "parentId": "presentation",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#90CAF9",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "component",
+          "semanticTypeId": "service",
+          "spatial": {
+            "x": 0.1,
+            "y": 0.3,
+            "width": 0.12,
+            "height": 0.06
+          },
+          "orderHint": 5,
+          "guideRow": "row-upper",
+          "guideColumn": "col-left"
+        },
+        {
+          "id": "api-gateway",
+          "label": "API Gateway",
+          "type": "box",
+          "parentId": "presentation",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#90CAF9",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "component",
+          "semanticTypeId": "service",
+          "spatial": {
+            "x": 0.25,
+            "y": 0.25,
+            "width": 0.12,
+            "height": 0.06
+          },
+          "orderHint": 6,
+          "guideRow": "row-upper",
+          "guideColumn": "col-center"
+        },
+        {
+          "id": "auth-service",
+          "label": "Auth Service",
+          "type": "box",
+          "parentId": "business",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#A5D6A7",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "component",
+          "semanticTypeId": "service",
+          "spatial": {
+            "x": 0.52,
+            "y": 0.2,
+            "width": 0.12,
+            "height": 0.06
+          },
+          "orderHint": 7,
+          "guideRow": "row-upper",
+          "guideColumn": "col-center"
+        },
+        {
+          "id": "order-engine",
+          "label": "Order Engine",
+          "type": "box",
+          "parentId": "business",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#A5D6A7",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "component",
+          "semanticTypeId": "service",
+          "spatial": {
+            "x": 0.52,
+            "y": 0.3,
+            "width": 0.12,
+            "height": 0.06
+          },
+          "orderHint": 8,
+          "guideRow": "row-upper",
+          "guideColumn": "col-center"
+        },
+        {
+          "id": "payment-svc",
+          "label": "Payment Svc",
+          "type": "box",
+          "parentId": "business",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#A5D6A7",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "component",
+          "semanticTypeId": "service",
+          "spatial": {
+            "x": 0.68,
+            "y": 0.25,
+            "width": 0.12,
+            "height": 0.06
+          },
+          "orderHint": 9,
+          "guideRow": "row-upper",
+          "guideColumn": "col-right"
+        },
+        {
+          "id": "user-db",
+          "label": "User DB",
+          "type": "box",
+          "parentId": "data-layer",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#FFCC80",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "component",
+          "semanticTypeId": "service",
+          "spatial": {
+            "x": 0.12,
+            "y": 0.65,
+            "width": 0.12,
+            "height": 0.06
+          },
+          "orderHint": 10,
+          "guideRow": "row-lower",
+          "guideColumn": "col-left"
+        },
+        {
+          "id": "order-db",
+          "label": "Order DB",
+          "type": "box",
+          "parentId": "data-layer",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#FFCC80",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "component",
+          "semanticTypeId": "service",
+          "spatial": {
+            "x": 0.3,
+            "y": 0.65,
+            "width": 0.12,
+            "height": 0.06
+          },
+          "orderHint": 11,
+          "guideRow": "row-lower",
+          "guideColumn": "col-center"
+        },
+        {
+          "id": "cache",
+          "label": "Cache",
+          "type": "box",
+          "parentId": "data-layer",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#FFCC80",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "component",
+          "semanticTypeId": "service",
+          "spatial": {
+            "x": 0.48,
+            "y": 0.65,
+            "width": 0.12,
+            "height": 0.06
+          },
+          "orderHint": 12,
+          "guideRow": "row-lower",
+          "guideColumn": "col-right"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "api-gateway",
+          "target": "auth-service",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#333333",
+            "routingType": "smoothstep",
+            "strokeWidth": 1.5
+          },
+          "targetMarker": "arrow",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00"
+        },
+        {
+          "id": "e2",
+          "source": "api-gateway",
+          "target": "order-engine",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#333333",
+            "routingType": "smoothstep",
+            "strokeWidth": 1.5
+          },
+          "targetMarker": "arrow",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00"
+        },
+        {
+          "id": "e3",
+          "source": "order-engine",
+          "target": "payment-svc",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#333333",
+            "routingType": "smoothstep",
+            "strokeWidth": 1.5
+          },
+          "targetMarker": "arrow",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00"
+        },
+        {
+          "id": "e4",
+          "source": "auth-service",
+          "target": "user-db",
+          "style": {
+            "lineStyle": "dashed",
+            "color": "#999999",
+            "routingType": "smoothstep",
+            "strokeWidth": 1
+          },
+          "targetMarker": "arrow",
+          "sourceAnchor": "6:00",
+          "targetAnchor": "12:00"
+        },
+        {
+          "id": "e5",
+          "source": "order-engine",
+          "target": "order-db",
+          "style": {
+            "lineStyle": "dashed",
+            "color": "#999999",
+            "routingType": "smoothstep",
+            "strokeWidth": 1
+          },
+          "targetMarker": "arrow",
+          "sourceAnchor": "6:00",
+          "targetAnchor": "12:00"
+        },
+        {
+          "id": "e6",
+          "source": "payment-svc",
+          "target": "cache",
+          "style": {
+            "lineStyle": "dashed",
+            "color": "#999999",
+            "routingType": "smoothstep",
+            "strokeWidth": 1
+          },
+          "targetMarker": "arrow",
+          "sourceAnchor": "6:00",
+          "targetAnchor": "12:00"
+        }
+      ]
+    }
+  ]
+}

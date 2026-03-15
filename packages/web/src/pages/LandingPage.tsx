@@ -7,7 +7,7 @@ export function LandingPage() {
   return (
     <div className="landing-page">
       <nav className="landing-nav">
-        <h1 className="landing-logo">Objectify</h1>
+        <Link to="/app" className="landing-logo" style={{ textDecoration: "none", color: "inherit" }}>Objectify</Link>
         <div className="landing-nav-links">
           {user ? (
             <Link to="/app" className="landing-btn landing-btn-primary">

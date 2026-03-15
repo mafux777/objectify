@@ -6,5 +6,9 @@
     "packages/schema",
     "packages/cli",
     "packages/web"
-  ]
+  ],
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "viem": "^2.47.4"
+  }
 }

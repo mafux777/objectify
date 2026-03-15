@@ -292,6 +292,7 @@ export function GuideLines({
 
   return (
     <svg
+      data-export-ignore
       style={{
         position: "absolute",
         top: 0,

@@ -1,16 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth-context.js";
+import { supabase } from "../lib/supabase.js";
 import { createDbAdapter } from "../lib/db/index.js";
+import { WalletAddress } from "../components/WalletAddress.js";
 import type { SharedFeedback } from "../lib/db/types.js";
 
 export function SettingsPage() {
-  const { user, signOut } = useAuth();
+  const { user, credits, walletAddress, signOut, refreshCredits } = useAuth();
   const navigate = useNavigate();
   const db = useMemo(() => createDbAdapter(user?.id), [user?.id]);
 
   const [submissions, setSubmissions] = useState<SharedFeedback[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checking, setChecking] = useState(false);
+  const [usdcBalance, setUsdcBalance] = useState<string | null>(null);
+  const [depositResult, setDepositResult] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [passwordMsg, setPasswordMsg] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [savingPassword, setSavingPassword] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -22,6 +32,59 @@ export function SettingsPage() {
       setLoading(false);
     });
   }, [db]);
+
+  const handleCheckDeposit = async () => {
+    setChecking(true);
+    setDepositResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("check-balance", {
+        method: "POST",
+      });
+      if (error) throw error;
+      setUsdcBalance(data.usdcBalance);
+      if (data.creditsAdded > 0) {
+        setDepositResult(`+${data.creditsAdded} credits added!`);
+      } else {
+        setDepositResult("No new deposits found");
+      }
+      await refreshCredits();
+    } catch (err) {
+      setDepositResult("Error checking balance");
+      console.error("Check deposit error:", err);
+    } finally {
+      setChecking(false);
+      setTimeout(() => setDepositResult(null), 5000);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError(null);
+    setPasswordMsg(null);
+    if (!newPassword) {
+      setPasswordError("Enter a new password.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError("Passwords do not match.");
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setPasswordMsg("Password updated.");
+      setNewPassword("");
+      setConfirmNewPassword("");
+    } catch (err: any) {
+      setPasswordError(err.message);
+    } finally {
+      setSavingPassword(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (deleteInput !== "DELETE") return;
@@ -97,6 +160,100 @@ export function SettingsPage() {
           </div>
         </div>
 
+        {/* Change Password — only for email users (not Google) */}
+        {user?.app_metadata?.provider !== "google" && user?.email && (
+          <div className="dashboard-section" style={{ marginTop: 24 }}>
+            <h3>Change Password</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 320 }}>
+              <input
+                type="password"
+                placeholder="New password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                minLength={6}
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid #ddd",
+                  borderRadius: 6,
+                  fontSize: 14,
+                }}
+              />
+              <input
+                type="password"
+                placeholder="Confirm new password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                minLength={6}
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid #ddd",
+                  borderRadius: 6,
+                  fontSize: 14,
+                }}
+              />
+              {passwordError && (
+                <div style={{ color: "#b91c1c", fontSize: 13 }}>{passwordError}</div>
+              )}
+              {passwordMsg && (
+                <div style={{ color: "#4caf50", fontSize: 13 }}>{passwordMsg}</div>
+              )}
+              <button
+                onClick={handleChangePassword}
+                disabled={savingPassword}
+                className="landing-btn landing-btn-primary"
+                style={{ fontSize: 13, padding: "8px 16px", alignSelf: "flex-start" }}
+              >
+                {savingPassword ? "Saving..." : "Update Password"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Credits & Wallet */}
+        <div className="dashboard-section" style={{ marginTop: 24 }}>
+          <h3>Credits & Wallet</h3>
+          <div style={{ fontSize: 14, color: "#555", lineHeight: 1.8 }}>
+            <div>
+              <strong>Credits:</strong> {credits ?? "..."} credit{credits !== 1 ? "s" : ""} remaining
+            </div>
+            {walletAddress && (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <strong>Wallet:</strong>
+                  <WalletAddress address={walletAddress} style={{ fontSize: 14 }} />
+                </div>
+                <div style={{ fontSize: 13, color: "#888", marginTop: 2 }}>
+                  Send USDC (Base) to this address to add credits. 1 USDC = 10 credits.
+                </div>
+                {usdcBalance !== null && (
+                  <div style={{ marginTop: 4 }}>
+                    <strong>USDC balance:</strong> {usdcBalance} USDC
+                  </div>
+                )}
+                <div style={{ marginTop: 10 }}>
+                  <button
+                    onClick={handleCheckDeposit}
+                    disabled={checking}
+                    className="landing-btn landing-btn-primary"
+                    style={{ fontSize: 13, padding: "6px 16px" }}
+                  >
+                    {checking ? "Checking..." : "Check for deposit"}
+                  </button>
+                  {depositResult && (
+                    <span style={{
+                      marginLeft: 10,
+                      fontSize: 13,
+                      color: depositResult.startsWith("+") ? "#4caf50" : "#888",
+                    }}>
+                      {depositResult}
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* Feedback Submissions */}
         <div className="dashboard-section" style={{ marginTop: 24 }}>
           <h3>Your Feedback Submissions</h3>
@@ -104,7 +261,7 @@ export function SettingsPage() {
             <div className="dashboard-empty">Loading...</div>
           ) : submissions.length === 0 ? (
             <div className="dashboard-empty">
-              No feedback submitted yet. Use the Share button in the editor to
+              No feedback submitted yet. Use the Feedback button in the editor to
               send feedback.
             </div>
           ) : (

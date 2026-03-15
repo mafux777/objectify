@@ -1,0 +1,442 @@
+{
+  "version": "4.0",
+  "palette": [
+    { "id": "green-bg", "hex": "#C8E6C9", "percentage": 8, "name": "Green Background" },
+    { "id": "green-text", "hex": "#1B5E20", "percentage": 2, "name": "Green Text" },
+    { "id": "green-border", "hex": "#4CAF50", "percentage": 1, "name": "Green Border" },
+    { "id": "blue-bg", "hex": "#BBDEFB", "percentage": 8, "name": "Blue Background" },
+    { "id": "blue-text", "hex": "#0D47A1", "percentage": 2, "name": "Blue Text" },
+    { "id": "blue-border", "hex": "#42A5F5", "percentage": 1, "name": "Blue Border" },
+    { "id": "purple-bg", "hex": "#E1BEE7", "percentage": 8, "name": "Purple Background" },
+    { "id": "purple-text", "hex": "#4A148C", "percentage": 2, "name": "Purple Text" },
+    { "id": "purple-border", "hex": "#AB47BC", "percentage": 1, "name": "Purple Border" },
+    { "id": "amber-bg", "hex": "#FFE0B2", "percentage": 8, "name": "Amber Background" },
+    { "id": "amber-text", "hex": "#E65100", "percentage": 2, "name": "Amber Text" },
+    { "id": "amber-border", "hex": "#FF9800", "percentage": 1, "name": "Amber Border" },
+    { "id": "gray-bg", "hex": "#F5F5F5", "percentage": 30, "name": "Light Gray" },
+    { "id": "gray-text", "hex": "#424242", "percentage": 5, "name": "Dark Gray Text" },
+    { "id": "gray-border", "hex": "#BDBDBD", "percentage": 2, "name": "Gray Border" },
+    { "id": "edge-color", "hex": "#616161", "percentage": 3, "name": "Edge Gray" },
+    { "id": "white", "hex": "#FFFFFF", "percentage": 10, "name": "White" }
+  ],
+  "shapePalette": [
+    { "id": "rounded-rect", "kind": "rounded-rectangle", "name": "Rounded Rectangle" },
+    { "id": "rect", "kind": "rectangle", "name": "Rectangle" },
+    { "id": "diamond", "kind": "diamond", "aspectRatio": 1.3, "name": "Diamond" }
+  ],
+  "sizePalette": [
+    { "id": "flow-node", "width": 0.10, "height": 0.10, "name": "Flow Node" },
+    { "id": "info-box", "width": 0.14, "height": 0.18, "name": "Info Text Box" },
+    { "id": "info-box-wide", "width": 0.16, "height": 0.18, "name": "Wide Info Box" },
+    { "id": "decision", "width": 0.10, "height": 0.12, "name": "Decision Diamond" },
+    { "id": "subtitle-box", "width": 0.14, "height": 0.08, "name": "Subtitle Box" }
+  ],
+  "semanticTypes": [
+    { "id": "entry", "name": "Entry Point", "description": "Where the user starts" },
+    { "id": "identity", "name": "Identity", "description": "Authentication and wallet identity" },
+    { "id": "credits", "name": "Credits", "description": "Credit balance and usage" },
+    { "id": "payment", "name": "Payment", "description": "USDC payment flow" },
+    { "id": "upgrade", "name": "Account Upgrade", "description": "Optional account linking" },
+    { "id": "info", "name": "Explanation", "description": "Informational text box" }
+  ],
+  "description": "How credits work on Objectify: from first visit to wallet creation, credit usage, USDC reload, and optional account sign-up.",
+  "diagrams": [
+    {
+      "id": "credits-flow",
+      "title": "Credits on Objectify",
+      "direction": "RIGHT",
+      "layoutMode": "auto",
+      "legend": {
+        "title": "Legend",
+        "nodeEntries": [
+          { "semanticTypeId": "entry", "label": "Start / Success", "color": "#C8E6C9", "shapeId": "rounded-rect" },
+          { "semanticTypeId": "identity", "label": "Identity", "color": "#BBDEFB", "shapeId": "rounded-rect" },
+          { "semanticTypeId": "credits", "label": "Credits", "color": "#E1BEE7", "shapeId": "rounded-rect" },
+          { "semanticTypeId": "payment", "label": "Payment (USDC)", "color": "#FFE0B2", "shapeId": "rounded-rect" },
+          { "semanticTypeId": "info", "label": "Explanation", "color": "#F5F5F5", "shapeId": "rect" }
+        ],
+        "edgeEntries": [
+          { "label": "Flow", "sourceMarker": "none", "targetMarker": "arrow", "lineStyle": "solid", "color": "#616161" },
+          { "label": "Details", "sourceMarker": "none", "targetMarker": "arrow", "lineStyle": "dashed", "color": "#BDBDBD" }
+        ]
+      },
+      "nodes": [
+        {
+          "id": "visitor",
+          "label": "Open\nObjectify",
+          "type": "box",
+          "style": { "backgroundColor": "#C8E6C9", "textColor": "#1B5E20", "borderColor": "#4CAF50", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "flow-node",
+          "semanticTypeId": "entry",
+          "guideRow": "row-0",
+          "guideColumn": "col-0",
+          "labels": [{ "text": "Open\nObjectify", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
+        },
+        {
+          "id": "auto-signin",
+          "label": "Anonymous\nSign-In",
+          "type": "box",
+          "style": { "backgroundColor": "#BBDEFB", "textColor": "#0D47A1", "borderColor": "#42A5F5", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "flow-node",
+          "semanticTypeId": "identity",
+          "guideRow": "row-0",
+          "guideColumn": "col-1",
+          "labels": [{ "text": "Anonymous\nSign-In", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
+        },
+        {
+          "id": "wallet-created",
+          "label": "Base Wallet\nAssigned",
+          "type": "box",
+          "style": { "backgroundColor": "#BBDEFB", "textColor": "#0D47A1", "borderColor": "#42A5F5", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "flow-node",
+          "semanticTypeId": "identity",
+          "guideRow": "row-0",
+          "guideColumn": "col-2",
+          "labels": [{ "text": "Base Wallet\nAssigned", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
+        },
+        {
+          "id": "free-credits",
+          "label": "5 Free\nCredits",
+          "type": "box",
+          "style": { "backgroundColor": "#C8E6C9", "textColor": "#1B5E20", "borderColor": "#4CAF50", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "flow-node",
+          "semanticTypeId": "credits",
+          "guideRow": "row-0",
+          "guideColumn": "col-3",
+          "labels": [{ "text": "5 Free\nCredits", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
+        },
+        {
+          "id": "create-diagrams",
+          "label": "Create\nDiagrams",
+          "type": "box",
+          "style": { "backgroundColor": "#E1BEE7", "textColor": "#4A148C", "borderColor": "#AB47BC", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "flow-node",
+          "semanticTypeId": "credits",
+          "guideRow": "row-0",
+          "guideColumn": "col-4",
+          "labels": [{ "text": "Create\nDiagrams", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
+        },
+        {
+          "id": "need-more",
+          "label": "Need More\nCredits?",
+          "type": "box",
+          "style": { "backgroundColor": "#FFF9C4", "textColor": "#F57F17", "borderColor": "#FBC02D", "borderStyle": "solid" },
+          "shapeId": "diamond",
+          "sizeId": "decision",
+          "semanticTypeId": "credits",
+          "guideRow": "row-0",
+          "guideColumn": "col-5",
+          "labels": [{ "text": "Need More\nCredits?", "position": "center", "font": { "fontSize": 12, "fontWeight": "bold" } }]
+        },
+        {
+          "id": "send-usdc",
+          "label": "Send USDC\nto Wallet",
+          "type": "box",
+          "style": { "backgroundColor": "#FFE0B2", "textColor": "#E65100", "borderColor": "#FF9800", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "flow-node",
+          "semanticTypeId": "payment",
+          "guideRow": "row-0",
+          "guideColumn": "col-6",
+          "labels": [{ "text": "Send USDC\nto Wallet", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
+        },
+        {
+          "id": "safe-deploys",
+          "label": "Safe\nDeploys",
+          "type": "box",
+          "style": { "backgroundColor": "#FFE0B2", "textColor": "#E65100", "borderColor": "#FF9800", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "flow-node",
+          "semanticTypeId": "payment",
+          "guideRow": "row-0",
+          "guideColumn": "col-7",
+          "labels": [{ "text": "Safe\nDeploys", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
+        },
+        {
+          "id": "credits-loaded",
+          "label": "Credits\nLoaded!",
+          "type": "box",
+          "style": { "backgroundColor": "#C8E6C9", "textColor": "#1B5E20", "borderColor": "#4CAF50", "borderStyle": "solid" },
+          "shapeId": "rounded-rect",
+          "sizeId": "flow-node",
+          "semanticTypeId": "credits",
+          "guideRow": "row-0",
+          "guideColumn": "col-8",
+          "labels": [{ "text": "Credits\nLoaded!", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
+        },
+        {
+          "id": "sign-up",
+          "label": "Sign Up\n(Optional)",
+          "type": "box",
+          "style": { "backgroundColor": "#E1BEE7", "textColor": "#4A148C", "borderColor": "#AB47BC", "borderStyle": "dashed" },
+          "shapeId": "rounded-rect",
+          "sizeId": "flow-node",
+          "semanticTypeId": "upgrade",
+          "guideRow": "row-2",
+          "guideColumn": "col-8",
+          "labels": [{ "text": "Sign Up\n(Optional)", "position": "center", "font": { "fontSize": 13, "fontWeight": "bold" } }]
+        },
+
+        {
+          "id": "info-visit",
+          "label": "No signup required.\nNo email, no password.\nJust open the app and\nstart creating instantly.",
+          "type": "box",
+          "style": { "backgroundColor": "#F5F5F5", "textColor": "#424242", "borderColor": "#BDBDBD", "borderStyle": "solid" },
+          "shapeId": "rect",
+          "sizeId": "info-box",
+          "semanticTypeId": "info",
+          "guideRow": "row-1",
+          "guideColumn": "col-0",
+          "labels": [{ "text": "No signup required.\nNo email, no password.\nJust open the app and\nstart creating instantly.", "position": "center", "font": { "fontSize": 11, "fontFamily": "sans-serif" } }]
+        },
+        {
+          "id": "info-identity",
+          "label": "Automatic session created.\nFull access to all features.\nPersisted via browser cookie.\nReal Supabase JWT token.",
+          "type": "box",
+          "style": { "backgroundColor": "#F5F5F5", "textColor": "#424242", "borderColor": "#BDBDBD", "borderStyle": "solid" },
+          "shapeId": "rect",
+          "sizeId": "info-box",
+          "semanticTypeId": "info",
+          "guideRow": "row-1",
+          "guideColumn": "col-1",
+          "labels": [{ "text": "Automatic session created.\nFull access to all features.\nPersisted via browser cookie.\nReal Supabase JWT token.", "position": "center", "font": { "fontSize": 11, "fontFamily": "sans-serif" } }]
+        },
+        {
+          "id": "info-wallet",
+          "label": "Unique Gnosis Safe address\non Base L2. Displayed as\n0x1234...5678 in the header.\nCopy button for easy sharing.",
+          "type": "box",
+          "style": { "backgroundColor": "#F5F5F5", "textColor": "#424242", "borderColor": "#BDBDBD", "borderStyle": "solid" },
+          "shapeId": "rect",
+          "sizeId": "info-box",
+          "semanticTypeId": "info",
+          "guideRow": "row-1",
+          "guideColumn": "col-2",
+          "labels": [{ "text": "Unique Gnosis Safe address\non Base L2. Displayed as\n0x1234...5678 in the header.\nCopy button for easy sharing.", "position": "center", "font": { "fontSize": 11, "fontFamily": "sans-serif" } }]
+        },
+        {
+          "id": "info-pricing",
+          "label": "Create from Prompt: Free\nImport from Image: 1 credit\nImport JSON: Free\nEdit existing: Free",
+          "type": "box",
+          "style": { "backgroundColor": "#F5F5F5", "textColor": "#424242", "borderColor": "#BDBDBD", "borderStyle": "solid" },
+          "shapeId": "rect",
+          "sizeId": "info-box",
+          "semanticTypeId": "info",
+          "guideRow": "row-1",
+          "guideColumn": "col-4",
+          "labels": [{ "text": "Create from Prompt: Free\nImport from Image: 1 credit\nImport JSON: Free\nEdit existing: Free", "position": "center", "font": { "fontSize": 11, "fontFamily": "monospace" } }]
+        },
+        {
+          "id": "info-usdc",
+          "label": "Copy your wallet address\nfrom the header. Send USDC\non the Base network.\nRate: 1 USDC = 10 credits.",
+          "type": "box",
+          "style": { "backgroundColor": "#F5F5F5", "textColor": "#424242", "borderColor": "#BDBDBD", "borderStyle": "solid" },
+          "shapeId": "rect",
+          "sizeId": "info-box-wide",
+          "semanticTypeId": "info",
+          "guideRow": "row-1",
+          "guideColumn": "col-6",
+          "labels": [{ "text": "Copy your wallet address\nfrom the header. Send USDC\non the Base network.\nRate: 1 USDC = 10 credits.", "position": "center", "font": { "fontSize": 11, "fontFamily": "sans-serif" } }]
+        },
+        {
+          "id": "info-safe",
+          "label": "Safe smart contract deploys\nautomatically when first\ndeposit is detected. Funds\nare secure before and after.",
+          "type": "box",
+          "style": { "backgroundColor": "#F5F5F5", "textColor": "#424242", "borderColor": "#BDBDBD", "borderStyle": "solid" },
+          "shapeId": "rect",
+          "sizeId": "info-box",
+          "semanticTypeId": "info",
+          "guideRow": "row-1",
+          "guideColumn": "col-7",
+          "labels": [{ "text": "Safe smart contract deploys\nautomatically when first\ndeposit is detected. Funds\nare secure before and after.", "position": "center", "font": { "fontSize": 11, "fontFamily": "sans-serif" } }]
+        },
+        {
+          "id": "info-signup",
+          "label": "Link email or Google account.\nAccess from any device.\nKeep wallet, credits, and all\ndiagrams. Fully optional.",
+          "type": "box",
+          "style": { "backgroundColor": "#F5F5F5", "textColor": "#424242", "borderColor": "#BDBDBD", "borderStyle": "solid" },
+          "shapeId": "rect",
+          "sizeId": "info-box-wide",
+          "semanticTypeId": "info",
+          "guideRow": "row-2",
+          "guideColumn": "col-7",
+          "labels": [{ "text": "Link email or Google account.\nAccess from any device.\nKeep wallet, credits, and all\ndiagrams. Fully optional.", "position": "center", "font": { "fontSize": 11, "fontFamily": "sans-serif" } }]
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-visit-auth",
+          "source": "visitor",
+          "target": "auto-signin",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#616161" },
+          "labels": [{ "text": "instant", "position": "center", "font": { "fontSize": 10 } }]
+        },
+        {
+          "id": "e-auth-wallet",
+          "source": "auto-signin",
+          "target": "wallet-created",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#616161" },
+          "labels": [{ "text": "auto", "position": "center", "font": { "fontSize": 10 } }]
+        },
+        {
+          "id": "e-wallet-credits",
+          "source": "wallet-created",
+          "target": "free-credits",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#616161" },
+          "labels": [{ "text": "granted", "position": "center", "font": { "fontSize": 10 } }]
+        },
+        {
+          "id": "e-credits-create",
+          "source": "free-credits",
+          "target": "create-diagrams",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#616161" },
+          "labels": []
+        },
+        {
+          "id": "e-create-need",
+          "source": "create-diagrams",
+          "target": "need-more",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#616161" },
+          "labels": [{ "text": "credits used", "position": "center", "font": { "fontSize": 10 } }]
+        },
+        {
+          "id": "e-need-usdc",
+          "source": "need-more",
+          "target": "send-usdc",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#616161" },
+          "labels": [{ "text": "yes", "position": "center", "font": { "fontSize": 10, "fontWeight": "bold" } }]
+        },
+        {
+          "id": "e-usdc-safe",
+          "source": "send-usdc",
+          "target": "safe-deploys",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#616161" },
+          "labels": [{ "text": "USDC arrives", "position": "center", "font": { "fontSize": 10 } }]
+        },
+        {
+          "id": "e-safe-loaded",
+          "source": "safe-deploys",
+          "target": "credits-loaded",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00",
+          "style": { "lineStyle": "solid", "color": "#616161" },
+          "labels": [{ "text": "1 USDC = 10 credits", "position": "center", "font": { "fontSize": 10, "fontWeight": "bold" } }]
+        },
+        {
+          "id": "e-loaded-create",
+          "source": "credits-loaded",
+          "target": "create-diagrams",
+          "sourceAnchor": "6:00",
+          "targetAnchor": "6:00",
+          "style": { "lineStyle": "dashed", "color": "#4CAF50" },
+          "labels": [{ "text": "back to creating", "position": "center", "font": { "fontSize": 10 } }]
+        },
+        {
+          "id": "e-wallet-signup",
+          "source": "credits-loaded",
+          "target": "sign-up",
+          "sourceAnchor": "6:00",
+          "targetAnchor": "12:00",
+          "style": { "lineStyle": "dashed", "color": "#AB47BC" },
+          "labels": [{ "text": "optionally", "position": "center", "font": { "fontSize": 10 } }]
+        },
+
+        {
+          "id": "e-visit-info",
+          "source": "visitor",
+          "target": "info-visit",
+          "sourceAnchor": "6:00",
+          "targetAnchor": "12:00",
+          "style": { "lineStyle": "dashed", "color": "#BDBDBD" },
+          "labels": []
+        },
+        {
+          "id": "e-auth-info",
+          "source": "auto-signin",
+          "target": "info-identity",
+          "sourceAnchor": "6:00",
+          "targetAnchor": "12:00",
+          "style": { "lineStyle": "dashed", "color": "#BDBDBD" },
+          "labels": []
+        },
+        {
+          "id": "e-wallet-info",
+          "source": "wallet-created",
+          "target": "info-wallet",
+          "sourceAnchor": "6:00",
+          "targetAnchor": "12:00",
+          "style": { "lineStyle": "dashed", "color": "#BDBDBD" },
+          "labels": []
+        },
+        {
+          "id": "e-create-info",
+          "source": "create-diagrams",
+          "target": "info-pricing",
+          "sourceAnchor": "6:00",
+          "targetAnchor": "12:00",
+          "style": { "lineStyle": "dashed", "color": "#BDBDBD" },
+          "labels": []
+        },
+        {
+          "id": "e-usdc-info",
+          "source": "send-usdc",
+          "target": "info-usdc",
+          "sourceAnchor": "6:00",
+          "targetAnchor": "12:00",
+          "style": { "lineStyle": "dashed", "color": "#BDBDBD" },
+          "labels": []
+        },
+        {
+          "id": "e-safe-info",
+          "source": "safe-deploys",
+          "target": "info-safe",
+          "sourceAnchor": "6:00",
+          "targetAnchor": "12:00",
+          "style": { "lineStyle": "dashed", "color": "#BDBDBD" },
+          "labels": []
+        },
+        {
+          "id": "e-signup-info",
+          "source": "sign-up",
+          "target": "info-signup",
+          "sourceAnchor": "9:00",
+          "targetAnchor": "3:00",
+          "style": { "lineStyle": "dashed", "color": "#BDBDBD" },
+          "labels": []
+        }
+      ],
+      "guides": [
+        { "id": "row-0", "index": 0, "direction": "horizontal", "position": 0.15, "label": "Main Flow" },
+        { "id": "row-1", "index": 1, "direction": "horizontal", "position": 0.52, "label": "Details" },
+        { "id": "row-2", "index": 2, "direction": "horizontal", "position": 0.85, "label": "Optional" },
+        { "id": "col-0", "index": 0, "direction": "vertical", "position": 0.05, "label": "Visit" },
+        { "id": "col-1", "index": 1, "direction": "vertical", "position": 0.15, "label": "Auth" },
+        { "id": "col-2", "index": 2, "direction": "vertical", "position": 0.25, "label": "Wallet" },
+        { "id": "col-3", "index": 3, "direction": "vertical", "position": 0.35, "label": "Free" },
+        { "id": "col-4", "index": 4, "direction": "vertical", "position": 0.45, "label": "Create" },
+        { "id": "col-5", "index": 5, "direction": "vertical", "position": 0.55, "label": "Decision" },
+        { "id": "col-6", "index": 6, "direction": "vertical", "position": 0.65, "label": "USDC" },
+        { "id": "col-7", "index": 7, "direction": "vertical", "position": 0.75, "label": "Deploy" },
+        { "id": "col-8", "index": 8, "direction": "vertical", "position": 0.88, "label": "Result" }
+      ]
+    }
+  ]
+}

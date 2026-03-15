@@ -103,7 +103,7 @@ async function resizeImage(
 
 export function ImageImportModal() {
   const { state, dispatch, db } = useDocuments();
-  const { user, credits, refreshCredits } = useAuth();
+  const { user, credits, isAnonymous, walletAddress, refreshCredits } = useAuth();
   const [open, setOpen] = useState(false);
   const [imageData, setImageData] = useState<{
     base64: string;
@@ -282,7 +282,11 @@ export function ImageImportModal() {
 
     // Credit exhaustion check for authenticated users
     if (user && credits !== null && credits < 1) {
-      setError("No credits remaining. Visit your dashboard to request more.");
+      setError(
+        isAnonymous
+          ? "No credits remaining. Sign up with a verified email to get free credits."
+          : `No credits remaining. Send at least 5 USDC to ${walletAddress ?? "your wallet"} to reload.`,
+      );
       return;
     }
 

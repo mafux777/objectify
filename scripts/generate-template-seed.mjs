@@ -22,6 +22,9 @@ const TEMPLATES = [
   { file: "sample.json", name: "Project Thunderbattle", description: "Sample project architecture diagram", featured: false, order: 6 },
   { file: "trading-pipeline.json", name: "Trading Pipeline", description: "Financial trading data pipeline", featured: false, order: 7 },
   { file: "talos-components.json", name: "Talos Linux Components", description: "Talos Linux system components", featured: false, order: 8 },
+  { file: "credits-on-objectify.json", name: "Credits on Objectify", description: "How credits work on Objectify: from first visit to wallet creation, credit usage, USDC reload, and optional account sign-up.", featured: false, order: 9 },
+  { file: "import-export-workflows.json", name: "Import & Export Workflows", description: "Use cases for importing and exporting diagrams: share with teammates, feed to LLMs, version control, embed in docs, and more.", featured: false, order: 10 },
+  { file: "how-to-get-usdc.json", name: "How to Get USDC", description: "Step-by-step guide to acquiring USDC on Coinbase and sending it to your Objectify address on the Base network.", featured: false, order: 11 },
 ];
 
 function escapeSql(str) {

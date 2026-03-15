@@ -38,6 +38,7 @@ import { ContextMenu, type ContextMenuState } from "./ContextMenu.js";
 import { CommandBar } from "./CommandBar.js";
 import { Legend } from "./Legend.js";
 import { toPng } from "html-to-image";
+import qrcode from "qrcode-generator";
 import { flowToDiagram, flowToSpec } from "../lib/flow-to-spec.js";
 import { refineDiagramWithLLM } from "../lib/llm-refine.js";
 import { validateChatInput } from "../lib/llm-validate.js";
@@ -66,6 +67,81 @@ import {
 } from "../lib/size-palette-api.js";
 
 let detachGuideCounter = 200;
+
+const GUIDE_MERGE_THRESHOLD = 0.02; // 2% normalized distance
+const GUIDE_FIELDS = ["guideRow", "guideColumn", "guideRowBottom", "guideColumnRight"] as const;
+
+/** Find guide pairs that should be merged (within threshold). Returns map: removedId → absorberId */
+function findGuideMerges(guides: GuideLine[]): Map<string, string> {
+  const merges = new Map<string, string>();
+  const removed = new Set<string>();
+
+  for (const direction of ["horizontal", "vertical"] as const) {
+    const sameDir = guides
+      .filter((g) => g.direction === direction)
+      .sort((a, b) => a.index - b.index);
+
+    for (let i = 0; i < sameDir.length; i++) {
+      if (removed.has(sameDir[i].id)) continue;
+      for (let j = i + 1; j < sameDir.length; j++) {
+        if (removed.has(sameDir[j].id)) continue;
+        if (Math.abs(sameDir[i].position - sameDir[j].position) <= GUIDE_MERGE_THRESHOLD) {
+          // Absorber = lower index (the one that was there before)
+          merges.set(sameDir[j].id, sameDir[i].id);
+          removed.add(sameDir[j].id);
+        }
+      }
+    }
+  }
+  return merges;
+}
+
+/** Apply guide merges: reassign nodes, reposition, and remove merged guides */
+function applyGuideMerges(
+  merges: Map<string, string>,
+  guides: GuideLine[],
+  canvasWidth: number,
+  canvasHeight: number,
+  setGuides: React.Dispatch<React.SetStateAction<GuideLine[]>>,
+  setNodes: React.Dispatch<React.SetStateAction<Node[]>>,
+) {
+  if (merges.size === 0) return;
+
+  const guideMap = new Map(guides.map((g) => [g.id, g]));
+
+  setNodes((nds) =>
+    nds.map((n) => {
+      const nd = n.data as Record<string, unknown>;
+      let changed = false;
+      const newData = { ...nd };
+      let newPos = { ...n.position };
+
+      for (const field of GUIDE_FIELDS) {
+        const val = nd?.[field] as string | undefined;
+        if (val && merges.has(val)) {
+          const absorberId = merges.get(val)!;
+          newData[field] = absorberId;
+          changed = true;
+
+          const absorber = guideMap.get(absorberId);
+          if (absorber && (field === "guideRow" || field === "guideColumn")) {
+            const nW = n.width ?? n.measured?.width ?? 160;
+            const nH = n.height ?? n.measured?.height ?? 50;
+            if (absorber.direction === "horizontal") {
+              newPos = { ...newPos, y: absorber.position * canvasHeight - nH / 2 };
+            } else {
+              newPos = { ...newPos, x: absorber.position * canvasWidth - nW / 2 };
+            }
+          }
+        }
+      }
+
+      return changed ? { ...n, data: newData, position: newPos } : n;
+    })
+  );
+
+  setGuides((gs) => gs.filter((g) => !merges.has(g.id)));
+}
 
 const nodeTypes: NodeTypes = {
   colorBox: ColorBoxNode,
@@ -116,6 +192,7 @@ export function FlowDiagram({
   const [chatProgress, setChatProgress] = useState<string | null>(null);
   const [tokenUsage, setTokenUsage] = useState<TokenUsage | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [dragMessage, setDragMessage] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const flowRef = useRef<HTMLDivElement>(null);
@@ -743,8 +820,118 @@ export function FlowDiagram({
 
       const nodeW = draggedNode.width ?? draggedNode.measured?.width ?? 160;
       const nodeH = draggedNode.height ?? draggedNode.measured?.height ?? 50;
-      const centerX = draggedNode.position.x + nodeW / 2;
-      const centerY = draggedNode.position.y + nodeH / 2;
+      let centerX = draggedNode.position.x + nodeW / 2;
+      let centerY = draggedNode.position.y + nodeH / 2;
+
+      // Alt+drag on grouped node: reparent to another group
+      if (event.altKey && draggedNode.parentId) {
+        saveSnapshot();
+
+        const oldParentId = draggedNode.parentId;
+        const oldParent = nodes.find((n) => n.id === oldParentId);
+
+        // Use the MOUSE position to determine target group, not the node position
+        // (React Flow constrains child nodes within parent bounds during drag,
+        //  so the node position may be clamped at the parent edge)
+        // Extract viewport transform from the DOM
+        const vpEl = flowRef.current?.querySelector(".react-flow__viewport") as HTMLElement;
+        const flowEl = flowRef.current?.querySelector(".react-flow") as HTMLElement;
+        let mouseCanvasX = centerX;
+        let mouseCanvasY = centerY;
+        if (vpEl && flowEl) {
+          const m = new DOMMatrix(getComputedStyle(vpEl).transform);
+          const fr = flowEl.getBoundingClientRect();
+          mouseCanvasX = (event.clientX - fr.left - m.e) / m.a;
+          mouseCanvasY = (event.clientY - fr.top - m.f) / m.d;
+        }
+
+        // Also compute absolute node position for the actual move
+        let absX = draggedNode.position.x;
+        let absY = draggedNode.position.y;
+        if (oldParent) {
+          absX += oldParent.position.x;
+          absY += oldParent.position.y;
+        }
+
+        // Use mouse position as the drop target detection point
+        const absCenterX = mouseCanvasX;
+        const absCenterY = mouseCanvasY;
+
+        // Build absolute position map for all groups (positions are parent-relative in React Flow)
+        const absPos = new Map<string, { x: number; y: number }>();
+        // Process in order: groups without parents first, then children
+        const groupNodes = nodes.filter((n) => n.type === "groupNode");
+        for (const g of groupNodes) {
+          let gx = g.position.x;
+          let gy = g.position.y;
+          if (g.parentId) {
+            const pPos = absPos.get(g.parentId);
+            if (pPos) { gx += pPos.x; gy += pPos.y; }
+          }
+          absPos.set(g.id, { x: gx, y: gy });
+        }
+
+        // Find the smallest group that contains the drop point (excluding old parent)
+        const targetGroup = groupNodes
+          .filter((n) => n.id !== draggedNode.id && n.id !== oldParentId)
+          .filter((n) => {
+            const pos = absPos.get(n.id);
+            if (!pos) return false;
+            const gw = n.width ?? n.measured?.width ?? 300;
+            const gh = n.height ?? n.measured?.height ?? 200;
+            return absCenterX >= pos.x && absCenterX <= pos.x + gw
+                && absCenterY >= pos.y && absCenterY <= pos.y + gh;
+          })
+          .sort((a, b) => {
+            // Prefer the smallest (most specific) group
+            const aArea = (a.width ?? 300) * (a.height ?? 200);
+            const bArea = (b.width ?? 300) * (b.height ?? 200);
+            return aArea - bArea;
+          })[0] ?? null;
+
+        const newParentId = targetGroup?.id ?? null;
+
+        // Place the node centered at the mouse drop point
+        let newX = mouseCanvasX - nodeW / 2;
+        let newY = mouseCanvasY - nodeH / 2;
+        if (targetGroup) {
+          const tPos = absPos.get(targetGroup.id);
+          if (tPos) {
+            newX = mouseCanvasX - nodeW / 2 - tPos.x;
+            newY = mouseCanvasY - nodeH / 2 - tPos.y;
+          }
+        }
+
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === draggedNode.id
+              ? {
+                  ...n,
+                  parentId: newParentId ?? undefined,
+                  position: { x: newX, y: newY },
+                }
+              : n
+          )
+        );
+
+        // Show toast message
+        if (targetGroup && targetGroup.id !== oldParentId) {
+          const nodeLabel = (data?.label as string) ?? draggedNode.id;
+          const groupLabel = (targetGroup.data as Record<string, unknown>)?.label as string ?? targetGroup.id;
+          setDragMessage(`${nodeLabel} is now part of ${groupLabel}`);
+          setTimeout(() => setDragMessage(null), 4000);
+        } else if (!targetGroup) {
+          const nodeLabel = (data?.label as string) ?? draggedNode.id;
+          setDragMessage(`${nodeLabel} is now top-level`);
+          setTimeout(() => setDragMessage(null), 4000);
+        }
+
+        // Update centerX/centerY for any subsequent guide logic
+        centerX = newX + nodeW / 2;
+        centerY = newY + nodeH / 2;
+
+        return; // Skip other drag logic
+      }
 
       // Shift+drag: reassign node to nearest existing guides
       if (event.shiftKey) {
@@ -885,6 +1072,28 @@ export function FlowDiagram({
           )
         );
 
+        // Consolidate any guides that ended up too close after detachment.
+        // We build the new guides list to check merges against.
+        const guideFields2 = ["guideRow", "guideColumn", "guideRowBottom", "guideColumnRight"] as const;
+        const referencedByOthers2 = new Set<string>();
+        for (const n of nodes) {
+          if (n.id === draggedNode.id) continue;
+          const nd2 = n.data as Record<string, unknown>;
+          for (const f of guideFields2) {
+            const v = nd2?.[f] as string | undefined;
+            if (v) referencedByOthers2.add(v);
+          }
+        }
+        const newGuideList = [
+          ...guides.filter((g) => !orphanCandidates.has(g.id) || referencedByOthers2.has(g.id)),
+          newRowGuide,
+          newColGuide,
+        ];
+        const merges = findGuideMerges(newGuideList);
+        if (merges.size > 0) {
+          applyGuideMerges(merges, newGuideList, canvasWidth, canvasHeight, setGuides, setNodes);
+        }
+
         return; // Skip normal guide-snapping logic
       }
 
@@ -934,6 +1143,17 @@ export function FlowDiagram({
           return n;
         })
       );
+
+      // Consolidate any guides that ended up overlapping after the drag
+      const updatedGuides = guides.map((g) => {
+        if (g.id === rowId) return { ...g, position: centerY / canvasHeight };
+        if (g.id === colId) return { ...g, position: centerX / canvasWidth };
+        return g;
+      });
+      const normalMerges = findGuideMerges(updatedGuides);
+      if (normalMerges.size > 0) {
+        applyGuideMerges(normalMerges, updatedGuides, canvasWidth, canvasHeight, setGuides, setNodes);
+      }
     },
     [guides, nodes, canvasWidth, canvasHeight, setGuides, setNodes, saveSnapshot]
   );
@@ -1161,9 +1381,11 @@ export function FlowDiagram({
 
     const PADDING = 40;
     const PIXEL_RATIO = 2;
-    const FOOTER_HEIGHT = 36;
+    const FOOTER_HEIGHT = 56;
     const TAGLINE = "Made with Objectify";
-    const SITE_URL = "objectify.wiki";
+    const SITE_URL = "https://objectify-cwj.pages.dev";
+    const WALLET_ADDR = "0xD7e9b7124963439205B0EB9D2f919F05EF9F2919";
+    const WALLET_URI = `ethereum:${WALLET_ADDR}@8453`; // EIP-681: Base chain
 
     try {
       // Compute bounding box of all nodes in screen coordinates
@@ -1190,14 +1412,18 @@ export function FlowDiagram({
         pixelRatio: PIXEL_RATIO,
         backgroundColor: "#ffffff",
         filter: (node: HTMLElement) => {
-          if (!(node instanceof HTMLElement)) return true;
-          const cls = node.className ?? "";
-          if (typeof cls !== "string") return true;
-          // Filter out minimap, controls, panels, and background grid
-          if (cls.includes("react-flow__minimap")) return false;
-          if (cls.includes("react-flow__controls")) return false;
-          if (cls.includes("react-flow__panel")) return false;
-          if (cls.includes("react-flow__background")) return false;
+          const el = node as unknown as Element;
+          if (!el.getAttribute && !el.classList) return true;
+          // Filter out guide lines overlay
+          if (el.hasAttribute?.("data-export-ignore")) return false;
+          // classList.contains works for both HTMLElement and SVGElement
+          const cl = el.classList;
+          if (cl) {
+            if (cl.contains("react-flow__minimap")) return false;
+            if (cl.contains("react-flow__controls")) return false;
+            if (cl.contains("react-flow__panel")) return false;
+            if (cl.contains("react-flow__background")) return false;
+          }
           return true;
         },
       });
@@ -1228,25 +1454,63 @@ export function FlowDiagram({
         cw, ch,
       );
 
+      // Generate QR codes
+      function makeQr(data: string) {
+        const q = qrcode(0, "L");
+        q.addData(data);
+        q.make();
+        return q;
+      }
+      const qrSite = makeQr(SITE_URL);
+      const qrWallet = makeQr(WALLET_URI);
+
       // Draw branded footer
       ctx.fillStyle = "#f5f5f5";
       ctx.fillRect(0, ch, cw, footerH);
-      // Subtle top border
       ctx.fillStyle = "#e0e0e0";
       ctx.fillRect(0, ch, cw, PIXEL_RATIO);
 
       const fontSize = 12 * PIXEL_RATIO;
-      ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
-      ctx.fillStyle = "#888888";
+      const font = `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+      ctx.font = `${fontSize}px ${font}`;
       ctx.textBaseline = "middle";
-      const textY = ch + footerH / 2;
       const pad = 12 * PIXEL_RATIO;
-      // Left: tagline
+      const qrSize = footerH - 8 * PIXEL_RATIO;
+      const qrY = ch + (footerH - qrSize) / 2;
+      const gap = 6 * PIXEL_RATIO;
+
+      // Helper: draw a QR code at (x, y)
+      function drawQr(q: ReturnType<typeof qrcode>, x: number, y: number, size: number) {
+        const modules = q.getModuleCount();
+        const cell = size / modules;
+        ctx.fillStyle = "#333333";
+        for (let r = 0; r < modules; r++) {
+          for (let c = 0; c < modules; c++) {
+            if (q.isDark(r, c)) {
+              ctx.fillRect(x + c * cell, y + r * cell, Math.ceil(cell), Math.ceil(cell));
+            }
+          }
+        }
+      }
+
+      // Left side: [QR] gap [tagline + URL]
+      let x = pad;
+      drawQr(qrSite, x, qrY, qrSize);
+      x += qrSize + gap;
       ctx.textAlign = "left";
-      ctx.fillText(TAGLINE, pad, textY);
-      // Right: URL
+      ctx.fillStyle = "#888888";
+      ctx.fillText(TAGLINE, x, ch + footerH * 0.33);
+      ctx.fillStyle = "#aaaaaa";
+      ctx.fillText(SITE_URL, x, ch + footerH * 0.7);
+
+      // Right side: [tip text + address] gap [QR]
+      const qrWalletX = cw - pad - qrSize;
+      drawQr(qrWallet, qrWalletX, qrY, qrSize);
       ctx.textAlign = "right";
-      ctx.fillText(SITE_URL, cw - pad, textY);
+      ctx.fillStyle = "#888888";
+      ctx.fillText("Send tokens of appreciation", qrWalletX - gap, ch + footerH * 0.33);
+      ctx.fillStyle = "#aaaaaa";
+      ctx.fillText(WALLET_ADDR, qrWalletX - gap, ch + footerH * 0.7);
 
       // Download
       const slug = (diagram.title ?? "diagram").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -1422,7 +1686,7 @@ export function FlowDiagram({
           >
             Magnetic Layout
           </button>
-          <button className="load-btn" onClick={handleExport} style={{ marginRight: 4 }}>
+          <button className="load-btn export-json-btn" onClick={handleExport} style={{ marginRight: 4 }}>
             Export JSON
           </button>
           <button className="load-btn" onClick={handleExportPng} style={{ marginRight: 4 }}>
@@ -1431,9 +1695,9 @@ export function FlowDiagram({
           <button
             className="load-btn"
             onClick={() => setShowShareModal(true)}
-            style={{ background: "#e3f2fd", borderColor: "#90caf9", marginRight: 4 }}
+            style={{ marginRight: 4 }}
           >
-            Share
+            Feedback
           </button>
           {isAdmin && (
             <button
@@ -1532,6 +1796,12 @@ export function FlowDiagram({
           saveSnapshot={saveSnapshot}
           diagram={diagram}
         />
+      )}
+
+      {dragMessage && (
+        <div className="drag-toast">
+          {dragMessage}
+        </div>
       )}
 
       <CommandBar

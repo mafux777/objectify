@@ -8,12 +8,13 @@ import { SupabaseAdapter } from "./supabase-adapter.js";
 
 /**
  * Create a database adapter.
- * If a Supabase user ID is provided, use SupabaseAdapter.
- * Otherwise, fall back to LocalStorageAdapter.
+ * With anonymous sign-ins, all users have a real Supabase ID.
+ * LocalStorageAdapter is only used in AUTH_BYPASS dev mode.
  */
 export function createDbAdapter(supabaseUserId?: string): DbAdapter {
   if (supabaseUserId) {
     return new SupabaseAdapter(supabaseUserId);
   }
+  // AUTH_BYPASS dev mode only
   return new LocalStorageAdapter();
 }
