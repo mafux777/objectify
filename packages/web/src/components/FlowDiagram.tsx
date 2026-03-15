@@ -65,6 +65,7 @@ import {
   updateSizePaletteEntry,
   addSizePaletteEntry,
 } from "../lib/size-palette-api.js";
+import { getParentOffset } from "../lib/parent-offset.js";
 
 let detachGuideCounter = 200;
 
@@ -127,10 +128,12 @@ function applyGuideMerges(
           if (absorber && (field === "guideRow" || field === "guideColumn")) {
             const nW = n.width ?? n.measured?.width ?? 160;
             const nH = n.height ?? n.measured?.height ?? 50;
+            // Guide position is absolute; convert to parent-relative
+            const parentOff = getParentOffset(n.parentId, nds);
             if (absorber.direction === "horizontal") {
-              newPos = { ...newPos, y: absorber.position * canvasHeight - nH / 2 };
+              newPos = { ...newPos, y: absorber.position * canvasHeight - nH / 2 - parentOff.y };
             } else {
-              newPos = { ...newPos, x: absorber.position * canvasWidth - nW / 2 };
+              newPos = { ...newPos, x: absorber.position * canvasWidth - nW / 2 - parentOff.x };
             }
           }
         }
@@ -820,8 +823,11 @@ export function FlowDiagram({
 
       const nodeW = draggedNode.width ?? draggedNode.measured?.width ?? 160;
       const nodeH = draggedNode.height ?? draggedNode.measured?.height ?? 50;
-      let centerX = draggedNode.position.x + nodeW / 2;
-      let centerY = draggedNode.position.y + nodeH / 2;
+
+      // Compute absolute center (guide positions are in absolute canvas coordinates)
+      const parentOffset = getParentOffset(draggedNode.parentId, nodes);
+      let centerX = draggedNode.position.x + parentOffset.x + nodeW / 2;
+      let centerY = draggedNode.position.y + parentOffset.y + nodeH / 2;
 
       // Alt+drag on grouped node: reparent to another group
       if (event.altKey && draggedNode.parentId) {
@@ -966,11 +972,11 @@ export function FlowDiagram({
           }
         }
 
-        // Snap node to the new guide intersection
+        // Snap node to the new guide intersection (guide pos is absolute, convert to parent-relative)
         const newRowGuide = guides.find((g) => g.id === newRowId);
         const newColGuide = guides.find((g) => g.id === newColId);
-        const snapY = newRowGuide ? newRowGuide.position * canvasHeight - nodeH / 2 : draggedNode.position.y;
-        const snapX = newColGuide ? newColGuide.position * canvasWidth - nodeW / 2 : draggedNode.position.x;
+        const snapY = newRowGuide ? newRowGuide.position * canvasHeight - nodeH / 2 - parentOffset.y : draggedNode.position.y;
+        const snapX = newColGuide ? newColGuide.position * canvasWidth - nodeW / 2 - parentOffset.x : draggedNode.position.x;
 
         setNodes((nds) =>
           nds.map((n) =>
@@ -1115,6 +1121,7 @@ export function FlowDiagram({
       );
 
       // Move sibling nodes on the same guides to align with the new position
+      // centerX/centerY are absolute; convert to each sibling's parent-relative coords
       setNodes((nds) =>
         nds.map((n) => {
           if (n.id === draggedNode.id) return n; // skip the dragged node itself
@@ -1128,13 +1135,15 @@ export function FlowDiagram({
           let newX = n.position.x;
           let newY = n.position.y;
 
-          // If sibling shares the same row, align Y center
+          // If sibling shares the same row, align Y center (absolute → parent-relative)
           if (rowId && nRow === rowId) {
-            newY = centerY - nH / 2;
+            const siblingParentOff = getParentOffset(n.parentId, nds);
+            newY = centerY - nH / 2 - siblingParentOff.y;
           }
-          // If sibling shares the same column, align X center
+          // If sibling shares the same column, align X center (absolute → parent-relative)
           if (colId && nCol === colId) {
-            newX = centerX - nW / 2;
+            const siblingParentOff = getParentOffset(n.parentId, nds);
+            newX = centerX - nW / 2 - siblingParentOff.x;
           }
 
           if (newX !== n.position.x || newY !== n.position.y) {

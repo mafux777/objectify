@@ -1,6 +1,7 @@
 import { useCallback, useRef } from "react";
 import { useReactFlow, useViewport, type Node } from "@xyflow/react";
 import type { GuideLine } from "@objectify/schema";
+import { getParentOffset } from "../lib/parent-offset.js";
 
 /** Minimum normalized gap between adjacent guides (~18px at 1200px canvas) */
 const MIN_GUIDE_GAP = 0.015;
@@ -124,14 +125,19 @@ export function GuideLines({
         nds.map((n) => {
           const nd = n.data as Record<string, unknown>;
 
+          // Compute parent offset for nodes inside groups
+          // (guide positions are absolute canvas coords, node positions are parent-relative)
+          const parentOff = getParentOffset(n.parentId, nds);
+
           // Case 1: Node uses this guide as a bottom/right edge → resize
           if (nd?.[bottomField] === ds.guideId) {
-            const newDim = newCanvasPos - n.position.y;
             if (ds.direction === "horizontal") {
-              const newH = Math.max(30, newCanvasPos - n.position.y);
+              const absNodeY = n.position.y + parentOff.y;
+              const newH = Math.max(30, newCanvasPos - absNodeY);
               return { ...n, height: newH, style: { ...n.style, height: newH } };
             } else {
-              const newW = Math.max(60, newCanvasPos - n.position.x);
+              const absNodeX = n.position.x + parentOff.x;
+              const newW = Math.max(60, newCanvasPos - absNodeX);
               return { ...n, width: newW, style: { ...n.style, width: newW } };
             }
           }
@@ -142,11 +148,11 @@ export function GuideLines({
             const nH = n.height ?? n.measured?.height ?? 50;
 
             if (ds.direction === "horizontal") {
-              const newY = newCanvasPos - nH / 2;
+              const newY = newCanvasPos - nH / 2 - parentOff.y;
               if (Math.abs(n.position.y - newY) < 0.5) return n;
               return { ...n, position: { x: n.position.x, y: newY } };
             } else {
-              const newX = newCanvasPos - nW / 2;
+              const newX = newCanvasPos - nW / 2 - parentOff.x;
               if (Math.abs(n.position.x - newX) < 0.5) return n;
               return { ...n, position: { x: newX, y: n.position.y } };
             }
@@ -214,11 +220,13 @@ export function GuideLines({
             let newPos = { ...n.position };
 
             // Only reposition for top/left guide references (guideRow/guideColumn)
+            // Guide position is absolute; convert to parent-relative
+            const pOff = getParentOffset(n.parentId, nds);
             if (nd?.guideRow === removedId && ds.direction === "horizontal") {
-              newPos = { ...newPos, y: absorberCanvasPos - nH / 2 };
+              newPos = { ...newPos, y: absorberCanvasPos - nH / 2 - pOff.y };
             }
             if (nd?.guideColumn === removedId && ds.direction === "vertical") {
-              newPos = { ...newPos, x: absorberCanvasPos - nW / 2 };
+              newPos = { ...newPos, x: absorberCanvasPos - nW / 2 - pOff.x };
             }
 
             return { ...n, data: newData, position: newPos };
