@@ -1,0 +1,1688 @@
+{
+  "version": "4.0",
+  "description": "Talos Trading Platform Architecture \u2014 AWS-hosted trading infrastructure with OMS, gateways, market data distribution, and external connectivity to exchanges, OTC dealers, custodians, and settlement networks.",
+  "palette": [
+    {
+      "id": "green-bg",
+      "hex": "#4CAF50",
+      "percentage": 25
+    },
+    {
+      "id": "green-light",
+      "hex": "#E8F5E9",
+      "percentage": 15
+    },
+    {
+      "id": "green-border",
+      "hex": "#81C784",
+      "percentage": 5
+    },
+    {
+      "id": "white",
+      "hex": "#FFFFFF",
+      "percentage": 15
+    },
+    {
+      "id": "orange-bg",
+      "hex": "#FFE0B2",
+      "percentage": 8
+    },
+    {
+      "id": "orange-circle",
+      "hex": "#FF9800",
+      "percentage": 5
+    },
+    {
+      "id": "gray-bg",
+      "hex": "#F5F5F5",
+      "percentage": 10
+    },
+    {
+      "id": "gray-border",
+      "hex": "#BDBDBD",
+      "percentage": 5
+    },
+    {
+      "id": "blue",
+      "hex": "#42A5F5",
+      "percentage": 4
+    },
+    {
+      "id": "red-msg",
+      "hex": "#FFCDD2",
+      "percentage": 3
+    },
+    {
+      "id": "dark",
+      "hex": "#333333",
+      "percentage": 5
+    }
+  ],
+  "shapePalette": [
+    {
+      "id": "rect",
+      "kind": "rectangle"
+    },
+    {
+      "id": "rounded",
+      "kind": "rounded-rectangle"
+    },
+    {
+      "id": "circle",
+      "kind": "circle"
+    }
+  ],
+  "sizePalette": [
+    {
+      "id": "sm",
+      "width": 0.08,
+      "height": 0.035
+    },
+    {
+      "id": "md",
+      "width": 0.1,
+      "height": 0.04
+    },
+    {
+      "id": "api-btn",
+      "width": 0.07,
+      "height": 0.045
+    },
+    {
+      "id": "gateway",
+      "width": 0.09,
+      "height": 0.04
+    },
+    {
+      "id": "ext-circle",
+      "width": 0.06,
+      "height": 0.07
+    },
+    {
+      "id": "icon-box",
+      "width": 0.05,
+      "height": 0.06
+    },
+    {
+      "id": "wide",
+      "width": 0.13,
+      "height": 0.04
+    }
+  ],
+  "semanticTypes": [
+    {
+      "id": "container",
+      "name": "Container"
+    },
+    {
+      "id": "api",
+      "name": "API Endpoint"
+    },
+    {
+      "id": "oms-module",
+      "name": "OMS Module"
+    },
+    {
+      "id": "gateway-func",
+      "name": "Gateway Function"
+    },
+    {
+      "id": "gateway-conn",
+      "name": "Gateway Connector"
+    },
+    {
+      "id": "infra",
+      "name": "Infrastructure"
+    },
+    {
+      "id": "external",
+      "name": "External Entity"
+    },
+    {
+      "id": "data-svc",
+      "name": "Data Service"
+    },
+    {
+      "id": "security",
+      "name": "Security"
+    }
+  ],
+  "diagrams": [
+    {
+      "id": "talos-arch",
+      "title": "Talos Architecture",
+      "direction": "RIGHT",
+      "layoutMode": "spatial",
+      "imageDimensions": {
+        "width": 1370,
+        "height": 900
+      },
+      "guides": [
+        {
+          "id": "row-api",
+          "index": 0,
+          "direction": "horizontal",
+          "position": 0.22,
+          "label": "APIs"
+        },
+        {
+          "id": "row-oms1",
+          "index": 1,
+          "direction": "horizontal",
+          "position": 0.17,
+          "label": "OMS Top"
+        },
+        {
+          "id": "row-oms2",
+          "index": 2,
+          "direction": "horizontal",
+          "position": 0.24,
+          "label": "OMS Mid"
+        },
+        {
+          "id": "row-oms3",
+          "index": 3,
+          "direction": "horizontal",
+          "position": 0.31,
+          "label": "OMS Bot"
+        },
+        {
+          "id": "row-analytics",
+          "index": 4,
+          "direction": "horizontal",
+          "position": 0.4,
+          "label": "Analytics"
+        },
+        {
+          "id": "row-msg",
+          "index": 5,
+          "direction": "horizontal",
+          "position": 0.55,
+          "label": "Messaging"
+        },
+        {
+          "id": "row-data",
+          "index": 6,
+          "direction": "horizontal",
+          "position": 0.72,
+          "label": "Data Svc"
+        },
+        {
+          "id": "row-bottom",
+          "index": 7,
+          "direction": "horizontal",
+          "position": 0.88,
+          "label": "Foundation"
+        },
+        {
+          "id": "col-ext",
+          "index": 0,
+          "direction": "vertical",
+          "position": 0.06,
+          "label": "External"
+        },
+        {
+          "id": "col-lb",
+          "index": 1,
+          "direction": "vertical",
+          "position": 0.14,
+          "label": "LB"
+        },
+        {
+          "id": "col-api",
+          "index": 2,
+          "direction": "vertical",
+          "position": 0.24,
+          "label": "API"
+        },
+        {
+          "id": "col-oms1",
+          "index": 3,
+          "direction": "vertical",
+          "position": 0.35,
+          "label": "OMS-L"
+        },
+        {
+          "id": "col-oms2",
+          "index": 4,
+          "direction": "vertical",
+          "position": 0.44,
+          "label": "OMS-M"
+        },
+        {
+          "id": "col-oms3",
+          "index": 5,
+          "direction": "vertical",
+          "position": 0.53,
+          "label": "OMS-R"
+        },
+        {
+          "id": "col-gw-func",
+          "index": 6,
+          "direction": "vertical",
+          "position": 0.62,
+          "label": "GW Func"
+        },
+        {
+          "id": "col-gw-conn",
+          "index": 7,
+          "direction": "vertical",
+          "position": 0.72,
+          "label": "GW Conn"
+        },
+        {
+          "id": "col-ext-r",
+          "index": 8,
+          "direction": "vertical",
+          "position": 0.92,
+          "label": "Providers"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "aws",
+          "label": "AWS",
+          "type": "group",
+          "style": {
+            "backgroundColor": "#F5F5F5",
+            "textColor": "#333333",
+            "borderColor": "#BDBDBD",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rect",
+          "semanticTypeId": "container",
+          "spatial": {
+            "x": 0.01,
+            "y": 0.01,
+            "width": 0.8,
+            "height": 0.97
+          },
+          "labelPosition": "top-left",
+          "orderHint": 0
+        },
+        {
+          "id": "region",
+          "label": "Region",
+          "type": "group",
+          "parentId": "aws",
+          "style": {
+            "backgroundColor": "#FAFAFA",
+            "textColor": "#666666",
+            "borderColor": "#BDBDBD",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rect",
+          "semanticTypeId": "container",
+          "spatial": {
+            "x": 0.1,
+            "y": 0.06,
+            "width": 0.7,
+            "height": 0.91
+          },
+          "labelPosition": "top-left",
+          "orderHint": 1
+        },
+        {
+          "id": "client-host",
+          "label": "Client specific host",
+          "type": "group",
+          "parentId": "region",
+          "style": {
+            "backgroundColor": "#E8F5E9",
+            "textColor": "#2E7D32",
+            "borderColor": "#A5D6A7",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "semanticTypeId": "container",
+          "spatial": {
+            "x": 0.2,
+            "y": 0.09,
+            "width": 0.58,
+            "height": 0.5
+          },
+          "labelPosition": "top-right",
+          "orderHint": 2
+        },
+        {
+          "id": "oms",
+          "label": "OMS",
+          "type": "group",
+          "parentId": "client-host",
+          "style": {
+            "backgroundColor": "#F1F8E9",
+            "textColor": "#33691E",
+            "borderColor": "#AED581",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "semanticTypeId": "container",
+          "spatial": {
+            "x": 0.27,
+            "y": 0.12,
+            "width": 0.28,
+            "height": 0.28
+          },
+          "labelPosition": "top-center",
+          "orderHint": 3
+        },
+        {
+          "id": "gateways",
+          "label": "Gateways",
+          "type": "group",
+          "parentId": "client-host",
+          "style": {
+            "backgroundColor": "#F1F8E9",
+            "textColor": "#33691E",
+            "borderColor": "#AED581",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "semanticTypeId": "container",
+          "spatial": {
+            "x": 0.57,
+            "y": 0.12,
+            "width": 0.19,
+            "height": 0.44
+          },
+          "labelPosition": "top-center",
+          "orderHint": 4
+        },
+        {
+          "id": "aeron-msg",
+          "label": "Aeron Messaging",
+          "type": "box",
+          "parentId": "client-host",
+          "style": {
+            "backgroundColor": "#FFCDD2",
+            "textColor": "#B71C1C",
+            "borderColor": "#EF9A9A",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rect",
+          "sizeId": "wide",
+          "semanticTypeId": "infra",
+          "spatial": {
+            "x": 0.2,
+            "y": 0.53,
+            "width": 0.56,
+            "height": 0.035
+          },
+          "guideRow": "row-msg",
+          "guideColumn": "col-oms2",
+          "orderHint": 5
+        },
+        {
+          "id": "md-gateways",
+          "label": "Market Data Gateways",
+          "type": "group",
+          "parentId": "region",
+          "style": {
+            "backgroundColor": "#E0F2F1",
+            "textColor": "#00695C",
+            "borderColor": "#80CBC4",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "semanticTypeId": "container",
+          "spatial": {
+            "x": 0.56,
+            "y": 0.65,
+            "width": 0.22,
+            "height": 0.16
+          },
+          "labelPosition": "top-center",
+          "orderHint": 6
+        },
+        {
+          "id": "ext-user",
+          "label": "External\nEnd User",
+          "type": "box",
+          "style": {
+            "backgroundColor": "#F5F5F5",
+            "textColor": "#333333",
+            "borderColor": "#BDBDBD",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "icon-box",
+          "semanticTypeId": "external",
+          "spatial": {
+            "x": 0.02,
+            "y": 0.3,
+            "width": 0.07,
+            "height": 0.08
+          },
+          "guideRow": "row-oms3",
+          "guideColumn": "col-ext",
+          "orderHint": 10
+        },
+        {
+          "id": "http-lb",
+          "label": "HTTP Load\nBalancer",
+          "type": "box",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#BDBDBD",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "md",
+          "semanticTypeId": "infra",
+          "spatial": {
+            "x": 0.1,
+            "y": 0.19,
+            "width": 0.08,
+            "height": 0.08
+          },
+          "guideRow": "row-api",
+          "guideColumn": "col-lb",
+          "orderHint": 11
+        },
+        {
+          "id": "ws-api",
+          "label": "Websocket\nAPI",
+          "type": "box",
+          "parentId": "client-host",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "api-btn",
+          "semanticTypeId": "api",
+          "spatial": {
+            "x": 0.21,
+            "y": 0.14,
+            "width": 0.07,
+            "height": 0.05
+          },
+          "guideRow": "row-oms1",
+          "guideColumn": "col-api",
+          "orderHint": 12
+        },
+        {
+          "id": "rest-api",
+          "label": "REST API",
+          "type": "box",
+          "parentId": "client-host",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "api-btn",
+          "semanticTypeId": "api",
+          "spatial": {
+            "x": 0.21,
+            "y": 0.26,
+            "width": 0.07,
+            "height": 0.045
+          },
+          "guideRow": "row-oms2",
+          "guideColumn": "col-api",
+          "orderHint": 13
+        },
+        {
+          "id": "fix-api",
+          "label": "FIX API",
+          "type": "box",
+          "parentId": "client-host",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "api-btn",
+          "semanticTypeId": "api",
+          "spatial": {
+            "x": 0.21,
+            "y": 0.35,
+            "width": 0.07,
+            "height": 0.045
+          },
+          "guideRow": "row-oms3",
+          "guideColumn": "col-api",
+          "orderHint": 14
+        },
+        {
+          "id": "persistence",
+          "label": "Persistence",
+          "type": "box",
+          "parentId": "region",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "infra",
+          "spatial": {
+            "x": 0.21,
+            "y": 0.48,
+            "width": 0.08,
+            "height": 0.035
+          },
+          "guideRow": "row-analytics",
+          "guideColumn": "col-api",
+          "orderHint": 15
+        },
+        {
+          "id": "rfq-trade",
+          "label": "RFQ Trade Best",
+          "type": "box",
+          "parentId": "oms",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "oms-module",
+          "spatial": {
+            "x": 0.29,
+            "y": 0.15,
+            "width": 0.08,
+            "height": 0.035
+          },
+          "guideRow": "row-oms1",
+          "guideColumn": "col-oms1",
+          "orderHint": 20
+        },
+        {
+          "id": "algos",
+          "label": "Algos",
+          "type": "box",
+          "parentId": "oms",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "oms-module",
+          "spatial": {
+            "x": 0.39,
+            "y": 0.15,
+            "width": 0.07,
+            "height": 0.035
+          },
+          "guideRow": "row-oms1",
+          "guideColumn": "col-oms2",
+          "orderHint": 21
+        },
+        {
+          "id": "oms-balances",
+          "label": "Balances",
+          "type": "box",
+          "parentId": "oms",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "oms-module",
+          "spatial": {
+            "x": 0.48,
+            "y": 0.15,
+            "width": 0.07,
+            "height": 0.035
+          },
+          "guideRow": "row-oms1",
+          "guideColumn": "col-oms3",
+          "orderHint": 22
+        },
+        {
+          "id": "credit-exp",
+          "label": "Credit Exposure",
+          "type": "box",
+          "parentId": "oms",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "oms-module",
+          "spatial": {
+            "x": 0.29,
+            "y": 0.22,
+            "width": 0.08,
+            "height": 0.035
+          },
+          "guideRow": "row-oms2",
+          "guideColumn": "col-oms1",
+          "orderHint": 23
+        },
+        {
+          "id": "positions",
+          "label": "Positions",
+          "type": "box",
+          "parentId": "oms",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "oms-module",
+          "spatial": {
+            "x": 0.39,
+            "y": 0.22,
+            "width": 0.07,
+            "height": 0.035
+          },
+          "guideRow": "row-oms2",
+          "guideColumn": "col-oms2",
+          "orderHint": 24
+        },
+        {
+          "id": "limits",
+          "label": "Limits",
+          "type": "box",
+          "parentId": "oms",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "oms-module",
+          "spatial": {
+            "x": 0.48,
+            "y": 0.22,
+            "width": 0.07,
+            "height": 0.035
+          },
+          "guideRow": "row-oms2",
+          "guideColumn": "col-oms3",
+          "orderHint": 25
+        },
+        {
+          "id": "post-trade",
+          "label": "Post Trade",
+          "type": "box",
+          "parentId": "oms",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "oms-module",
+          "spatial": {
+            "x": 0.29,
+            "y": 0.29,
+            "width": 0.08,
+            "height": 0.035
+          },
+          "guideRow": "row-oms3",
+          "guideColumn": "col-oms1",
+          "orderHint": 26
+        },
+        {
+          "id": "oms-fees",
+          "label": "Fees",
+          "type": "box",
+          "parentId": "oms",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "oms-module",
+          "spatial": {
+            "x": 0.39,
+            "y": 0.29,
+            "width": 0.07,
+            "height": 0.035
+          },
+          "guideRow": "row-oms3",
+          "guideColumn": "col-oms2",
+          "orderHint": 27
+        },
+        {
+          "id": "transfers",
+          "label": "Transfers",
+          "type": "box",
+          "parentId": "oms",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "oms-module",
+          "spatial": {
+            "x": 0.48,
+            "y": 0.29,
+            "width": 0.07,
+            "height": 0.035
+          },
+          "guideRow": "row-oms3",
+          "guideColumn": "col-oms3",
+          "orderHint": 28
+        },
+        {
+          "id": "aggregation",
+          "label": "Aggregation",
+          "type": "box",
+          "parentId": "client-host",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "oms-module",
+          "spatial": {
+            "x": 0.3,
+            "y": 0.42,
+            "width": 0.08,
+            "height": 0.035
+          },
+          "guideRow": "row-analytics",
+          "guideColumn": "col-oms1",
+          "orderHint": 29
+        },
+        {
+          "id": "risk",
+          "label": "Risk",
+          "type": "box",
+          "parentId": "client-host",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "oms-module",
+          "spatial": {
+            "x": 0.3,
+            "y": 0.46,
+            "width": 0.08,
+            "height": 0.035
+          },
+          "guideRow": "row-analytics",
+          "guideColumn": "col-oms1",
+          "orderHint": 30
+        },
+        {
+          "id": "allocations",
+          "label": "Allocations",
+          "type": "box",
+          "parentId": "client-host",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "oms-module",
+          "spatial": {
+            "x": 0.48,
+            "y": 0.42,
+            "width": 0.08,
+            "height": 0.035
+          },
+          "guideRow": "row-analytics",
+          "guideColumn": "col-oms3",
+          "orderHint": 31
+        },
+        {
+          "id": "order-analytics",
+          "label": "Order Analytics",
+          "type": "box",
+          "parentId": "client-host",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "oms-module",
+          "spatial": {
+            "x": 0.48,
+            "y": 0.46,
+            "width": 0.08,
+            "height": 0.035
+          },
+          "guideRow": "row-analytics",
+          "guideColumn": "col-oms3",
+          "orderHint": 32
+        },
+        {
+          "id": "gw-orders",
+          "label": "Orders",
+          "type": "box",
+          "parentId": "gateways",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#AED581",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "gateway-func",
+          "spatial": {
+            "x": 0.59,
+            "y": 0.15,
+            "width": 0.07,
+            "height": 0.035
+          },
+          "guideRow": "row-oms1",
+          "guideColumn": "col-gw-func",
+          "orderHint": 33
+        },
+        {
+          "id": "gw-balances",
+          "label": "Balances",
+          "type": "box",
+          "parentId": "gateways",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#AED581",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "gateway-func",
+          "spatial": {
+            "x": 0.59,
+            "y": 0.21,
+            "width": 0.07,
+            "height": 0.035
+          },
+          "guideRow": "row-oms2",
+          "guideColumn": "col-gw-func",
+          "orderHint": 34
+        },
+        {
+          "id": "gw-fees",
+          "label": "Fees",
+          "type": "box",
+          "parentId": "gateways",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#AED581",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "gateway-func",
+          "spatial": {
+            "x": 0.59,
+            "y": 0.27,
+            "width": 0.07,
+            "height": 0.035
+          },
+          "guideRow": "row-oms3",
+          "guideColumn": "col-gw-func",
+          "orderHint": 35
+        },
+        {
+          "id": "gw-credit",
+          "label": "Credit",
+          "type": "box",
+          "parentId": "gateways",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#AED581",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "gateway-func",
+          "spatial": {
+            "x": 0.59,
+            "y": 0.33,
+            "width": 0.07,
+            "height": 0.035
+          },
+          "guideRow": "row-analytics",
+          "guideColumn": "col-gw-func",
+          "orderHint": 36
+        },
+        {
+          "id": "gw-rfs",
+          "label": "RFS",
+          "type": "box",
+          "parentId": "gateways",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#AED581",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "gateway-func",
+          "spatial": {
+            "x": 0.59,
+            "y": 0.39,
+            "width": 0.07,
+            "height": 0.035
+          },
+          "guideRow": "row-analytics",
+          "guideColumn": "col-gw-func",
+          "orderHint": 37
+        },
+        {
+          "id": "gw-transfers",
+          "label": "Transfers",
+          "type": "box",
+          "parentId": "gateways",
+          "style": {
+            "backgroundColor": "#FFFFFF",
+            "textColor": "#333333",
+            "borderColor": "#AED581",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "gateway-func",
+          "spatial": {
+            "x": 0.59,
+            "y": 0.45,
+            "width": 0.07,
+            "height": 0.035
+          },
+          "guideRow": "row-analytics",
+          "guideColumn": "col-gw-func",
+          "orderHint": 38
+        },
+        {
+          "id": "exchange-gw",
+          "label": "Exchange\nGateway",
+          "type": "box",
+          "parentId": "gateways",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "gateway",
+          "semanticTypeId": "gateway-conn",
+          "spatial": {
+            "x": 0.67,
+            "y": 0.16,
+            "width": 0.09,
+            "height": 0.045
+          },
+          "guideRow": "row-oms1",
+          "guideColumn": "col-gw-conn",
+          "orderHint": 39
+        },
+        {
+          "id": "otc-gw",
+          "label": "OTC Dealer\nGateway",
+          "type": "box",
+          "parentId": "gateways",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "gateway",
+          "semanticTypeId": "gateway-conn",
+          "spatial": {
+            "x": 0.67,
+            "y": 0.27,
+            "width": 0.09,
+            "height": 0.045
+          },
+          "guideRow": "row-oms3",
+          "guideColumn": "col-gw-conn",
+          "orderHint": 40
+        },
+        {
+          "id": "custodian-gw",
+          "label": "Custodian\nGateway",
+          "type": "box",
+          "parentId": "gateways",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "gateway",
+          "semanticTypeId": "gateway-conn",
+          "spatial": {
+            "x": 0.67,
+            "y": 0.38,
+            "width": 0.09,
+            "height": 0.045
+          },
+          "guideRow": "row-analytics",
+          "guideColumn": "col-gw-conn",
+          "orderHint": 41
+        },
+        {
+          "id": "liq-providers",
+          "label": "Liquidity\nProviders",
+          "type": "box",
+          "style": {
+            "backgroundColor": "#FFE0B2",
+            "textColor": "#E65100",
+            "borderColor": "#FF9800",
+            "borderStyle": "solid"
+          },
+          "shapeId": "circle",
+          "sizeId": "ext-circle",
+          "semanticTypeId": "external",
+          "spatial": {
+            "x": 0.89,
+            "y": 0.1,
+            "width": 0.06,
+            "height": 0.08
+          },
+          "guideRow": "row-oms1",
+          "guideColumn": "col-ext-r",
+          "orderHint": 42
+        },
+        {
+          "id": "exchanges",
+          "label": "Exchanges",
+          "type": "box",
+          "style": {
+            "backgroundColor": "#FFE0B2",
+            "textColor": "#E65100",
+            "borderColor": "#FF9800",
+            "borderStyle": "solid"
+          },
+          "shapeId": "circle",
+          "sizeId": "ext-circle",
+          "semanticTypeId": "external",
+          "spatial": {
+            "x": 0.89,
+            "y": 0.22,
+            "width": 0.06,
+            "height": 0.08
+          },
+          "guideRow": "row-oms2",
+          "guideColumn": "col-ext-r",
+          "orderHint": 43
+        },
+        {
+          "id": "otc-dealers",
+          "label": "OTC Dealers",
+          "type": "box",
+          "style": {
+            "backgroundColor": "#FFE0B2",
+            "textColor": "#E65100",
+            "borderColor": "#FF9800",
+            "borderStyle": "solid"
+          },
+          "shapeId": "circle",
+          "sizeId": "ext-circle",
+          "semanticTypeId": "external",
+          "spatial": {
+            "x": 0.89,
+            "y": 0.34,
+            "width": 0.06,
+            "height": 0.08
+          },
+          "guideRow": "row-oms3",
+          "guideColumn": "col-ext-r",
+          "orderHint": 44
+        },
+        {
+          "id": "svc-providers",
+          "label": "Service\nProviders",
+          "type": "box",
+          "style": {
+            "backgroundColor": "#FFE0B2",
+            "textColor": "#E65100",
+            "borderColor": "#FF9800",
+            "borderStyle": "solid"
+          },
+          "shapeId": "circle",
+          "sizeId": "ext-circle",
+          "semanticTypeId": "external",
+          "spatial": {
+            "x": 0.89,
+            "y": 0.52,
+            "width": 0.06,
+            "height": 0.08
+          },
+          "guideRow": "row-msg",
+          "guideColumn": "col-ext-r",
+          "orderHint": 45
+        },
+        {
+          "id": "custodians",
+          "label": "Custodians",
+          "type": "box",
+          "style": {
+            "backgroundColor": "#FFE0B2",
+            "textColor": "#E65100",
+            "borderColor": "#FF9800",
+            "borderStyle": "solid"
+          },
+          "shapeId": "circle",
+          "sizeId": "ext-circle",
+          "semanticTypeId": "external",
+          "spatial": {
+            "x": 0.89,
+            "y": 0.64,
+            "width": 0.06,
+            "height": 0.08
+          },
+          "guideRow": "row-data",
+          "guideColumn": "col-ext-r",
+          "orderHint": 46
+        },
+        {
+          "id": "settlement",
+          "label": "Settlement\nNetworks",
+          "type": "box",
+          "style": {
+            "backgroundColor": "#FFE0B2",
+            "textColor": "#E65100",
+            "borderColor": "#FF9800",
+            "borderStyle": "solid"
+          },
+          "shapeId": "circle",
+          "sizeId": "ext-circle",
+          "semanticTypeId": "external",
+          "spatial": {
+            "x": 0.89,
+            "y": 0.76,
+            "width": 0.06,
+            "height": 0.08
+          },
+          "guideRow": "row-bottom",
+          "guideColumn": "col-ext-r",
+          "orderHint": 47
+        },
+        {
+          "id": "client-db",
+          "label": "Client\nDatabase",
+          "type": "box",
+          "parentId": "region",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "icon-box",
+          "semanticTypeId": "infra",
+          "spatial": {
+            "x": 0.22,
+            "y": 0.68,
+            "width": 0.06,
+            "height": 0.07
+          },
+          "guideRow": "row-data",
+          "guideColumn": "col-api",
+          "orderHint": 48
+        },
+        {
+          "id": "client-archive",
+          "label": "Client\nArchive",
+          "type": "box",
+          "parentId": "region",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "icon-box",
+          "semanticTypeId": "infra",
+          "spatial": {
+            "x": 0.28,
+            "y": 0.68,
+            "width": 0.06,
+            "height": 0.07
+          },
+          "guideRow": "row-data",
+          "guideColumn": "col-oms1",
+          "orderHint": 49
+        },
+        {
+          "id": "client-keys",
+          "label": "Client API Keys\n(KMS)",
+          "type": "box",
+          "parentId": "region",
+          "style": {
+            "backgroundColor": "#42A5F5",
+            "textColor": "#FFFFFF",
+            "borderColor": "#1E88E5",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "icon-box",
+          "semanticTypeId": "security",
+          "spatial": {
+            "x": 0.34,
+            "y": 0.68,
+            "width": 0.06,
+            "height": 0.07
+          },
+          "guideRow": "row-data",
+          "guideColumn": "col-oms1",
+          "orderHint": 50
+        },
+        {
+          "id": "md-dist",
+          "label": "Market Data\nDistribution",
+          "type": "box",
+          "parentId": "region",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "wide",
+          "semanticTypeId": "data-svc",
+          "spatial": {
+            "x": 0.41,
+            "y": 0.65,
+            "width": 0.12,
+            "height": 0.04
+          },
+          "guideRow": "row-data",
+          "guideColumn": "col-oms2",
+          "orderHint": 51
+        },
+        {
+          "id": "hist-capture",
+          "label": "Historical Data\nCapture",
+          "type": "box",
+          "parentId": "region",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "wide",
+          "semanticTypeId": "data-svc",
+          "spatial": {
+            "x": 0.41,
+            "y": 0.72,
+            "width": 0.12,
+            "height": 0.04
+          },
+          "guideRow": "row-data",
+          "guideColumn": "col-oms2",
+          "orderHint": 52
+        },
+        {
+          "id": "md-data",
+          "label": "Market Data",
+          "type": "box",
+          "parentId": "md-gateways",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "data-svc",
+          "spatial": {
+            "x": 0.58,
+            "y": 0.72,
+            "width": 0.08,
+            "height": 0.035
+          },
+          "guideRow": "row-data",
+          "guideColumn": "col-gw-func",
+          "orderHint": 53
+        },
+        {
+          "id": "md-exchange-gw",
+          "label": "Exchange\nGateway",
+          "type": "box",
+          "parentId": "md-gateways",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "sm",
+          "semanticTypeId": "gateway-conn",
+          "spatial": {
+            "x": 0.68,
+            "y": 0.72,
+            "width": 0.08,
+            "height": 0.035
+          },
+          "guideRow": "row-data",
+          "guideColumn": "col-gw-conn",
+          "orderHint": 54
+        },
+        {
+          "id": "md-archive",
+          "label": "Market Data\nArchive",
+          "type": "box",
+          "parentId": "region",
+          "style": {
+            "backgroundColor": "#42A5F5",
+            "textColor": "#FFFFFF",
+            "borderColor": "#1E88E5",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "icon-box",
+          "semanticTypeId": "data-svc",
+          "spatial": {
+            "x": 0.38,
+            "y": 0.84,
+            "width": 0.06,
+            "height": 0.07
+          },
+          "guideRow": "row-bottom",
+          "guideColumn": "col-oms2",
+          "orderHint": 55
+        },
+        {
+          "id": "hist-md",
+          "label": "Historical\nMarket Data",
+          "type": "box",
+          "parentId": "region",
+          "style": {
+            "backgroundColor": "#42A5F5",
+            "textColor": "#FFFFFF",
+            "borderColor": "#1E88E5",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "icon-box",
+          "semanticTypeId": "data-svc",
+          "spatial": {
+            "x": 0.45,
+            "y": 0.84,
+            "width": 0.06,
+            "height": 0.07
+          },
+          "guideRow": "row-bottom",
+          "guideColumn": "col-oms3",
+          "orderHint": 56
+        },
+        {
+          "id": "auth",
+          "label": "Authentication",
+          "type": "box",
+          "parentId": "region",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "md",
+          "semanticTypeId": "security",
+          "spatial": {
+            "x": 0.55,
+            "y": 0.86,
+            "width": 0.1,
+            "height": 0.04
+          },
+          "guideRow": "row-bottom",
+          "guideColumn": "col-gw-func",
+          "orderHint": 57
+        },
+        {
+          "id": "sec-master",
+          "label": "Security Master",
+          "type": "box",
+          "parentId": "region",
+          "style": {
+            "backgroundColor": "#4CAF50",
+            "textColor": "#FFFFFF",
+            "borderColor": "#388E3C",
+            "borderStyle": "solid"
+          },
+          "shapeId": "rounded",
+          "sizeId": "md",
+          "semanticTypeId": "security",
+          "spatial": {
+            "x": 0.67,
+            "y": 0.86,
+            "width": 0.1,
+            "height": 0.04
+          },
+          "guideRow": "row-bottom",
+          "guideColumn": "col-gw-conn",
+          "orderHint": 58
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-user-lb",
+          "source": "ext-user",
+          "target": "http-lb",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#42A5F5",
+            "routingType": "smoothstep",
+            "strokeWidth": 1.5
+          },
+          "targetMarker": "arrow",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00"
+        },
+        {
+          "id": "e-lb-ws",
+          "source": "http-lb",
+          "target": "ws-api",
+          "style": {
+            "lineStyle": "dashed",
+            "color": "#42A5F5",
+            "routingType": "smoothstep",
+            "strokeWidth": 1
+          },
+          "targetMarker": "arrow",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00"
+        },
+        {
+          "id": "e-lb-rest",
+          "source": "http-lb",
+          "target": "rest-api",
+          "style": {
+            "lineStyle": "dashed",
+            "color": "#42A5F5",
+            "routingType": "smoothstep",
+            "strokeWidth": 1
+          },
+          "targetMarker": "arrow",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00"
+        },
+        {
+          "id": "e-lb-fix",
+          "source": "http-lb",
+          "target": "fix-api",
+          "style": {
+            "lineStyle": "dashed",
+            "color": "#42A5F5",
+            "routingType": "smoothstep",
+            "strokeWidth": 1
+          },
+          "targetMarker": "arrow",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00"
+        },
+        {
+          "id": "e-exgw-liq",
+          "source": "exchange-gw",
+          "target": "liq-providers",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#FF9800",
+            "routingType": "smoothstep",
+            "strokeWidth": 1.5
+          },
+          "targetMarker": "arrow",
+          "sourceMarker": "arrow",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00"
+        },
+        {
+          "id": "e-exgw-exch",
+          "source": "exchange-gw",
+          "target": "exchanges",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#FF9800",
+            "routingType": "smoothstep",
+            "strokeWidth": 1.5
+          },
+          "targetMarker": "arrow",
+          "sourceMarker": "arrow",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00"
+        },
+        {
+          "id": "e-otcgw-otc",
+          "source": "otc-gw",
+          "target": "otc-dealers",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#FF9800",
+            "routingType": "smoothstep",
+            "strokeWidth": 1.5
+          },
+          "targetMarker": "arrow",
+          "sourceMarker": "arrow",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00"
+        },
+        {
+          "id": "e-custgw-svc",
+          "source": "custodian-gw",
+          "target": "svc-providers",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#FF9800",
+            "routingType": "smoothstep",
+            "strokeWidth": 1.5
+          },
+          "targetMarker": "arrow",
+          "sourceMarker": "arrow",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00"
+        },
+        {
+          "id": "e-custgw-cust",
+          "source": "custodian-gw",
+          "target": "custodians",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#FF9800",
+            "routingType": "smoothstep",
+            "strokeWidth": 1.5
+          },
+          "targetMarker": "arrow",
+          "sourceMarker": "arrow",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00"
+        },
+        {
+          "id": "e-custgw-settl",
+          "source": "custodian-gw",
+          "target": "settlement",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#FF9800",
+            "routingType": "smoothstep",
+            "strokeWidth": 1.5
+          },
+          "targetMarker": "arrow",
+          "sourceMarker": "arrow",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00"
+        },
+        {
+          "id": "e-mdexgw-exch",
+          "source": "md-exchange-gw",
+          "target": "exchanges",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#FF9800",
+            "routingType": "smoothstep",
+            "strokeWidth": 1
+          },
+          "targetMarker": "arrow",
+          "sourceAnchor": "3:00",
+          "targetAnchor": "9:00"
+        },
+        {
+          "id": "e-persist-db",
+          "source": "persistence",
+          "target": "client-db",
+          "style": {
+            "lineStyle": "solid",
+            "color": "#333333",
+            "routingType": "smoothstep",
+            "strokeWidth": 1
+          },
+          "targetMarker": "arrow",
+          "sourceAnchor": "6:00",
+          "targetAnchor": "12:00"
+        }
+      ]
+    }
+  ]
+}

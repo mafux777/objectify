@@ -180,7 +180,7 @@ const NodeSchema = z.object({
         "e.g. LP #1 and LP #2 might both have semanticTypeId 'liquidity-provider'."
     ),
   labelPosition: z
-    .enum(["center", "top-left", "top-center", "bottom-center", "above", "below"])
+    .enum(["center", "top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right", "above", "below"])
     .default("center")
     .optional()
     .describe(
