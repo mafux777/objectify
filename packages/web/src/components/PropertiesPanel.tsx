@@ -589,55 +589,158 @@ export function PropertiesPanel({
         )}
 
         {/* ── Edge selected ── */}
-        {selectedEdge && !selectedNode && (
-          <>
-            <div className="properties-panel__field">
-              <label className="properties-panel__label">ID</label>
-              <span className="properties-panel__value properties-panel__value--mono">{selectedEdge.id}</span>
-            </div>
+        {selectedEdge && !selectedNode && (() => {
+          const eData = ((selectedEdge as Record<string, unknown>).data ?? {}) as Record<string, unknown>;
+          const eStyle = (selectedEdge.style ?? {}) as Record<string, unknown>;
+          const isHidden = selectedEdge.hidden === true;
+          const currentRouting = (eData.routingType as string) ?? "straight";
+          const currentStrokeWidth = (eData.strokeWidth as number) ?? 1.5;
+          const currentColor = (eStyle.stroke as string) ?? "#333333";
+          const currentDash = eStyle.strokeDasharray as string | undefined;
+          const currentLineStyle = currentDash === "6,3" ? "dashed" : currentDash === "2,2" ? "dotted" : "solid";
 
-            <div className="properties-panel__field">
-              <label className="properties-panel__label">From</label>
-              <NodeLink
-                nodeId={selectedEdge.source}
-                label={nodeLabel(nodes.find((n) => n.id === selectedEdge.source)!) ?? selectedEdge.source}
-                onSelect={onSelectNode}
-              />
-            </div>
+          return (
+            <>
+              <div className="properties-panel__field">
+                <label className="properties-panel__label">ID</label>
+                <span className="properties-panel__value properties-panel__value--mono">{selectedEdge.id}</span>
+              </div>
 
-            <div className="properties-panel__field">
-              <label className="properties-panel__label">To</label>
-              <NodeLink
-                nodeId={selectedEdge.target}
-                label={nodeLabel(nodes.find((n) => n.id === selectedEdge.target)!) ?? selectedEdge.target}
-                onSelect={onSelectNode}
-              />
-            </div>
+              <div className="properties-panel__field">
+                <label className="properties-panel__label">From</label>
+                <NodeLink
+                  nodeId={selectedEdge.source}
+                  label={nodeLabel(nodes.find((n) => n.id === selectedEdge.source)!) ?? selectedEdge.source}
+                  onSelect={onSelectNode}
+                />
+              </div>
 
-            {selectedEdge.label && (
+              <div className="properties-panel__field">
+                <label className="properties-panel__label">To</label>
+                <NodeLink
+                  nodeId={selectedEdge.target}
+                  label={nodeLabel(nodes.find((n) => n.id === selectedEdge.target)!) ?? selectedEdge.target}
+                  onSelect={onSelectNode}
+                />
+              </div>
+
+              {/* Editable label */}
               <div className="properties-panel__field">
                 <label className="properties-panel__label">Label</label>
-                <span className="properties-panel__value">{String(selectedEdge.label)}</span>
+                <input
+                  className="properties-panel__input"
+                  type="text"
+                  placeholder="(none)"
+                  defaultValue={selectedEdge.label ? String(selectedEdge.label) : ""}
+                  key={`edge-label-${selectedEdge.id}`}
+                  onBlur={(e) => onPatchEdge(selectedEdge.id, { label: e.target.value || undefined })}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                />
               </div>
-            )}
 
-            {edgeData?.description && (
+              {/* Description */}
               <div className="properties-panel__field">
                 <label className="properties-panel__label">Description</label>
-                <span className="properties-panel__value">{edgeData.description as string}</span>
+                <input
+                  className="properties-panel__input"
+                  type="text"
+                  placeholder="(none)"
+                  defaultValue={(eData.description as string) ?? ""}
+                  key={`edge-desc-${selectedEdge.id}`}
+                  onBlur={(e) => onPatchEdge(selectedEdge.id, { description: e.target.value || undefined })}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                />
               </div>
-            )}
 
-            {edgeData?.routingType && (
+              {/* Visibility toggle */}
               <div className="properties-panel__field">
-                <label className="properties-panel__label">Routing</label>
-                <span className="properties-panel__value properties-panel__value--mono">
-                  {edgeData.routingType as string}
-                </span>
+                <label className="properties-panel__label">Visible</label>
+                <label className="properties-panel__toggle">
+                  <input
+                    type="checkbox"
+                    checked={!isHidden}
+                    onChange={(e) => onPatchEdge(selectedEdge.id, { __hidden: !e.target.checked })}
+                  />
+                  <span>{isHidden ? "Hidden (semantic link only)" : "Visible"}</span>
+                </label>
               </div>
-            )}
-          </>
-        )}
+
+              {/* Visual properties — only shown when visible */}
+              {!isHidden && (
+                <>
+                  {/* Routing type */}
+                  <div className="properties-panel__field">
+                    <label className="properties-panel__label">Routing</label>
+                    <select
+                      className="properties-panel__select"
+                      value={currentRouting}
+                      onChange={(e) => onPatchEdge(selectedEdge.id, { routingType: e.target.value })}
+                    >
+                      <option value="straight">Straight</option>
+                      <option value="step">Step</option>
+                      <option value="smoothstep">Smooth Step</option>
+                      <option value="bezier">Bezier</option>
+                      <option value="smooth-repelled">Smooth Repelled</option>
+                    </select>
+                  </div>
+
+                  {/* Line style */}
+                  <div className="properties-panel__field">
+                    <label className="properties-panel__label">Line style</label>
+                    <select
+                      className="properties-panel__select"
+                      value={currentLineStyle}
+                      onChange={(e) => onPatchEdge(selectedEdge.id, { lineStyle: e.target.value })}
+                    >
+                      <option value="solid">Solid</option>
+                      <option value="dashed">Dashed</option>
+                      <option value="dotted">Dotted</option>
+                    </select>
+                  </div>
+
+                  {/* Stroke width */}
+                  <div className="properties-panel__field">
+                    <label className="properties-panel__label">Stroke width</label>
+                    <input
+                      className="properties-panel__input"
+                      type="number"
+                      min={0.5}
+                      max={10}
+                      step={0.5}
+                      value={currentStrokeWidth}
+                      onChange={(e) => onPatchEdge(selectedEdge.id, { strokeWidth: parseFloat(e.target.value) || 1.5 })}
+                    />
+                  </div>
+
+                  {/* Color */}
+                  <div className="properties-panel__field">
+                    <label className="properties-panel__label">Color</label>
+                    {palette && palette.length > 0 ? (
+                      <div className="properties-panel__swatches">
+                        {palette.map((entry) => (
+                          <button
+                            key={entry.id}
+                            className={`properties-panel__swatch${entry.hex === currentColor ? " properties-panel__swatch--active" : ""}`}
+                            style={{ background: entry.hex }}
+                            title={entry.name ?? entry.hex}
+                            onClick={() => onPatchEdge(selectedEdge.id, { color: entry.hex })}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <input
+                        className="properties-panel__input"
+                        type="color"
+                        value={currentColor}
+                        onChange={(e) => onPatchEdge(selectedEdge.id, { color: e.target.value })}
+                      />
+                    )}
+                  </div>
+                </>
+              )}
+            </>
+          );
+        })()}
       </div>
     </div>
   );

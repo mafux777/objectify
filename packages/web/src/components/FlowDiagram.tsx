@@ -2063,7 +2063,49 @@ export function FlowDiagram({
           }));
         }}
         onPatchEdge={(edgeId, patch) => {
-          setEdges((eds) => eds.map((e) => e.id === edgeId ? { ...e, data: { ...(e.data ?? {}), ...patch } } : e));
+          saveSnapshot();
+          setEdges((eds) => eds.map((e) => {
+            if (e.id !== edgeId) return e;
+            const updated = { ...e };
+            const data = { ...(e.data ?? {}) } as Record<string, unknown>;
+
+            // Handle special keys
+            if ("__hidden" in patch) {
+              updated.hidden = patch.__hidden as boolean;
+              delete patch.__hidden;
+            }
+            if ("label" in patch) {
+              updated.label = patch.label as string ?? "";
+              delete patch.label;
+            }
+            if ("lineStyle" in patch) {
+              const ls = patch.lineStyle as string;
+              updated.style = {
+                ...(e.style ?? {}),
+                strokeDasharray: ls === "dashed" ? "6,3" : ls === "dotted" ? "2,2" : undefined,
+              };
+              updated.animated = ls === "dashed";
+              delete patch.lineStyle;
+            }
+            if ("color" in patch) {
+              updated.style = { ...(updated.style ?? e.style ?? {}), stroke: patch.color as string };
+              // Also update markers to match color
+              const color = patch.color as string;
+              if (e.markerEnd && typeof e.markerEnd === "object") updated.markerEnd = { ...e.markerEnd, color };
+              if (e.markerStart && typeof e.markerStart === "object") updated.markerStart = { ...e.markerStart, color };
+              delete patch.color;
+            }
+            if ("strokeWidth" in patch) {
+              updated.style = { ...(updated.style ?? e.style ?? {}), strokeWidth: patch.strokeWidth as number };
+              data.strokeWidth = patch.strokeWidth;
+              delete patch.strokeWidth;
+            }
+
+            // Remaining keys go into data
+            Object.assign(data, patch);
+            updated.data = data;
+            return updated;
+          }));
         }}
         onPatchGuide={(guideId, position) => {
           saveSnapshot();

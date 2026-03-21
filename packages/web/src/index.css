@@ -234,6 +234,19 @@ body,
   margin-top: 2px;
 }
 
+.properties-panel__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #555;
+  cursor: pointer;
+}
+
+.properties-panel__toggle input[type="checkbox"] {
+  cursor: pointer;
+}
+
 .properties-panel__globe-btn {
   background: none;
   border: 1px solid #d0d0d0;
