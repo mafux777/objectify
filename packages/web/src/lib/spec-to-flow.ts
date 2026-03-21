@@ -76,6 +76,7 @@ export function specEdgesToFlowEdges(
       source: e.source,
       target: e.target,
       type: edgeType,
+      ...(e.visible === false ? { hidden: true } : {}),
       ...(e.sourceAnchor ? { sourceHandle: anchorToHandleId(e.sourceAnchor, "source") } : {}),
       ...(e.targetAnchor ? { targetHandle: anchorToHandleId(e.targetAnchor, "target") } : {}),
       label: primaryLabel?.text ?? e.label,

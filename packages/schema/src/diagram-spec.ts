@@ -337,6 +337,11 @@ const EdgeSchema = z.object({
     .describe(
       "Multi-label array. When present, supersedes the legacy 'label' + 'labelStyle' fields."
     ),
+  visible: z
+    .boolean()
+    .default(true)
+    .optional()
+    .describe("Whether the edge is rendered visually. Hidden edges preserve the semantic link but are not drawn."),
   sourceMarker: MarkerKindSchema.default("none")
     .optional()
     .describe(

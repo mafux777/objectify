@@ -169,6 +169,9 @@ export function flowToDiagram(
     if (e.label) {
       edge.label = String(e.label);
     }
+    if (e.hidden) {
+      edge.visible = false;
+    }
 
     // Reverse-map handle IDs back to anchor sides
     if (e.sourceHandle) {
