@@ -64,8 +64,13 @@ import {
   updateSizePaletteEntry,
   addSizePaletteEntry,
 } from "../lib/size-palette-api.js";
+import { debugNodeMove, debugResize, debugLLMOutput } from "../lib/debug-log.js";
 
-let detachGuideCounter = 200;
+let detachGuideCounter = 0;
+function nextGuideId(prefix: string) {
+  detachGuideCounter++;
+  return `${prefix}-${Date.now()}-${detachGuideCounter}`;
+}
 
 const nodeTypes: NodeTypes = {
   colorBox: ColorBoxNode,
@@ -190,6 +195,11 @@ export function FlowDiagram({
       },
       getSelectedIds: () => nodes.filter((n) => n.selected).map((n) => n.id),
       getNodes: () => nodes,
+      getGuides: () => guides,
+      setGuides,
+      setNodes,
+      canvasWidth,
+      canvasHeight,
     };
   });
 
@@ -266,11 +276,12 @@ export function FlowDiagram({
     setFocusedEdgeId(null);
   }, []);
 
-  // Compute canvas dimensions for guide rendering
-  const canvasWidth = 1200;
+  // Canvas dimensions — constant during interactive use
   const imgW = diagram.imageDimensions?.width ?? 1200;
   const imgH = diagram.imageDimensions?.height ?? 800;
-  const canvasHeight = canvasWidth * (imgH / imgW);
+  const aspectRatio = imgH / imgW;
+  const canvasWidth = 1200;
+  const canvasHeight = canvasWidth * aspectRatio;
 
   // Provide guide positions to edge components via context
   const guidesCtxValue = useMemo(
@@ -488,12 +499,20 @@ export function FlowDiagram({
     const imgH = diagram.imageDimensions?.height ?? 800;
     const REFERENCE_H = REFERENCE_W * (imgH / imgW);
 
+    /** Get the absolute position of a node's parent (0,0 if no parent). */
+    const getParentOffset = (n: Node, allNodes: Node[]): { x: number; y: number } => {
+      if (!n.parentId) return { x: 0, y: 0 };
+      const parent = allNodes.find((p) => p.id === n.parentId);
+      return parent ? { x: parent.position.x, y: parent.position.y } : { x: 0, y: 0 };
+    };
+
     /** Re-center a React Flow node on its guide intersection. */
     const recenterOnGuides = (
       n: Node,
       w: number,
       h: number,
       guideMap: Map<string, GuideLine>,
+      allNodes?: Node[],
     ): Node => {
       const d = n.data as Record<string, unknown>;
       const rowGuide = d.guideRow ? guideMap.get(d.guideRow as string) : undefined;
@@ -507,11 +526,13 @@ export function FlowDiagram({
           style: { ...(n.style ?? {}), width: w, height: h },
         };
       }
-      const centerX = colGuide.position * REFERENCE_W;
-      const centerY = rowGuide.position * REFERENCE_H;
+      const absCenterX = colGuide.position * REFERENCE_W;
+      const absCenterY = rowGuide.position * REFERENCE_H;
+      // Convert absolute guide position to parent-relative if node is in a group
+      const parentOff = allNodes ? getParentOffset(n, allNodes) : { x: 0, y: 0 };
       return {
         ...n,
-        position: { x: centerX - w / 2, y: centerY - h / 2 },
+        position: { x: absCenterX - w / 2 - parentOff.x, y: absCenterY - h / 2 - parentOff.y },
         width: w,
         height: h,
         style: { ...(n.style ?? {}), width: w, height: h },
@@ -572,6 +593,11 @@ export function FlowDiagram({
       const newPixelW = Math.round(normW * REFERENCE_W);
       const newPixelH = Math.round(normH * REFERENCE_H);
 
+      // Debug: log resize before and after
+      const resizeTargetNode = nodes.find((n) => n.id === nodeId);
+      const oldW = resizeTargetNode?.width ?? 160;
+      const oldH = resizeTargetNode?.height ?? 50;
+
       saveSnapshot();
 
       if (altKey || !sizeId) {
@@ -602,6 +628,7 @@ export function FlowDiagram({
                   newPixelW,
                   newPixelH,
                   guideMap,
+                  nds,
                 )
               : n
           )
@@ -650,14 +677,14 @@ export function FlowDiagram({
             if (d?.sizeId === sizeId) {
               // This node's size class changed — update dimensions + re-center
               if (n.id !== nodeId) siblingIds.push(n.id);
-              return recenterOnGuides(n, newPixelW, newPixelH, guideMap);
+              return recenterOnGuides(n, newPixelW, newPixelH, guideMap, nds);
             }
 
             if (changed && d?.guideRow && d?.guideColumn) {
               // Guides shifted — re-center this node at its (unchanged) size
               const nodeW = n.width ?? 160;
               const nodeH = n.height ?? 50;
-              return recenterOnGuides(n, nodeW, nodeH, guideMap);
+              return recenterOnGuides(n, nodeW, nodeH, guideMap, nds);
             }
 
             return n;
@@ -677,6 +704,18 @@ export function FlowDiagram({
           id: documentIdRef.current,
           spec: updatedSpec,
         });
+      }
+
+      // Debug: log resize result
+      if (resizeTargetNode) {
+        debugResize(
+          resizeTargetNode,
+          { w: oldW, h: oldH },
+          { w: newPixelW, h: newPixelH },
+          nodes,
+          guides,
+          nodes.filter((n) => n.id !== nodeId && (n.data as Record<string, unknown>)?.sizeId === sizeId).map((n) => n.id),
+        );
       }
     };
 
@@ -738,6 +777,7 @@ export function FlowDiagram({
     [setEdges, saveSnapshot]
   );
 
+
   // Bidirectional snap: when a node is dragged, move its guide(s) and siblings
   // Alt+drag: detach node from shared guides by creating new personal guides
   const onNodeDragStop = useCallback(
@@ -748,8 +788,18 @@ export function FlowDiagram({
 
       const nodeW = draggedNode.width ?? draggedNode.measured?.width ?? 160;
       const nodeH = draggedNode.height ?? draggedNode.measured?.height ?? 50;
-      const centerX = draggedNode.position.x + nodeW / 2;
-      const centerY = draggedNode.position.y + nodeH / 2;
+
+      // Convert parent-relative position to absolute canvas coordinates
+      let parentOffX = 0, parentOffY = 0;
+      if (draggedNode.parentId) {
+        const parent = nodes.find((n) => n.id === draggedNode.parentId);
+        if (parent) { parentOffX = parent.position.x; parentOffY = parent.position.y; }
+      }
+      const centerX = draggedNode.position.x + parentOffX + nodeW / 2;
+      const centerY = draggedNode.position.y + parentOffY + nodeH / 2;
+
+      const modifier = event.shiftKey ? "Shift" : event.altKey ? "Alt" : undefined;
+      debugNodeMove(draggedNode, nodes, guides, modifier);
 
       // Shift+drag: reassign node to nearest existing guides
       if (event.shiftKey) {
@@ -784,11 +834,11 @@ export function FlowDiagram({
           }
         }
 
-        // Snap node to the new guide intersection
+        // Snap node to the new guide intersection (convert to parent-relative)
         const newRowGuide = guides.find((g) => g.id === newRowId);
         const newColGuide = guides.find((g) => g.id === newColId);
-        const snapY = newRowGuide ? newRowGuide.position * canvasHeight - nodeH / 2 : draggedNode.position.y;
-        const snapX = newColGuide ? newColGuide.position * canvasWidth - nodeW / 2 : draggedNode.position.x;
+        const snapY = newRowGuide ? newRowGuide.position * canvasHeight - nodeH / 2 - parentOffY : draggedNode.position.y;
+        const snapX = newColGuide ? newColGuide.position * canvasWidth - nodeW / 2 - parentOffX : draggedNode.position.x;
 
         setNodes((nds) =>
           nds.map((n) =>
@@ -834,8 +884,7 @@ export function FlowDiagram({
         const shortLabel = rawLabel.split("\n").join(" ").trim();
 
         // Create new row guide
-        detachGuideCounter++;
-        const newRowId = `row-detach-${detachGuideCounter}`;
+        const newRowId = nextGuideId("row-detach");
         const newRowGuide: GuideLine = {
           id: newRowId,
           index: guides.filter((g) => g.direction === "horizontal").length,
@@ -845,8 +894,7 @@ export function FlowDiagram({
         };
 
         // Create new column guide
-        detachGuideCounter++;
-        const newColId = `col-detach-${detachGuideCounter}`;
+        const newColId = nextGuideId("col-detach");
         const newColGuide: GuideLine = {
           id: newColId,
           index: guides.filter((g) => g.direction === "vertical").length,
@@ -894,8 +942,15 @@ export function FlowDiagram({
       }
 
       // Normal drag behavior: move guides and siblings
-      if (guides.length === 0) return;
-      if (!rowId && !colId) return;
+      if (guides.length === 0 && draggedNode.type !== "groupNode") return;
+      if (!rowId && !colId && draggedNode.type !== "groupNode") return;
+
+      // If a group was dragged, reconcile guides for all children
+      if (draggedNode.type === "groupNode") {
+        saveSnapshot();
+        reconcileGuidesAfterGroupDrag(draggedNode);
+        return;
+      }
 
       // Update guides to match the dragged node's new center
       setGuides((gs) =>
@@ -921,16 +976,23 @@ export function FlowDiagram({
           const nW = n.width ?? n.measured?.width ?? 160;
           const nH = n.height ?? n.measured?.height ?? 50;
 
+          // Get this sibling's parent offset for coordinate conversion
+          let sibParentOffX = 0, sibParentOffY = 0;
+          if (n.parentId) {
+            const sibParent = nds.find((p) => p.id === n.parentId);
+            if (sibParent) { sibParentOffX = sibParent.position.x; sibParentOffY = sibParent.position.y; }
+          }
+
           let newX = n.position.x;
           let newY = n.position.y;
 
-          // If sibling shares the same row, align Y center
+          // If sibling shares the same row, align Y center (absolute → parent-relative)
           if (rowId && nRow === rowId) {
-            newY = centerY - nH / 2;
+            newY = centerY - nH / 2 - sibParentOffY;
           }
-          // If sibling shares the same column, align X center
+          // If sibling shares the same column, align X center (absolute → parent-relative)
           if (colId && nCol === colId) {
-            newX = centerX - nW / 2;
+            newX = centerX - nW / 2 - sibParentOffX;
           }
 
           if (newX !== n.position.x || newY !== n.position.y) {
@@ -939,8 +1001,104 @@ export function FlowDiagram({
           return n;
         })
       );
+
     },
     [guides, nodes, canvasWidth, canvasHeight, setGuides, setNodes, saveSnapshot]
+  );
+
+  /**
+   * After a group is dragged, reconcile guides for all its children.
+   * For each child: if its guide is shared with nodes outside this group,
+   * create a new personal guide. Otherwise, move the existing guide.
+   */
+  const reconcileGuidesAfterGroupDrag = useCallback(
+    (groupNode: Node) => {
+      // Simple approach: move all guides used by this group's children
+      // to match children's new absolute positions. External siblings follow.
+      setNodes((latestNodes) => {
+        const childIds = new Set(
+          latestNodes.filter((n) => n.parentId === groupNode.id).map((n) => n.id)
+        );
+        if (childIds.size === 0) return latestNodes;
+
+        const latestGroup = latestNodes.find((n) => n.id === groupNode.id) ?? groupNode;
+        const groupX = latestGroup.position.x;
+        const groupY = latestGroup.position.y;
+
+        // Compute new guide positions from children's absolute centers
+        // Use first child on each guide (all children on same guide share the same center axis)
+        const guideNewPositions = new Map<string, number>();
+
+        for (const child of latestNodes) {
+          if (!childIds.has(child.id)) continue;
+          const d = child.data as Record<string, unknown>;
+          const cW = child.width ?? child.measured?.width ?? 160;
+          const cH = child.height ?? child.measured?.height ?? 50;
+          const absCenterX = child.position.x + groupX + cW / 2;
+          const absCenterY = child.position.y + groupY + cH / 2;
+
+          const rowGid = d?.guideRow as string | undefined;
+          const colGid = d?.guideColumn as string | undefined;
+
+          if (rowGid && !guideNewPositions.has(rowGid)) {
+            guideNewPositions.set(rowGid, absCenterY / canvasHeight);
+          }
+          if (colGid && !guideNewPositions.has(colGid)) {
+            guideNewPositions.set(colGid, absCenterX / canvasWidth);
+          }
+        }
+
+        // Move guides and prune orphans
+        setGuides((gs) => {
+          const moved = gs.map((g) => {
+            const newPos = guideNewPositions.get(g.id);
+            if (newPos !== undefined) return { ...g, position: newPos };
+            return g;
+          });
+          // Prune guides not referenced by any node
+          const guideFields2 = ["guideRow", "guideColumn", "guideRowBottom", "guideColumnRight"] as const;
+          const referencedIds = new Set<string>();
+          for (const n of latestNodes) {
+            const d = n.data as Record<string, unknown>;
+            for (const f of guideFields2) {
+              const v = d?.[f] as string | undefined;
+              if (v) referencedIds.add(v);
+            }
+          }
+          return moved.filter((g) => referencedIds.has(g.id));
+        });
+
+        // Move external siblings on the same guides to stay centered
+        return latestNodes.map((n) => {
+          if (childIds.has(n.id) || n.id === groupNode.id) return n;
+
+          const nd = n.data as Record<string, unknown>;
+          const nRowId = nd?.guideRow as string | undefined;
+          const nColId = nd?.guideColumn as string | undefined;
+          const rowMoved = nRowId && guideNewPositions.has(nRowId);
+          const colMoved = nColId && guideNewPositions.has(nColId);
+          if (!rowMoved && !colMoved) return n;
+
+          const nW = n.width ?? n.measured?.width ?? 160;
+          const nH = n.height ?? n.measured?.height ?? 50;
+          let pOX = 0, pOY = 0;
+          if (n.parentId) {
+            const p = latestNodes.find((pp) => pp.id === n.parentId);
+            if (p) { pOX = p.position.x; pOY = p.position.y; }
+          }
+
+          let newX = n.position.x, newY = n.position.y;
+          if (rowMoved) newY = guideNewPositions.get(nRowId!)! * canvasHeight - nH / 2 - pOY;
+          if (colMoved) newX = guideNewPositions.get(nColId!)! * canvasWidth - nW / 2 - pOX;
+
+          if (newX !== n.position.x || newY !== n.position.y) {
+            return { ...n, position: { x: newX, y: newY } };
+          }
+          return n;
+        });
+      });
+    },
+    [canvasWidth, canvasHeight, setGuides, setNodes]
   );
 
   const handleChat = useCallback(
@@ -1028,6 +1186,8 @@ export function FlowDiagram({
         } else {
           layoutResult = guideLayoutDiagram(newDiagram, newSpec.shapePalette, newSpec.sizePalette);
         }
+
+        debugLLMOutput(nodes, layoutResult.nodes, newDiagram.guides ?? []);
 
         saveSnapshot();
         setNodes(layoutResult.nodes);
@@ -1591,6 +1751,7 @@ export function FlowDiagram({
         selectedNode={selectedNode}
         selectedEdge={selectedEdge}
         nodes={nodes}
+        guides={guides}
         specDescription={specRef.current.description ?? ""}
         palette={palette}
         shapePalette={shapePalette}
@@ -1608,6 +1769,45 @@ export function FlowDiagram({
         }}
         onPatchEdge={(edgeId, patch) => {
           setEdges((eds) => eds.map((e) => e.id === edgeId ? { ...e, data: { ...(e.data ?? {}), ...patch } } : e));
+        }}
+        onPatchGuide={(guideId, position) => {
+          saveSnapshot();
+          setGuides((gs) =>
+            gs.map((g) => g.id === guideId ? { ...g, position, pinned: true } : g)
+          );
+          // Re-center nodes on the moved guide
+          const guide = guides.find((g) => g.id === guideId);
+          if (guide) {
+            const field = guide.direction === "horizontal" ? "guideRow" : "guideColumn";
+            const canvasDim = guide.direction === "horizontal" ? canvasHeight : canvasWidth;
+            const newCanvasPos = position * canvasDim;
+            setNodes((nds) =>
+              nds.map((n) => {
+                const d = n.data as Record<string, unknown>;
+                if (d?.[field] !== guideId) return n;
+                const w = n.width ?? 160;
+                const h = n.height ?? 50;
+                let pOX = 0, pOY = 0;
+                if (n.parentId) {
+                  const par = nds.find((p) => p.id === n.parentId);
+                  if (par) { pOX = par.position.x; pOY = par.position.y; }
+                }
+                if (guide.direction === "horizontal") {
+                  return { ...n, position: { ...n.position, y: newCanvasPos - h / 2 - pOY } };
+                } else {
+                  return { ...n, position: { ...n.position, x: newCanvasPos - w / 2 - pOX } };
+                }
+              })
+            );
+          }
+        }}
+        onSelectNode={(nodeId) => {
+          setNodes((nds) =>
+            nds.map((n) => ({ ...n, selected: n.id === nodeId }))
+          );
+          setEdges((eds) =>
+            eds.map((e) => ({ ...e, selected: false }))
+          );
         }}
         onClose={() => setShowPropertiesPanel(false)}
       />

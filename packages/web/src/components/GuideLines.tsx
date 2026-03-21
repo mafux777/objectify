@@ -1,6 +1,7 @@
 import { useCallback, useRef } from "react";
 import { useReactFlow, useViewport, type Node } from "@xyflow/react";
 import type { GuideLine } from "@objectify/schema";
+import { debugGuideMove } from "../lib/debug-log.js";
 
 /** Minimum normalized gap between adjacent guides (~18px at 1200px canvas) */
 const MIN_GUIDE_GAP = 0.015;
@@ -55,7 +56,7 @@ export function GuideLines({
   saveSnapshot,
   onGuideHover,
 }: GuideLinesProps) {
-  const { getViewport } = useReactFlow();
+  const { getViewport, getNodes } = useReactFlow();
 
   // Keep a ref to the latest guides for real-time neighbor lookups in onPointerMove
   const guidesRef = useRef(guides);
@@ -120,18 +121,29 @@ export function GuideLines({
         ? newPosition * canvasHeight
         : newPosition * canvasWidth;
 
-      setNodes((nds) =>
-        nds.map((n) => {
+      setNodes((nds) => {
+        const GROUP_PAD_TOP = 40;
+        const GROUP_PAD_SIDE = 20;
+        const GROUP_PAD_BOTTOM = 20;
+
+        // Pass 1: compute new positions for guide-affected nodes
+        const updated = nds.map((n) => {
           const nd = n.data as Record<string, unknown>;
+
+          // Get parent offset for coordinate conversion
+          let pOffX = 0, pOffY = 0;
+          if (n.parentId) {
+            const parent = nds.find((p) => p.id === n.parentId);
+            if (parent) { pOffX = parent.position.x; pOffY = parent.position.y; }
+          }
 
           // Case 1: Node uses this guide as a bottom/right edge → resize
           if (nd?.[bottomField] === ds.guideId) {
-            const newDim = newCanvasPos - n.position.y;
             if (ds.direction === "horizontal") {
-              const newH = Math.max(30, newCanvasPos - n.position.y);
+              const newH = Math.max(30, newCanvasPos - (n.position.y + pOffY));
               return { ...n, height: newH, style: { ...n.style, height: newH } };
             } else {
-              const newW = Math.max(60, newCanvasPos - n.position.x);
+              const newW = Math.max(60, newCanvasPos - (n.position.x + pOffX));
               return { ...n, width: newW, style: { ...n.style, width: newW } };
             }
           }
@@ -142,19 +154,108 @@ export function GuideLines({
             const nH = n.height ?? n.measured?.height ?? 50;
 
             if (ds.direction === "horizontal") {
-              const newY = newCanvasPos - nH / 2;
+              const newY = newCanvasPos - nH / 2 - pOffY;
               if (Math.abs(n.position.y - newY) < 0.5) return n;
               return { ...n, position: { x: n.position.x, y: newY } };
             } else {
-              const newX = newCanvasPos - nW / 2;
+              const newX = newCanvasPos - nW / 2 - pOffX;
               if (Math.abs(n.position.x - newX) < 0.5) return n;
               return { ...n, position: { x: newX, y: n.position.y } };
             }
           }
 
           return n;
-        })
-      );
+        });
+
+        // Pass 2: expand parent groups to fit children that moved beyond boundaries
+        // Collect groups that have children
+        const groupIds = new Set(updated.filter((n) => n.type === "groupNode").map((n) => n.id));
+        if (groupIds.size === 0) return updated;
+
+        // For each group, compute the children bounding box and expand if needed
+        const result = [...updated];
+        for (let gi = 0; gi < result.length; gi++) {
+          const group = result[gi];
+          if (group.type !== "groupNode") continue;
+
+          const children = result.filter((n) => n.parentId === group.id);
+          if (children.length === 0) continue;
+
+          // Compute children bounding box (in parent-relative coords)
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+          for (const child of children) {
+            const cw = child.width ?? child.measured?.width ?? 80;
+            const ch = child.height ?? child.measured?.height ?? 80;
+            minX = Math.min(minX, child.position.x);
+            minY = Math.min(minY, child.position.y);
+            maxX = Math.max(maxX, child.position.x + cw);
+            maxY = Math.max(maxY, child.position.y + ch);
+          }
+
+          // Required group bounds (with padding)
+          const reqLeft = minX - GROUP_PAD_SIDE;
+          const reqTop = minY - GROUP_PAD_TOP;
+          const reqRight = maxX + GROUP_PAD_SIDE;
+          const reqBottom = maxY + GROUP_PAD_BOTTOM;
+
+          const gw = group.width ?? 100;
+          const gh = group.height ?? 100;
+
+          // Current group bounds in relative space: (0, 0) to (gw, gh)
+          let shiftX = 0, shiftY = 0;
+          let newGW = gw, newGH = gh;
+
+          // Expand left: if children go past x=0
+          if (reqLeft < 0) {
+            shiftX = -reqLeft; // positive: shift children right
+            newGW += shiftX;
+          }
+          // Expand right: if children go past gw
+          if (reqRight > newGW) {
+            newGW = reqRight;
+          }
+          // Expand top: if children go past y=0
+          if (reqTop < 0) {
+            shiftY = -reqTop;
+            newGH += shiftY;
+          }
+          // Expand bottom: if children go past gh
+          if (reqBottom > newGH) {
+            newGH = reqBottom;
+          }
+
+          if (shiftX === 0 && shiftY === 0 && newGW === gw && newGH === gh) continue;
+
+          // Update group: shift position left/up and increase size
+          result[gi] = {
+            ...group,
+            position: {
+              x: group.position.x - shiftX,
+              y: group.position.y - shiftY,
+            },
+            width: newGW,
+            height: newGH,
+            style: { ...group.style, width: newGW, height: newGH },
+          };
+
+          // Shift all children to compensate for the group moving
+          if (shiftX !== 0 || shiftY !== 0) {
+            for (let ci = 0; ci < result.length; ci++) {
+              if (result[ci].parentId === group.id) {
+                result[ci] = {
+                  ...result[ci],
+                  position: {
+                    x: result[ci].position.x + shiftX,
+                    y: result[ci].position.y + shiftY,
+                  },
+                };
+              }
+            }
+          }
+        }
+
+        return result;
+      });
     },
     [getViewport, canvasWidth, canvasHeight, setGuides, setNodes]
   );
@@ -167,10 +268,26 @@ export function GuideLines({
       (e.target as SVGElement).releasePointerCapture(e.pointerId);
       dragState.current = null;
 
-      // Check for merge: if dragged guide is now within threshold of another same-direction guide
-      const MERGE_THRESHOLD = 0.02; // 2% normalized distance
       const draggedGuide = guides.find((g) => g.id === ds.guideId);
       if (!draggedGuide) return;
+
+      // Debug: log guide move with affected nodes
+      const allNodes = getNodes();
+      const bottomField = ds.direction === "horizontal" ? "guideRowBottom" : "guideColumnRight";
+      const topField = ds.direction === "horizontal" ? "guideRow" : "guideColumn";
+      const affectedNodes = allNodes
+        .filter((n) => {
+          const nd = n.data as Record<string, unknown>;
+          return nd?.[topField] === ds.guideId || nd?.[bottomField] === ds.guideId;
+        })
+        .map((n) => ({
+          node: n,
+          effect: ((n.data as Record<string, unknown>)?.[bottomField] === ds.guideId ? "resize" : "translate") as "translate" | "resize",
+        }));
+      debugGuideMove(draggedGuide, ds.startPosition, affectedNodes, allNodes);
+
+      // Check for merge: if dragged guide is now within threshold of another same-direction guide
+      const MERGE_THRESHOLD = 0.02; // 2% normalized distance
 
       const mergeTarget = guides
         .filter((g) => g.id !== ds.guideId && g.direction === ds.direction)
@@ -208,17 +325,23 @@ export function GuideLines({
 
             if (!changed) return n;
 
-            // Reposition: center on absorber guide position
+            // Reposition: center on absorber guide position (parent-relative)
             const nW = n.width ?? n.measured?.width ?? 160;
             const nH = n.height ?? n.measured?.height ?? 50;
             let newPos = { ...n.position };
 
+            let pOffX = 0, pOffY = 0;
+            if (n.parentId) {
+              const parent = nds.find((p) => p.id === n.parentId);
+              if (parent) { pOffX = parent.position.x; pOffY = parent.position.y; }
+            }
+
             // Only reposition for top/left guide references (guideRow/guideColumn)
             if (nd?.guideRow === removedId && ds.direction === "horizontal") {
-              newPos = { ...newPos, y: absorberCanvasPos - nH / 2 };
+              newPos = { ...newPos, y: absorberCanvasPos - nH / 2 - pOffY };
             }
             if (nd?.guideColumn === removedId && ds.direction === "vertical") {
-              newPos = { ...newPos, x: absorberCanvasPos - nW / 2 };
+              newPos = { ...newPos, x: absorberCanvasPos - nW / 2 - pOffX };
             }
 
             return { ...n, data: newData, position: newPos };
@@ -235,6 +358,7 @@ export function GuideLines({
           )
         );
       }
+
     },
     [guides, canvasWidth, canvasHeight, setGuides, setNodes]
   );

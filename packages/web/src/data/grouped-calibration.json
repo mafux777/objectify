@@ -1,0 +1,97 @@
+{
+  "version": "8.0",
+  "description": "A 5x5 calibration grid with containers: C1 nodes grouped in one container, C2–C4 nodes in another. Tests group auto-sizing, parent-relative coordinates, and group membership in the properties panel.",
+  "palette": [
+    { "id": "slate", "hex": "#CFD8DC", "percentage": 20, "name": "Slate" },
+    { "id": "blue", "hex": "#BBDEFB", "percentage": 20, "name": "Blue" },
+    { "id": "green", "hex": "#C8E6C9", "percentage": 20, "name": "Green" },
+    { "id": "amber", "hex": "#FFE0B2", "percentage": 20, "name": "Amber" },
+    { "id": "purple", "hex": "#E1BEE7", "percentage": 20, "name": "Purple" }
+  ],
+  "shapePalette": [
+    { "id": "rect", "kind": "rectangle", "name": "Rectangle" },
+    { "id": "rounded", "kind": "rounded-rectangle", "name": "Rounded" },
+    { "id": "hexagon", "kind": "hexagon", "name": "Hexagon" },
+    { "id": "ellipse", "kind": "ellipse", "name": "Ellipse" },
+    { "id": "cylinder", "kind": "cylinder", "name": "Cylinder" }
+  ],
+  "sizePalette": [
+    { "id": "xs", "width": 0.06, "height": 0.05, "name": "Extra Small" },
+    { "id": "sm", "width": 0.10, "height": 0.06, "name": "Small" },
+    { "id": "md", "width": 0.14, "height": 0.09, "name": "Medium" },
+    { "id": "lg", "width": 0.18, "height": 0.12, "name": "Large" },
+    { "id": "xl", "width": 0.22, "height": 0.15, "name": "Extra Large" }
+  ],
+  "semanticTypes": [
+    { "id": "xs-type", "name": "XS Node", "description": "Extra-small calibration node" },
+    { "id": "sm-type", "name": "SM Node", "description": "Small calibration node" },
+    { "id": "md-type", "name": "MD Node", "description": "Medium calibration node" },
+    { "id": "lg-type", "name": "LG Node", "description": "Large calibration node" },
+    { "id": "xl-type", "name": "XL Node", "description": "Extra-large calibration node" }
+  ],
+  "diagrams": [
+    {
+      "id": "grouped-calibration",
+      "title": "Grouped Calibration Grid",
+      "description": "5x5 grid with C1 in a container and C2–C4 in another container. C5 is ungrouped. Tests group reparenting and auto-sizing.",
+      "direction": "RIGHT",
+      "imageDimensions": { "width": 1200, "height": 800 },
+      "guides": [
+        { "id": "row-xs", "index": 0, "direction": "horizontal", "position": 0.07, "label": "XS" },
+        { "id": "row-sm", "index": 1, "direction": "horizontal", "position": 0.19, "label": "SM" },
+        { "id": "row-md", "index": 2, "direction": "horizontal", "position": 0.35, "label": "MD" },
+        { "id": "row-lg", "index": 3, "direction": "horizontal", "position": 0.55, "label": "LG" },
+        { "id": "row-xl", "index": 4, "direction": "horizontal", "position": 0.80, "label": "XL" },
+        { "id": "col-1", "index": 0, "direction": "vertical", "position": 0.10, "label": "C1" },
+        { "id": "col-2", "index": 1, "direction": "vertical", "position": 0.30, "label": "C2" },
+        { "id": "col-3", "index": 2, "direction": "vertical", "position": 0.50, "label": "C3" },
+        { "id": "col-4", "index": 3, "direction": "vertical", "position": 0.70, "label": "C4" },
+        { "id": "col-5", "index": 4, "direction": "vertical", "position": 0.90, "label": "C5" }
+      ],
+      "nodes": [
+        { "id": "group-c1", "label": "C1 Group", "type": "group", "style": { "backgroundColor": "rgba(200,200,200,0.15)", "textColor": "#666" } },
+        { "id": "group-middle", "label": "Middle Group", "type": "group", "style": { "backgroundColor": "rgba(200,200,200,0.15)", "textColor": "#666" } },
+
+        { "id": "xs-1", "label": "DB", "type": "box", "parentId": "group-c1", "style": { "backgroundColor": "#CFD8DC", "textColor": "#333" }, "shapeId": "rect", "sizeId": "xs", "semanticTypeId": "xs-type", "guideRow": "row-xs", "guideColumn": "col-1" },
+        { "id": "xs-2", "label": "API", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#CFD8DC", "textColor": "#333" }, "shapeId": "rect", "sizeId": "xs", "semanticTypeId": "xs-type", "guideRow": "row-xs", "guideColumn": "col-2" },
+        { "id": "xs-3", "label": "Auth", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#CFD8DC", "textColor": "#333" }, "shapeId": "rect", "sizeId": "xs", "semanticTypeId": "xs-type", "guideRow": "row-xs", "guideColumn": "col-3" },
+        { "id": "xs-4", "label": "Log", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#CFD8DC", "textColor": "#333" }, "shapeId": "rect", "sizeId": "xs", "semanticTypeId": "xs-type", "guideRow": "row-xs", "guideColumn": "col-4" },
+        { "id": "xs-5", "label": "CDN", "type": "box", "style": { "backgroundColor": "#CFD8DC", "textColor": "#333" }, "shapeId": "rect", "sizeId": "xs", "semanticTypeId": "xs-type", "guideRow": "row-xs", "guideColumn": "col-5" },
+
+        { "id": "sm-1", "label": "User Svc", "type": "box", "parentId": "group-c1", "style": { "backgroundColor": "#BBDEFB", "textColor": "#333" }, "shapeId": "rounded", "sizeId": "sm", "semanticTypeId": "sm-type", "guideRow": "row-sm", "guideColumn": "col-1" },
+        { "id": "sm-2", "label": "Order Svc", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#BBDEFB", "textColor": "#333" }, "shapeId": "rounded", "sizeId": "sm", "semanticTypeId": "sm-type", "guideRow": "row-sm", "guideColumn": "col-2" },
+        { "id": "sm-3", "label": "Auth Svc", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#BBDEFB", "textColor": "#333" }, "shapeId": "rounded", "sizeId": "sm", "semanticTypeId": "sm-type", "guideRow": "row-sm", "guideColumn": "col-3" },
+        { "id": "sm-4", "label": "Pay Svc", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#BBDEFB", "textColor": "#333" }, "shapeId": "rounded", "sizeId": "sm", "semanticTypeId": "sm-type", "guideRow": "row-sm", "guideColumn": "col-4" },
+        { "id": "sm-5", "label": "Ship Svc", "type": "box", "style": { "backgroundColor": "#BBDEFB", "textColor": "#333" }, "shapeId": "rounded", "sizeId": "sm", "semanticTypeId": "sm-type", "guideRow": "row-sm", "guideColumn": "col-5" },
+
+        { "id": "md-1", "label": "API\nGateway", "type": "box", "parentId": "group-c1", "style": { "backgroundColor": "#C8E6C9", "textColor": "#333" }, "shapeId": "hexagon", "sizeId": "md", "semanticTypeId": "md-type", "guideRow": "row-md", "guideColumn": "col-1" },
+        { "id": "md-2", "label": "Load\nBalancer", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#C8E6C9", "textColor": "#333" }, "shapeId": "hexagon", "sizeId": "md", "semanticTypeId": "md-type", "guideRow": "row-md", "guideColumn": "col-2" },
+        { "id": "md-3", "label": "Message\nQueue", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#C8E6C9", "textColor": "#333" }, "shapeId": "hexagon", "sizeId": "md", "semanticTypeId": "md-type", "guideRow": "row-md", "guideColumn": "col-3" },
+        { "id": "md-4", "label": "Cache\nLayer", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#C8E6C9", "textColor": "#333" }, "shapeId": "hexagon", "sizeId": "md", "semanticTypeId": "md-type", "guideRow": "row-md", "guideColumn": "col-4" },
+        { "id": "md-5", "label": "DNS\nServer", "type": "box", "style": { "backgroundColor": "#C8E6C9", "textColor": "#333" }, "shapeId": "hexagon", "sizeId": "md", "semanticTypeId": "md-type", "guideRow": "row-md", "guideColumn": "col-5" },
+
+        { "id": "lg-1", "label": "Authentication\nService\nProvider", "type": "box", "parentId": "group-c1", "style": { "backgroundColor": "#FFE0B2", "textColor": "#333" }, "shapeId": "ellipse", "sizeId": "lg", "semanticTypeId": "lg-type", "guideRow": "row-lg", "guideColumn": "col-1" },
+        { "id": "lg-2", "label": "Payment\nProcessing\nEngine", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#FFE0B2", "textColor": "#333" }, "shapeId": "ellipse", "sizeId": "lg", "semanticTypeId": "lg-type", "guideRow": "row-lg", "guideColumn": "col-2" },
+        { "id": "lg-3", "label": "Order\nManagement\nSystem", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#FFE0B2", "textColor": "#333" }, "shapeId": "ellipse", "sizeId": "lg", "semanticTypeId": "lg-type", "guideRow": "row-lg", "guideColumn": "col-3" },
+        { "id": "lg-4", "label": "User\nDashboard\nPortal", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#FFE0B2", "textColor": "#333" }, "shapeId": "ellipse", "sizeId": "lg", "semanticTypeId": "lg-type", "guideRow": "row-lg", "guideColumn": "col-4" },
+        { "id": "lg-5", "label": "Admin\nConsole\nPanel", "type": "box", "style": { "backgroundColor": "#FFE0B2", "textColor": "#333" }, "shapeId": "ellipse", "sizeId": "lg", "semanticTypeId": "lg-type", "guideRow": "row-lg", "guideColumn": "col-5" },
+
+        { "id": "xl-1", "label": "PostgreSQL\nPrimary\nDatabase\nServer", "type": "box", "parentId": "group-c1", "style": { "backgroundColor": "#E1BEE7", "textColor": "#333" }, "shapeId": "cylinder", "sizeId": "xl", "semanticTypeId": "xl-type", "guideRow": "row-xl", "guideColumn": "col-1" },
+        { "id": "xl-2", "label": "Redis\nCache\nCluster\nReplica", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#E1BEE7", "textColor": "#333" }, "shapeId": "cylinder", "sizeId": "xl", "semanticTypeId": "xl-type", "guideRow": "row-xl", "guideColumn": "col-2" },
+        { "id": "xl-3", "label": "MongoDB\nDocument\nReplica\nStore", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#E1BEE7", "textColor": "#333" }, "shapeId": "cylinder", "sizeId": "xl", "semanticTypeId": "xl-type", "guideRow": "row-xl", "guideColumn": "col-3" },
+        { "id": "xl-4", "label": "Elastic\nSearch\nIndex\nCluster", "type": "box", "parentId": "group-middle", "style": { "backgroundColor": "#E1BEE7", "textColor": "#333" }, "shapeId": "cylinder", "sizeId": "xl", "semanticTypeId": "xl-type", "guideRow": "row-xl", "guideColumn": "col-4" },
+        { "id": "xl-5", "label": "Object\nStorage\nArchive\nService", "type": "box", "style": { "backgroundColor": "#E1BEE7", "textColor": "#333" }, "shapeId": "cylinder", "sizeId": "xl", "semanticTypeId": "xl-type", "guideRow": "row-xl", "guideColumn": "col-5" }
+      ],
+      "edges": [],
+      "legend": {
+        "nodeEntries": [
+          { "label": "XS — Rectangle", "color": "#CFD8DC" },
+          { "label": "SM — Rounded", "color": "#BBDEFB" },
+          { "label": "MD — Hexagon", "color": "#C8E6C9" },
+          { "label": "LG — Ellipse", "color": "#FFE0B2" },
+          { "label": "XL — Cylinder", "color": "#E1BEE7" }
+        ]
+      }
+    }
+  ]
+}
