@@ -346,13 +346,6 @@ export function GuideLines({
 
         // Remove the dragged guide
         setGuides((gs) => gs.filter((g) => g.id !== removedId));
-      } else {
-        // Guide was dragged but not merged — mark it as pinned
-        setGuides((gs) =>
-          gs.map((g) =>
-            g.id === ds.guideId ? { ...g, pinned: true } : g
-          )
-        );
       }
 
     },
@@ -360,19 +353,11 @@ export function GuideLines({
   );
 
   const onContextMenu = useCallback(
-    (e: React.MouseEvent, guide: GuideLine) => {
+    (e: React.MouseEvent, _guide: GuideLine) => {
       e.preventDefault();
       e.stopPropagation();
-      if (guide.pinned) {
-        saveSnapshot();
-        setGuides((gs) =>
-          gs.map((g) =>
-            g.id === guide.id ? { ...g, pinned: false } : g
-          )
-        );
-      }
     },
-    [saveSnapshot, setGuides]
+    []
   );
 
   // Reactive viewport subscription — re-renders on zoom/pan changes
@@ -577,11 +562,8 @@ export function GuideLines({
 
         {guides.map((guide) => {
           if (guide.visible === false) return null;
-          const isPinned = guide.pinned === true;
           const labelText = guide.label ?? (guide.direction === "horizontal" ? `R${guide.index}` : `C${guide.index}`);
-          const pinDotR = fontSize * 0.22;
-          const pinDotGap = fontSize * 0.4;
-          const labelWidth = labelText.length * fontSize * 0.65 + labelPad * 2 + (isPinned ? pinDotGap + pinDotR * 2 : 0);
+          const labelWidth = labelText.length * fontSize * 0.65 + labelPad * 2;
           const labelHeight = fontSize + labelPad * 2;
 
           if (guide.direction === "horizontal") {
@@ -605,7 +587,7 @@ export function GuideLines({
                   y={y - labelHeight / 2}
                   width={labelWidth}
                   height={labelHeight}
-                  fill={isPinned ? "rgba(25, 118, 210, 0.18)" : "rgba(25, 118, 210, 0.08)"}
+                  fill={"rgba(25, 118, 210, 0.12)"}
                   rx={2 / zoom}
                   style={{ pointerEvents: "auto", cursor: "ns-resize" }}
                   onPointerDown={(e) => onPointerDown(e, guide)}
@@ -620,7 +602,7 @@ export function GuideLines({
                   y={y + fontSize / 3}
                   fontSize={fontSize}
                   fill="#1976d2"
-                  opacity={isPinned ? 0.9 : 0.7}
+                  opacity={0.8}
                   style={{ pointerEvents: "auto", cursor: "ns-resize" }}
                   onPointerDown={(e) => onPointerDown(e, guide)}
                   onPointerMove={onPointerMove}
@@ -631,22 +613,13 @@ export function GuideLines({
                 >
                   {labelText}
                 </text>
-                {isPinned && (
-                  <circle
-                    cx={lx + labelPad + labelText.length * fontSize * 0.65 + pinDotGap}
-                    cy={y}
-                    r={pinDotR}
-                    fill="#1976d2"
-                    opacity={0.7}
-                  />
-                )}
                 {/* Right-side label (read-only mirror) */}
                 <rect
                   x={rowLabelXRight}
                   y={y - labelHeight / 2}
                   width={labelWidth}
                   height={labelHeight}
-                  fill={isPinned ? "rgba(25, 118, 210, 0.18)" : "rgba(25, 118, 210, 0.08)"}
+                  fill={"rgba(25, 118, 210, 0.12)"}
                   rx={2 / zoom}
                   style={{ pointerEvents: "none" }}
                 />
@@ -655,7 +628,7 @@ export function GuideLines({
                   y={y + fontSize / 3}
                   fontSize={fontSize}
                   fill="#1976d2"
-                  opacity={isPinned ? 0.9 : 0.7}
+                  opacity={0.8}
                   style={{ pointerEvents: "none" }}
                 >
                   {labelText}
@@ -686,7 +659,7 @@ export function GuideLines({
                     y={colLabelY - labelHeight / 2}
                     width={labelWidth}
                     height={labelHeight}
-                    fill={isPinned ? "rgba(25, 118, 210, 0.18)" : "rgba(25, 118, 210, 0.08)"}
+                    fill={"rgba(25, 118, 210, 0.12)"}
                     rx={2 / zoom}
                     style={{ pointerEvents: "auto", cursor: "ew-resize" }}
                     onPointerDown={(e) => onPointerDown(e, guide)}
@@ -701,7 +674,7 @@ export function GuideLines({
                     y={colLabelY + fontSize / 3}
                     fontSize={fontSize}
                     fill="#1976d2"
-                    opacity={isPinned ? 0.9 : 0.7}
+                    opacity={0.8}
                     style={{ pointerEvents: "auto", cursor: "ew-resize" }}
                     onPointerDown={(e) => onPointerDown(e, guide)}
                     onPointerMove={onPointerMove}
@@ -712,15 +685,6 @@ export function GuideLines({
                   >
                     {labelText}
                   </text>
-                  {isPinned && (
-                    <circle
-                      cx={x + labelPad + labelText.length * fontSize * 0.65 + pinDotGap}
-                      cy={colLabelY}
-                      r={pinDotR}
-                      fill="#1976d2"
-                      opacity={0.7}
-                    />
-                  )}
                 </g>
                 {/* Bottom-side label (read-only mirror, rotated +90°, outside ruler) */}
                 <g transform={`rotate(90, ${x}, ${colLabelYBottom + tapeW})`}>
@@ -729,7 +693,7 @@ export function GuideLines({
                     y={colLabelYBottom + tapeW - labelHeight / 2}
                     width={labelWidth}
                     height={labelHeight}
-                    fill={isPinned ? "rgba(25, 118, 210, 0.18)" : "rgba(25, 118, 210, 0.08)"}
+                    fill={"rgba(25, 118, 210, 0.12)"}
                     rx={2 / zoom}
                     style={{ pointerEvents: "none" }}
                   />
@@ -738,7 +702,7 @@ export function GuideLines({
                     y={colLabelYBottom + tapeW + fontSize / 3}
                     fontSize={fontSize}
                     fill="#1976d2"
-                    opacity={isPinned ? 0.9 : 0.7}
+                    opacity={0.8}
                     style={{ pointerEvents: "none" }}
                   >
                     {labelText}

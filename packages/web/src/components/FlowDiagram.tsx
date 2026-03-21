@@ -2052,7 +2052,7 @@ export function FlowDiagram({
         onPatchGuide={(guideId, position) => {
           saveSnapshot();
           setGuides((gs) =>
-            gs.map((g) => g.id === guideId ? { ...g, position, pinned: true } : g)
+            gs.map((g) => g.id === guideId ? { ...g, position } : g)
           );
           // Re-center nodes on the moved guide
           const guide = guides.find((g) => g.id === guideId);
