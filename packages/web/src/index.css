@@ -371,6 +371,23 @@ body,
   gap: 1px;
 }
 
+.properties-panel__guide-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.properties-panel__guide-row .properties-panel__node-link {
+  flex-shrink: 0;
+  min-width: 60px;
+}
+
+.properties-panel__guide-row .properties-panel__coord-row {
+  flex: 1;
+  margin-bottom: 0;
+}
+
 /* ── Node URL globe icon ── */
 .node-url-btn {
   position: absolute;

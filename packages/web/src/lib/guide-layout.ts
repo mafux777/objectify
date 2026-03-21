@@ -246,7 +246,8 @@ function topoSortGroups(groups: Node[]): Node[] {
 export function guideLayoutDiagram(
   diagram: SingleDiagram,
   shapePalette?: ShapePaletteEntry[],
-  sizePalette?: SizePaletteEntry[]
+  sizePalette?: SizePaletteEntry[],
+  options?: { resolveOverlaps?: boolean },
 ): { nodes: Node[]; edges: Edge[]; resolvedGuides: GuideLine[] } {
   const imgW = diagram.imageDimensions?.width ?? REFERENCE_CANVAS_WIDTH;
   const imgH = diagram.imageDimensions?.height ?? REFERENCE_CANVAS_HEIGHT;
@@ -287,14 +288,17 @@ export function guideLayoutDiagram(
     console.warn(`[Guide Layout] ${w}`);
   }
 
-  // Post-LLM validation: resolve overlaps by adjusting guide positions
-  const resolvedGuides = resolveGuideOverlaps(
-    diagram.guides ?? [],
-    leafNodes,
-    getNodeSize,
-    canvasWidth,
-    canvasHeight,
-  );
+  // Resolve overlaps only when requested (e.g. after LLM output).
+  // For import/deserialization, guides are used as-is to preserve roundtrip fidelity.
+  const resolvedGuides = options?.resolveOverlaps !== false
+    ? resolveGuideOverlaps(
+        diagram.guides ?? [],
+        leafNodes,
+        getNodeSize,
+        canvasWidth,
+        canvasHeight,
+      )
+    : [...(diagram.guides ?? [])];
 
   const guideMap = new Map<string, GuideLine>();
   for (const g of resolvedGuides) {

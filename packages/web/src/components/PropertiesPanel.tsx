@@ -11,6 +11,7 @@ import type {
 interface PropertiesPanelProps {
   selectedNode: Node | null;
   selectedEdge: Edge | null;
+  selectedGuide: GuideLine | null;
   nodes: Node[];
   guides: GuideLine[];
   specDescription: string;
@@ -22,6 +23,7 @@ interface PropertiesPanelProps {
   onPatchEdge: (edgeId: string, patch: Record<string, unknown>) => void;
   onPatchGuide: (guideId: string, position: number) => void;
   onSelectNode: (nodeId: string) => void;
+  onSelectGuide: (guideId: string) => void;
   onClose: () => void;
 }
 
@@ -79,9 +81,31 @@ function CoordStepper({
   );
 }
 
+/** Clickable guide reference */
+function GuideLink({
+  guide,
+  onSelect,
+}: {
+  guide: GuideLine;
+  onSelect: (id: string) => void;
+}) {
+  const label = guide.label ?? guide.id;
+  const dir = guide.direction === "horizontal" ? "Row" : "Col";
+  return (
+    <button
+      className="properties-panel__node-link"
+      onClick={() => onSelect(guide.id)}
+      title={`Select guide "${label}" (${guide.id})`}
+    >
+      {dir}: {label}
+    </button>
+  );
+}
+
 export function PropertiesPanel({
   selectedNode,
   selectedEdge,
+  selectedGuide,
   nodes,
   guides,
   specDescription,
@@ -93,6 +117,7 @@ export function PropertiesPanel({
   onPatchEdge,
   onPatchGuide,
   onSelectNode,
+  onSelectGuide,
   onClose,
 }: PropertiesPanelProps) {
   const nodeData = selectedNode?.data as Record<string, unknown> | undefined;
@@ -167,13 +192,15 @@ export function PropertiesPanel({
     <div className="properties-panel">
       <div className="properties-panel__header">
         <span className="properties-panel__title">
-          {selectedNode
-            ? isGroup
-              ? "Group"
-              : "Node"
-            : selectedEdge
-              ? "Connector"
-              : "Description"}
+          {selectedGuide
+            ? "Guide"
+            : selectedNode
+              ? isGroup
+                ? "Group"
+                : "Node"
+              : selectedEdge
+                ? "Connector"
+                : "Description"}
         </span>
         <button className="properties-panel__close" onClick={onClose} title="Close panel">
           ✕
@@ -181,8 +208,60 @@ export function PropertiesPanel({
       </div>
 
       <div className="properties-panel__body">
+        {/* ── Guide selected ── */}
+        {selectedGuide && (
+          <>
+            <div className="properties-panel__field">
+              <label className="properties-panel__label">ID</label>
+              <span className="properties-panel__value properties-panel__value--mono">{selectedGuide.id}</span>
+            </div>
+
+            <div className="properties-panel__field">
+              <label className="properties-panel__label">Label</label>
+              <span className="properties-panel__value">{selectedGuide.label ?? selectedGuide.id}</span>
+            </div>
+
+            <div className="properties-panel__field">
+              <label className="properties-panel__label">Direction</label>
+              <span className="properties-panel__value">{selectedGuide.direction}</span>
+            </div>
+
+            <div className="properties-panel__field">
+              <label className="properties-panel__label">Position</label>
+              <CoordStepper
+                label={selectedGuide.direction === "horizontal" ? "Y" : "X"}
+                value={selectedGuide.position}
+                onChange={(v) => onPatchGuide(selectedGuide.id, v)}
+              />
+            </div>
+
+            <div className="properties-panel__field">
+              <label className="properties-panel__label">
+                Snapped objects ({(() => {
+                  const field = selectedGuide.direction === "horizontal" ? "guideRow" : "guideColumn";
+                  return nodes.filter((n) => (n.data as Record<string, unknown>)?.[field] === selectedGuide.id).length;
+                })()})
+              </label>
+              <div className="properties-panel__member-list">
+                {(() => {
+                  const field = selectedGuide.direction === "horizontal" ? "guideRow" : "guideColumn";
+                  const snapped = nodes.filter((n) => (n.data as Record<string, unknown>)?.[field] === selectedGuide.id);
+                  return snapped.map((n) => (
+                    <NodeLink
+                      key={n.id}
+                      nodeId={n.id}
+                      label={nodeLabel(n)}
+                      onSelect={onSelectNode}
+                    />
+                  ));
+                })()}
+              </div>
+            </div>
+          </>
+        )}
+
         {/* ── No selection: show spec description ── */}
-        {!selectedNode && !selectedEdge && (
+        {!selectedNode && !selectedEdge && !selectedGuide && (
           <p className="properties-panel__description">{specDescription || <em>No description.</em>}</p>
         )}
 
@@ -246,23 +325,29 @@ export function PropertiesPanel({
               </div>
             )}
 
-            {/* ── Guides with stepper ── */}
+            {/* ── Guides (clickable links + stepper) ── */}
             {(rowGuide || colGuide) && (
               <div className="properties-panel__field">
                 <label className="properties-panel__label">Guides</label>
                 {rowGuide && (
-                  <CoordStepper
-                    label={`Row: ${rowGuide.label ?? rowGuide.id}`}
-                    value={rowGuide.position}
-                    onChange={(v) => onPatchGuide(rowGuide.id, v)}
-                  />
+                  <div className="properties-panel__guide-row">
+                    <GuideLink guide={rowGuide} onSelect={onSelectGuide} />
+                    <CoordStepper
+                      label=""
+                      value={rowGuide.position}
+                      onChange={(v) => onPatchGuide(rowGuide.id, v)}
+                    />
+                  </div>
                 )}
                 {colGuide && (
-                  <CoordStepper
-                    label={`Col: ${colGuide.label ?? colGuide.id}`}
-                    value={colGuide.position}
-                    onChange={(v) => onPatchGuide(colGuide.id, v)}
-                  />
+                  <div className="properties-panel__guide-row">
+                    <GuideLink guide={colGuide} onSelect={onSelectGuide} />
+                    <CoordStepper
+                      label=""
+                      value={colGuide.position}
+                      onChange={(v) => onPatchGuide(colGuide.id, v)}
+                    />
+                  </div>
                 )}
               </div>
             )}
@@ -271,26 +356,24 @@ export function PropertiesPanel({
             {(nodeData?.guideRowBottom || nodeData?.guideColumnRight) && (
               <div className="properties-panel__field">
                 <label className="properties-panel__label">Edge guides</label>
-                {!!nodeData?.guideRowBottom && (
-                  <div className="properties-panel__coord-row">
-                    <span className="properties-panel__coord-label">
-                      Bottom: {getGuideLabel(nodeData.guideRowBottom as string)}
-                    </span>
-                    <span className="properties-panel__coord-value">
-                      {guideMap.get(nodeData.guideRowBottom as string)?.position.toFixed(4) ?? "?"}
-                    </span>
-                  </div>
-                )}
-                {!!nodeData?.guideColumnRight && (
-                  <div className="properties-panel__coord-row">
-                    <span className="properties-panel__coord-label">
-                      Right: {getGuideLabel(nodeData.guideColumnRight as string)}
-                    </span>
-                    <span className="properties-panel__coord-value">
-                      {guideMap.get(nodeData.guideColumnRight as string)?.position.toFixed(4) ?? "?"}
-                    </span>
-                  </div>
-                )}
+                {!!nodeData?.guideRowBottom && (() => {
+                  const g = guideMap.get(nodeData.guideRowBottom as string);
+                  return g ? (
+                    <div className="properties-panel__guide-row">
+                      <GuideLink guide={g} onSelect={onSelectGuide} />
+                      <span className="properties-panel__coord-value">{g.position.toFixed(4)}</span>
+                    </div>
+                  ) : null;
+                })()}
+                {!!nodeData?.guideColumnRight && (() => {
+                  const g = guideMap.get(nodeData.guideColumnRight as string);
+                  return g ? (
+                    <div className="properties-panel__guide-row">
+                      <GuideLink guide={g} onSelect={onSelectGuide} />
+                      <span className="properties-panel__coord-value">{g.position.toFixed(4)}</span>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             )}
 

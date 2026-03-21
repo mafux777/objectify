@@ -39,7 +39,7 @@ import { CommandBar } from "./CommandBar.js";
 import { Legend } from "./Legend.js";
 import { toPng } from "html-to-image";
 import qrcode from "qrcode-generator";
-import { flowToDiagram, flowToSpec, pruneOrphanedGuides } from "../lib/flow-to-spec.js";
+import { flowToDiagram, flowToSpec, pruneOrphanedGuides, normalizeSizePalette } from "../lib/flow-to-spec.js";
 import { refineDiagramWithLLM } from "../lib/llm-refine.js";
 import { validateChatInput } from "../lib/llm-validate.js";
 import { type TokenUsage, addTokenUsage } from "../lib/llm-shared.js";
@@ -416,9 +416,10 @@ export function FlowDiagram({
     const prevDiagram = latestSpec.diagrams[prevTab];
     if (!prevDiagram) return;
 
-    const updatedDiagram = flowToDiagram(cached.nodes, cached.edges, prevDiagram, cached.guides);
+    const { diagram: updatedDiagram, normHScale, normVScale } = flowToDiagram(cached.nodes, cached.edges, prevDiagram, cached.guides);
     const updatedSpec: DiagramSpec = {
       ...latestSpec,
+      sizePalette: normalizeSizePalette(latestSpec.sizePalette, normHScale, normVScale),
       diagrams: latestSpec.diagrams.map((d, i) => (i === prevTab ? updatedDiagram : d)),
     };
 
@@ -459,9 +460,10 @@ export function FlowDiagram({
       setSaveStatus("saving");
       try {
         const latestSpec = specRef.current;
-        const updatedDiagram = flowToDiagram(nodes, edges, diagram, guides);
+        const { diagram: updatedDiagram, normHScale, normVScale } = flowToDiagram(nodes, edges, diagram, guides);
         const updatedSpec: DiagramSpec = {
           ...latestSpec,
+          sizePalette: normalizeSizePalette(latestSpec.sizePalette, normHScale, normVScale),
           diagrams: latestSpec.diagrams.map((d, i) => i === activeTab ? updatedDiagram : d),
         };
         const docId = documentIdRef.current;
@@ -497,9 +499,10 @@ export function FlowDiagram({
       const diag = latestSpec.diagrams[tabIdx];
       if (!diag) return;
 
-      const updatedDiagram = flowToDiagram(currentNodes, edgesRef.current, diag, guidesRef.current);
+      const { diagram: updatedDiagram, normHScale, normVScale } = flowToDiagram(currentNodes, edgesRef.current, diag, guidesRef.current);
       const updatedSpec: DiagramSpec = {
         ...latestSpec,
+        sizePalette: normalizeSizePalette(latestSpec.sizePalette, normHScale, normVScale),
         diagrams: latestSpec.diagrams.map((d, i) => (i === tabIdx ? updatedDiagram : d)),
       };
 
@@ -530,9 +533,10 @@ export function FlowDiagram({
     setSaveStatus("saving");
     try {
       const latestSpec = specRef.current;
-      const updatedDiagram = flowToDiagram(nodes, edges, diagram, guides);
+      const { diagram: updatedDiagram, normHScale, normVScale } = flowToDiagram(nodes, edges, diagram, guides);
       const updatedSpec: DiagramSpec = {
         ...latestSpec,
+        sizePalette: normalizeSizePalette(latestSpec.sizePalette, normHScale, normVScale),
         diagrams: latestSpec.diagrams.map((d, i) => i === activeTab ? updatedDiagram : d),
       };
       const existing = await db.getDocument(documentId);
@@ -1695,12 +1699,22 @@ export function FlowDiagram({
     return () => window.removeEventListener("objectify:export-png", handler);
   }, [handleExportPng]);
 
+  const [selectedGuideId, setSelectedGuideId] = useState<string | null>(null);
+
+  // Clear guide selection when a node or edge is selected
+  const anyNodeSelected = nodes.some((n) => n.selected);
+  const anyEdgeSelected = edges.some((e) => e.selected);
+  useEffect(() => {
+    if (anyNodeSelected || anyEdgeSelected) setSelectedGuideId(null);
+  }, [anyNodeSelected, anyEdgeSelected]);
+
   if (isLayouting) {
     return <div className="loading-spinner">Computing layout...</div>;
   }
 
   const selectedNode = nodes.find((n) => n.selected) ?? null;
   const selectedEdge = edges.find((e) => e.selected) ?? null;
+  const selectedGuide = selectedGuideId ? guides.find((g) => g.id === selectedGuideId) ?? null : null;
 
   return (
     <div ref={flowRef} style={{ width: "100%", height: "100%", display: "flex", position: "relative" }}>
@@ -2012,8 +2026,9 @@ export function FlowDiagram({
 
     {showPropertiesPanel && (
       <PropertiesPanel
-        selectedNode={selectedNode}
-        selectedEdge={selectedEdge}
+        selectedNode={selectedGuide ? null : selectedNode}
+        selectedEdge={selectedGuide ? null : selectedEdge}
+        selectedGuide={selectedGuide}
         nodes={nodes}
         guides={guides}
         specDescription={specRef.current.description ?? ""}
@@ -2066,8 +2081,18 @@ export function FlowDiagram({
           }
         }}
         onSelectNode={(nodeId) => {
+          setSelectedGuideId(null);
           setNodes((nds) =>
             nds.map((n) => ({ ...n, selected: n.id === nodeId }))
+          );
+          setEdges((eds) =>
+            eds.map((e) => ({ ...e, selected: false }))
+          );
+        }}
+        onSelectGuide={(guideId) => {
+          setSelectedGuideId(guideId);
+          setNodes((nds) =>
+            nds.map((n) => ({ ...n, selected: false }))
           );
           setEdges((eds) =>
             eds.map((e) => ({ ...e, selected: false }))

@@ -406,9 +406,13 @@ export function GuideLines({
   const bboxRight = hasBbox ? bbox.maxX + bboxPad : canvasWidth;
   const bboxBottom = hasBbox ? bbox.maxY + bboxPad : canvasHeight;
 
-  // Row labels sit to the left of the bounding box; column labels sit above
-  const rowLabelX = bboxLeft - labelMargin;
-  const colLabelY = bboxTop - labelMargin;
+  // Rulers sit flush against the bbox on all 4 sides
+  const tapeW = 16 / zoom;
+  // Labels sit OUTSIDE the rulers (further from bbox)
+  const rowLabelX = bboxLeft - tapeW;       // left of left ruler
+  const rowLabelXRight = bboxRight + tapeW;  // right of right ruler
+  const colLabelY = bboxTop - tapeW;         // above top ruler
+  const colLabelYBottom = bboxBottom + tapeW; // below bottom ruler
 
   return (
     <svg
@@ -424,6 +428,137 @@ export function GuideLines({
       }}
     >
       <g transform={`translate(${panX}, ${panY}) scale(${zoom})`}>
+        {/* ── Measuring tape bands ── */}
+        {(() => {
+          const tickLen = 6 / zoom;      // major tick length
+          const tickSmall = 3 / zoom;    // minor tick (0.05) length
+          const tickStroke = 0.5 / zoom;
+          const tickFontSize = 7 / zoom;
+
+          // Determine range: from 0 to max(1, max guide position) for each direction
+          const hPositions = guides.filter(g => g.direction === "horizontal").map(g => g.position);
+          const vPositions = guides.filter(g => g.direction === "vertical").map(g => g.position);
+          const hMax = Math.max(1, ...hPositions);
+          const hMin = Math.min(0, ...hPositions);
+          const vMax = Math.max(1, ...vPositions);
+          const vMin = Math.min(0, ...vPositions);
+
+          // Step: 0.1 for major ticks, 0.05 for minor
+          const makeTicks = (min: number, max: number) => {
+            const ticks: { pos: number; major: boolean }[] = [];
+            const start = Math.floor(min * 20) / 20;
+            const end = Math.ceil(max * 20) / 20;
+            for (let i = start; i <= end + 0.001; i += 0.05) {
+              const rounded = Math.round(i * 100) / 100;
+              ticks.push({ pos: rounded, major: Math.abs(rounded * 10 - Math.round(rounded * 10)) < 0.01 });
+            }
+            return ticks;
+          };
+
+          const hTicks = makeTicks(hMin, hMax);
+          const vTicks = makeTicks(vMin, vMax);
+
+          // Ruler positions flush against bbox on all 4 sides
+          const leftX = bboxLeft - tapeW;
+          const rightX = bboxRight;
+          const topY = bboxTop - tapeW;
+          const bottomY = bboxBottom;
+
+          // Vertical range (for horizontal guides / row rulers)
+          const hTop = hMin * canvasHeight;
+          const hBottom = hMax * canvasHeight;
+
+          // Horizontal range (for vertical guides / column rulers)
+          const vLeft = vMin * canvasWidth;
+          const vRight = vMax * canvasWidth;
+
+          // Helper: render a vertical ruler (left or right side)
+          const verticalRuler = (rx: number, tickSide: "left" | "right") => (
+            <g>
+              <rect
+                x={rx} y={Math.min(hTop, topY)}
+                width={tapeW} height={Math.max(hBottom, bottomY + tapeW) - Math.min(hTop, topY)}
+                fill="white" stroke="#999" strokeWidth={tickStroke}
+              />
+              {hTicks.map(({ pos, major }) => {
+                const y = pos * canvasHeight;
+                const tx = tickSide === "right"
+                  ? rx  // ticks extend from left edge
+                  : rx + tapeW; // ticks extend from right edge
+                const dx = tickSide === "right"
+                  ? (major ? tickLen : tickSmall)
+                  : -(major ? tickLen : tickSmall);
+                return (
+                  <g key={`htick-${tickSide}-${pos}`}>
+                    <line
+                      x1={tx} y1={y} x2={tx + dx} y2={y}
+                      stroke="#666" strokeWidth={tickStroke}
+                    />
+                    {major && (
+                      <text
+                        x={tickSide === "right" ? rx + tickLen + 1 / zoom : rx + tapeW - tickLen - 1 / zoom}
+                        y={y + tickFontSize * 0.35}
+                        fontSize={tickFontSize} fill="#888"
+                        textAnchor={tickSide === "right" ? "start" : "end"}
+                        style={{ userSelect: "none" }}
+                      >
+                        {pos.toFixed(1)}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+          );
+
+          // Helper: render a horizontal ruler (top or bottom side)
+          const horizontalRuler = (ry: number, tickSide: "top" | "bottom") => (
+            <g>
+              <rect
+                x={Math.min(vLeft, leftX)} y={ry}
+                width={Math.max(vRight, rightX + tapeW) - Math.min(vLeft, leftX)} height={tapeW}
+                fill="white" stroke="#999" strokeWidth={tickStroke}
+              />
+              {vTicks.map(({ pos, major }) => {
+                const x = pos * canvasWidth;
+                const ty = tickSide === "bottom"
+                  ? ry  // ticks extend from top edge
+                  : ry + tapeW; // ticks extend from bottom edge
+                const dy = tickSide === "bottom"
+                  ? (major ? tickLen : tickSmall)
+                  : -(major ? tickLen : tickSmall);
+                return (
+                  <g key={`vtick-${tickSide}-${pos}`}>
+                    <line
+                      x1={x} y1={ty} x2={x} y2={ty + dy}
+                      stroke="#666" strokeWidth={tickStroke}
+                    />
+                    {major && (
+                      <text
+                        x={x + 1 / zoom}
+                        y={tickSide === "bottom" ? ry + tickLen + tickFontSize : ry + tapeW - tickLen}
+                        fontSize={tickFontSize} fill="#888"
+                        style={{ userSelect: "none" }}
+                      >
+                        {pos.toFixed(1)}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+            </g>
+          );
+
+          return (
+            <>
+              {hPositions.length > 0 && verticalRuler(leftX, "right")}
+              {hPositions.length > 0 && verticalRuler(rightX, "left")}
+              {vPositions.length > 0 && horizontalRuler(topY, "bottom")}
+              {vPositions.length > 0 && horizontalRuler(bottomY, "top")}
+            </>
+          );
+        })()}
+
         {/* Bounding box outline */}
         {hasBbox && (
           <rect
@@ -455,9 +590,9 @@ export function GuideLines({
             return (
               <g key={guide.id}>
                 <line
-                  x1={bboxLeft}
+                  x1={bboxLeft - tapeW}
                   y1={y}
-                  x2={bboxRight}
+                  x2={bboxRight + tapeW}
                   y2={y}
                   stroke="#1976d2"
                   strokeWidth={strokeW}
@@ -505,6 +640,26 @@ export function GuideLines({
                     opacity={0.7}
                   />
                 )}
+                {/* Right-side label (read-only mirror) */}
+                <rect
+                  x={rowLabelXRight}
+                  y={y - labelHeight / 2}
+                  width={labelWidth}
+                  height={labelHeight}
+                  fill={isPinned ? "rgba(25, 118, 210, 0.18)" : "rgba(25, 118, 210, 0.08)"}
+                  rx={2 / zoom}
+                  style={{ pointerEvents: "none" }}
+                />
+                <text
+                  x={rowLabelXRight + labelPad}
+                  y={y + fontSize / 3}
+                  fontSize={fontSize}
+                  fill="#1976d2"
+                  opacity={isPinned ? 0.9 : 0.7}
+                  style={{ pointerEvents: "none" }}
+                >
+                  {labelText}
+                </text>
               </g>
             );
           } else {
@@ -514,9 +669,9 @@ export function GuideLines({
               <g key={guide.id}>
                 <line
                   x1={x}
-                  y1={bboxTop}
+                  y1={bboxTop - tapeW}
                   x2={x}
-                  y2={bboxBottom}
+                  y2={bboxBottom + tapeW}
                   stroke="#1976d2"
                   strokeWidth={strokeW}
                   strokeDasharray={dash}
@@ -566,6 +721,28 @@ export function GuideLines({
                       opacity={0.7}
                     />
                   )}
+                </g>
+                {/* Bottom-side label (read-only mirror, rotated +90°, outside ruler) */}
+                <g transform={`rotate(90, ${x}, ${colLabelYBottom + tapeW})`}>
+                  <rect
+                    x={x - labelWidth}
+                    y={colLabelYBottom + tapeW - labelHeight / 2}
+                    width={labelWidth}
+                    height={labelHeight}
+                    fill={isPinned ? "rgba(25, 118, 210, 0.18)" : "rgba(25, 118, 210, 0.08)"}
+                    rx={2 / zoom}
+                    style={{ pointerEvents: "none" }}
+                  />
+                  <text
+                    x={x - labelWidth + labelPad}
+                    y={colLabelYBottom + tapeW + fontSize / 3}
+                    fontSize={fontSize}
+                    fill="#1976d2"
+                    opacity={isPinned ? 0.9 : 0.7}
+                    style={{ pointerEvents: "none" }}
+                  >
+                    {labelText}
+                  </text>
                 </g>
               </g>
             );

@@ -14,6 +14,77 @@ import type {
 } from "@objectify/schema";
 
 /**
+ * Unified coordinate normalization.
+ *
+ * Computes the linear transform that maps guide positions back to [0, 1]
+ * per direction, and returns scale factors so callers can apply the same
+ * transform to size palette entries.
+ *
+ * Math (per direction):
+ *   newPos = (oldPos - min) / range        where range = max - min
+ *   newSize = oldSize / range              (sizes scale but don't shift)
+ *
+ * When all guides are already in [0, 1] the transform is the identity.
+ */
+function computeNormalization(guides: GuideLine[]): {
+  guides: GuideLine[];
+  hScale: number;  // multiply horizontal sizes by this
+  vScale: number;  // multiply vertical sizes by this
+} {
+  if (guides.length === 0) return { guides, hScale: 1, vScale: 1 };
+
+  const horizontal = guides.filter((g) => g.direction === "horizontal");
+  const vertical = guides.filter((g) => g.direction === "vertical");
+
+  function computeTransform(group: GuideLine[]): { mapped: GuideLine[]; scale: number } {
+    if (group.length === 0) return { mapped: group, scale: 1 };
+
+    const positions = group.map((g) => g.position);
+    const min = Math.min(...positions);
+    const max = Math.max(...positions);
+
+    // Already within [0, 1] — identity
+    if (min >= 0 && max <= 1) return { mapped: group, scale: 1 };
+
+    // Degenerate: all same position
+    if (max === min) return { mapped: group.map((g) => ({ ...g, position: 0.5 })), scale: 1 };
+
+    const range = max - min;
+    return {
+      mapped: group.map((g) => ({ ...g, position: (g.position - min) / range })),
+      scale: 1 / range,
+    };
+  }
+
+  const h = computeTransform(horizontal);
+  const v = computeTransform(vertical);
+
+  return {
+    guides: [...h.mapped, ...v.mapped],
+    hScale: h.scale,   // horizontal guides → affects height sizes
+    vScale: v.scale,    // vertical guides → affects width sizes
+  };
+}
+
+/**
+ * Apply normalization scale factors to a size palette.
+ * Width scales with the vertical (column) guide transform.
+ * Height scales with the horizontal (row) guide transform.
+ */
+export function normalizeSizePalette(
+  palette: SizePaletteEntry[] | undefined,
+  hScale: number,
+  vScale: number,
+): SizePaletteEntry[] | undefined {
+  if (!palette || (hScale === 1 && vScale === 1)) return palette;
+  return palette.map((e) => ({
+    ...e,
+    width: e.width * vScale,
+    height: e.height * hScale,
+  }));
+}
+
+/**
  * Convert React Flow nodes + edges back into a SingleDiagram object.
  * This is the core serialisation logic used by both auto-save and export.
  */
@@ -22,7 +93,7 @@ export function flowToDiagram(
   edges: Edge[],
   originalDiagram: SingleDiagram,
   guides?: GuideLine[]
-): SingleDiagram {
+): { diagram: SingleDiagram; normHScale: number; normVScale: number } {
   const specNodes: DiagramNode[] = nodes.map((n) => {
     const isGroup = n.type === "groupNode";
     const data = n.data as Record<string, unknown>;
@@ -173,15 +244,21 @@ export function flowToDiagram(
     diagram.imageDimensions = originalDiagram.imageDimensions;
   }
 
+  // Normalize guide positions to [0, 1] and compute scale factors
+  // for applying the same transform to the size palette.
+  let normHScale = 1, normVScale = 1;
   if (guides && guides.length > 0) {
-    diagram.guides = normalizeGuidePositions(guides);
+    const norm = computeNormalization(guides);
+    diagram.guides = norm.guides;
+    normHScale = norm.hScale;
+    normVScale = norm.vScale;
   }
 
   if (originalDiagram.legend) {
     diagram.legend = originalDiagram.legend;
   }
 
-  return diagram;
+  return { diagram, normHScale, normVScale };
 }
 
 /**
@@ -199,7 +276,8 @@ export function flowToSpec(
   guides?: GuideLine[],
   originalDescription?: string
 ): DiagramSpec {
-  const diagram = flowToDiagram(nodes, edges, originalDiagram, guides);
+  const { diagram, normHScale, normVScale } = flowToDiagram(nodes, edges, originalDiagram, guides);
+  const normalizedSizePalette = normalizeSizePalette(sizePalette, normHScale, normVScale);
 
   const hasGuides = guides && guides.length > 0;
   const hasMultiLabels = diagram.nodes.some((n) => n.labels && n.labels.length > 0)
@@ -229,7 +307,7 @@ export function flowToSpec(
     version: version as "1.0" | "2.0" | "3.0" | "4.0" | "5.0" | "6.0" | "7.0",
     ...(palette && palette.length > 0 ? { palette } : {}),
     ...(shapePalette && shapePalette.length > 0 ? { shapePalette } : {}),
-    ...(sizePalette && sizePalette.length > 0 ? { sizePalette } : {}),
+    ...(normalizedSizePalette && normalizedSizePalette.length > 0 ? { sizePalette: normalizedSizePalette } : {}),
     ...(semanticTypes && semanticTypes.length > 0 ? { semanticTypes } : {}),
     description: originalDescription ?? "Exported from Objectify interactive editor.",
     diagrams: [diagram],
@@ -278,44 +356,4 @@ function handleToAnchor(handleId: string): AnchorSide | undefined {
   return VALID_ANCHORS.has(anchor) ? (anchor as AnchorSide) : undefined;
 }
 
-/**
- * Re-normalize guide positions to [0, 1] when any guide has drifted outside
- * that range (e.g. after infinite-canvas expansion).  This keeps the schema
- * contract intact while allowing guides to temporarily exceed [0, 1] during
- * interactive editing.
- *
- * Each direction (horizontal / vertical) is normalized independently.
- * If all positions are already within [0, 1], guides are returned as-is.
- */
-function normalizeGuidePositions(guides: GuideLine[]): GuideLine[] {
-  const MARGIN = 0.05;
-
-  const horizontal = guides.filter((g) => g.direction === "horizontal");
-  const vertical = guides.filter((g) => g.direction === "vertical");
-
-  function normalizeGroup(group: GuideLine[]): GuideLine[] {
-    if (group.length === 0) return group;
-
-    const positions = group.map((g) => g.position);
-    const min = Math.min(...positions);
-    const max = Math.max(...positions);
-
-    // Already within [0, 1] — no-op
-    if (min >= 0 && max <= 1) return group;
-
-    // Degenerate case: all at the same position
-    if (max === min) return group.map((g) => ({ ...g, position: 0.5 }));
-
-    // Linearly map [min, max] → [MARGIN, 1 - MARGIN]
-    const targetMin = MARGIN;
-    const targetMax = 1 - MARGIN;
-    const scale = (targetMax - targetMin) / (max - min);
-
-    return group.map((g) => ({
-      ...g,
-      position: targetMin + (g.position - min) * scale,
-    }));
-  }
-
-  return [...normalizeGroup(horizontal), ...normalizeGroup(vertical)];
-}
+// normalizeGuidePositions replaced by computeNormalization (see above)

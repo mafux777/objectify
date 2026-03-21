@@ -28,7 +28,7 @@ export function useLayoutedElements(
       diagram.nodes.some((n) => n.guideRow || n.guideColumn);
 
     if (hasGuideData) {
-      const result = guideLayoutDiagram(diagram, shapePalette, sizePalette);
+      const result = guideLayoutDiagram(diagram, shapePalette, sizePalette, { resolveOverlaps: false });
       if (!cancelled) {
         setInitialNodes(result.nodes);
         setInitialEdges(result.edges);
