@@ -12,6 +12,7 @@ type GroupNodeData = {
   font?: NodeFont;
   shapeKind?: string;
   description?: string;
+  url?: string;
 };
 
 export function GroupNode({
@@ -19,7 +20,7 @@ export function GroupNode({
   data,
   selected,
 }: NodeProps & { data: GroupNodeData }) {
-  const { label, labels, style, font, shapeKind, description } = data;
+  const { label, labels, style, font, shapeKind, description, url } = data;
 
   // For groups, primary label goes at top-left (inside the group header)
   const primaryLabel = labels?.[0]?.text ?? label;
@@ -43,6 +44,19 @@ export function GroupNode({
       />
 
       <NodeHandles />
+
+      {url && (
+        <a
+          className="node-url-btn"
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`Open: ${url}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          🌐
+        </a>
+      )}
 
       {isCloud ? (
         <div title={description} style={{ width: "100%", height: "100%", position: "relative", opacity: style.opacity ?? 1 }}>

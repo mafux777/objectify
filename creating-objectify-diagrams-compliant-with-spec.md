@@ -423,7 +423,7 @@ These rules are enforced by the schema validator. Violating any of them will cau
 4. **Valid palette refs**: All `shapeId`, `sizeId`, `semanticTypeId` must reference existing palette entries
 5. **Unique grid cells**: No two leaf nodes may share the same `(guideRow, guideColumn)` pair
 6. **Hex format**: All colors must be 6-digit hex (`#RRGGBB`), uppercase
-7. **Normalized values**: All spatial/guide positions must be between 0 and 1
+7. **Normalized values**: All guide positions must be between 0 and 1
 8. **Group containment**: Nodes with `parentId` must reference a valid group node
 9. **Valid IDs**: All IDs should be kebab-case strings
 

@@ -13,6 +13,7 @@ import exampleCData from "../../data/example-c-ecommerce-uml.json";
 import sampleData from "../../data/sample.json";
 import tradingPipelineData from "../../data/trading-pipeline.json";
 import talosComponentsData from "../../data/talos-components.json";
+import groupedCalibrationData from "../../data/grouped-calibration.json";
 import creditsOnObjectifyData from "../../data/credits-on-objectify.json";
 import importExportWorkflowsData from "../../data/import-export-workflows.json";
 import howToGetUsdcData from "../../data/how-to-get-usdc.json";
@@ -21,16 +22,17 @@ import type { DiagramSpec } from "@objectify/schema";
 const ENTRIES: { name: string; description: string; data: unknown; featured: boolean; order: number }[] = [
   { name: "How Objectify Works", description: "Start here to see the process behind Objectify", data: objectifyWorkflowData, featured: true, order: 0 },
   { name: "Size Calibration Grid", description: "Test how different t-shirt sizes render across shapes", data: sizeCalibrationData, featured: false, order: 1 },
-  { name: "Text Capacity Grid", description: "How much Latin text fits in each shape and size combination", data: textCapacityData, featured: false, order: 2 },
-  { name: "Web App Architecture", description: "Typical microservices web application architecture", data: exampleAData, featured: false, order: 3 },
-  { name: "CI/CD Pipeline", description: "Continuous integration and deployment pipeline", data: exampleBData, featured: false, order: 4 },
-  { name: "E-Commerce Components", description: "E-commerce system component diagram", data: exampleCData, featured: false, order: 5 },
-  { name: "Project Thunderbattle", description: "Sample project architecture diagram", data: sampleData, featured: false, order: 6 },
-  { name: "Trading Pipeline", description: "Financial trading data pipeline", data: tradingPipelineData, featured: false, order: 7 },
-  { name: "Talos Linux Components", description: "Talos Linux system components", data: talosComponentsData, featured: false, order: 8 },
-  { name: "Credits on Objectify", description: "Three ways to use Objectify: free features (templates, JSON, export), sign up for 5 bonus credits, or send USDC for unlimited credits.", data: creditsOnObjectifyData, featured: false, order: 9 },
-  { name: "Import & Export Workflows", description: "Use cases for importing and exporting diagrams: share with teammates, feed to LLMs, version control, embed in docs, and more.", data: importExportWorkflowsData, featured: false, order: 10 },
-  { name: "How to Get USDC", description: "Step-by-step guide to acquiring USDC on Coinbase and sending it to your Objectify address on the Base network.", data: howToGetUsdcData, featured: false, order: 11 },
+  { name: "Grouped Calibration Grid", description: "Calibration grid with C1 and C2–C4 containers for testing groups", data: groupedCalibrationData, featured: false, order: 2 },
+  { name: "Text Capacity Grid", description: "How much Latin text fits in each shape and size combination", data: textCapacityData, featured: false, order: 3 },
+  { name: "Web App Architecture", description: "Typical microservices web application architecture", data: exampleAData, featured: false, order: 4 },
+  { name: "CI/CD Pipeline", description: "Continuous integration and deployment pipeline", data: exampleBData, featured: false, order: 5 },
+  { name: "E-Commerce Components", description: "E-commerce system component diagram", data: exampleCData, featured: false, order: 6 },
+  { name: "Project Thunderbattle", description: "Sample project architecture diagram", data: sampleData, featured: false, order: 7 },
+  { name: "Trading Pipeline", description: "Financial trading data pipeline", data: tradingPipelineData, featured: false, order: 8 },
+  { name: "Talos Linux Components", description: "Talos Linux system components", data: talosComponentsData, featured: false, order: 9 },
+  { name: "Credits on Objectify", description: "Three ways to use Objectify: free features (templates, JSON, export), sign up for 5 bonus credits, or send USDC for unlimited credits.", data: creditsOnObjectifyData, featured: false, order: 10 },
+  { name: "Import & Export Workflows", description: "Use cases for importing and exporting diagrams: share with teammates, feed to LLMs, version control, embed in docs, and more.", data: importExportWorkflowsData, featured: false, order: 11 },
+  { name: "How to Get USDC", description: "Step-by-step guide to acquiring USDC on Coinbase and sending it to your Objectify address on the Base network.", data: howToGetUsdcData, featured: false, order: 12 },
 ];
 
 export const BUNDLED_TEMPLATES: Template[] = ENTRIES.map((e, i) => ({

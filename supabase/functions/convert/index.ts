@@ -152,7 +152,7 @@ serve(async (req: Request) => {
           },
           {
             type: "text",
-            text: "Analyze this diagram image and produce the structured JSON specification with full spatial data. Be thorough — capture every box, container, arrow, and label visible in the image with precise bounding boxes.",
+            text: "Analyze this diagram image and produce the structured JSON specification with guide-based layout. Be thorough — capture every box, container, arrow, and label visible in the image.",
           },
         ],
       },
@@ -312,7 +312,7 @@ Scoring guide:
 - 1-2: Clearly not a diagram (photo, screenshot, chart, text)`;
 
 // Inlined from packages/web/src/lib/llm-image-analyze.ts — the full system prompt
-const IMAGE_ANALYSIS_PROMPT = `You are a diagram analysis expert performing PIXEL-LEVEL reverse engineering. Your task is to completely dissect a diagram image — extracting every visual element with its precise position, size, color, and font properties.
+const IMAGE_ANALYSIS_PROMPT = `You are a diagram analysis expert performing PIXEL-LEVEL reverse engineering. Your task is to completely dissect a diagram image — extracting every visual element with its precise position, size, color, and font properties, and position it using a guide-based layout grid.
 
 ## Spatial Extraction Instructions
 
@@ -518,6 +518,8 @@ Each node MUST have a nested "style" object (NOT flat color fields):
 }
 \`\`\`
 
+Each node MUST have "guideRow" and "guideColumn" referencing guide IDs for positioning.
+
 Each edge MUST have a nested "style" object (NOT flat style fields):
 \`\`\`
 {
@@ -540,6 +542,7 @@ Each edge MUST have a nested "style" object (NOT flat style fields):
 
 ## Critical Rules
 - All spatial coordinates MUST be between 0 and 1
+- All guide positions MUST be between 0 and 1
 - x + width MUST be <= 1.0 for every node
 - y + height MUST be <= 1.0 for every node
 - Group nodes' spatial bounds MUST fully contain all their children

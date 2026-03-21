@@ -13,6 +13,7 @@ type ShapeNodeData = {
   shapeKind?: ShapeKind;
   aspectRatio?: number;
   description?: string;
+  url?: string;
 };
 
 function getShapeStyles(kind: ShapeKind | undefined): React.CSSProperties {
@@ -52,7 +53,7 @@ export function ShapeNode({
   data,
   selected,
 }: NodeProps & { data: ShapeNodeData }) {
-  const { label, labels, style, font, shapeKind, aspectRatio, description } = data;
+  const { label, labels, style, font, shapeKind, aspectRatio, description, url } = data;
 
   // If labels[] exists but has no center entry, all text is shown externally — don't duplicate.
   const centerLabel = labels?.length
@@ -82,6 +83,18 @@ export function ShapeNode({
           }
         />
         {handles}
+        {url && (
+          <a
+            className="node-url-btn"
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={`Open: ${url}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            🌐
+          </a>
+        )}
         {/* Container: SVG for cylinder shape, HTML overlay for text */}
         <div
           title={description}
@@ -147,6 +160,19 @@ export function ShapeNode({
         }
       />
       {handles}
+
+      {url && (
+        <a
+          className="node-url-btn"
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`Open: ${url}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          🌐
+        </a>
+      )}
 
       <div
         title={description}

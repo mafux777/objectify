@@ -65,7 +65,7 @@ export function extractJsonFromResponse(content: string): unknown {
  * Format Zod validation issues into a human/LLM-readable string with full paths.
  *
  * Example output:
- *   - diagrams[0].layoutMode: Invalid enum value. Expected 'auto' | 'spatial', received 'guide'
+ *   - diagrams[0].layoutMode: Invalid enum value. Expected 'auto', received 'guide'
  *   - diagrams[0].nodes[2].style.backgroundColor: Required
  */
 export function formatZodErrors(error: ZodError): string {

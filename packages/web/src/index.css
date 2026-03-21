@@ -115,6 +115,286 @@ body,
   color: #555;
 }
 
+/* ── Properties Panel ── */
+.properties-panel {
+  width: 280px;
+  flex-shrink: 0;
+  border-left: 1px solid #e0e0e0;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+.properties-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #fafafa;
+  flex-shrink: 0;
+}
+
+.properties-panel__title {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+}
+
+.properties-panel__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: #999;
+  padding: 2px 4px;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.properties-panel__close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.properties-panel__body {
+  padding: 12px 14px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.properties-panel__description {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #555;
+  margin: 0;
+}
+
+.properties-panel__field {
+  margin-bottom: 10px;
+}
+
+.properties-panel__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #999;
+  margin-bottom: 3px;
+}
+
+.properties-panel__value {
+  display: block;
+  color: #222;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.properties-panel__value--mono {
+  font-family: monospace;
+  font-size: 12px;
+  color: #555;
+}
+
+.properties-panel__url-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.properties-panel__input {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  padding: 4px 7px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  outline: none;
+  font-family: monospace;
+}
+
+.properties-panel__input:focus {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.15);
+}
+
+.properties-panel__globe-btn {
+  background: none;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  padding: 4px 6px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.properties-panel__globe-btn:hover {
+  background: #f0f0f0;
+  border-color: #aaa;
+}
+
+.properties-panel__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.properties-panel__swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  outline: none;
+}
+
+.properties-panel__swatch:hover {
+  border-color: #555;
+}
+
+.properties-panel__swatch--active {
+  border-color: #1976d2 !important;
+  box-shadow: 0 0 0 1px #1976d2;
+}
+
+.properties-panel__select {
+  width: 100%;
+  font-size: 12px;
+  padding: 4px 6px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+}
+
+.properties-panel__select:focus {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.15);
+}
+
+/* ── Coordinates ── */
+.properties-panel__coords {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.properties-panel__coord-pair {
+  display: flex;
+  gap: 12px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #444;
+}
+
+.properties-panel__coord-dim {
+  white-space: nowrap;
+}
+
+.properties-panel__coord-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.properties-panel__coord-label {
+  flex: 1;
+  font-size: 12px;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.properties-panel__coord-value {
+  font-family: monospace;
+  font-size: 12px;
+  color: #333;
+  min-width: 48px;
+  text-align: center;
+}
+
+.properties-panel__coord-btn {
+  background: #f5f5f5;
+  border: 1px solid #d0d0d0;
+  border-radius: 3px;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.properties-panel__coord-btn:hover {
+  background: #e8e8e8;
+  border-color: #aaa;
+}
+
+/* ── Clickable node links ── */
+.properties-panel__node-link {
+  background: none;
+  border: none;
+  color: #1976d2;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 0;
+  text-align: left;
+  text-decoration: none;
+  display: block;
+  line-height: 1.4;
+}
+
+.properties-panel__node-link:hover {
+  text-decoration: underline;
+  color: #1565c0;
+}
+
+.properties-panel__member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* ── Node URL globe icon ── */
+.node-url-btn {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 3px;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  pointer-events: all;
+}
+
+.node-url-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
 .drop-zone {
   display: flex;
   flex-direction: column;

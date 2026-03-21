@@ -9,7 +9,7 @@ export interface GuidesContextValue {
 
 /**
  * Provides guide positions and canvas dimensions to edge components.
- * Only populated for guide-based layouts; null for ELK/spatial diagrams.
+ * Only populated for guide-based layouts; null for ELK auto-layout diagrams.
  */
 export const GuidesContext = createContext<GuidesContextValue | null>(null);
 

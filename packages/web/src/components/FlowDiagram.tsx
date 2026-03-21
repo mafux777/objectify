@@ -39,20 +39,20 @@ import { CommandBar } from "./CommandBar.js";
 import { Legend } from "./Legend.js";
 import { toPng } from "html-to-image";
 import qrcode from "qrcode-generator";
-import { flowToDiagram, flowToSpec } from "../lib/flow-to-spec.js";
+import { flowToDiagram, flowToSpec, pruneOrphanedGuides } from "../lib/flow-to-spec.js";
 import { refineDiagramWithLLM } from "../lib/llm-refine.js";
 import { validateChatInput } from "../lib/llm-validate.js";
 import { type TokenUsage, addTokenUsage } from "../lib/llm-shared.js";
 import type { ChatMessage } from "../lib/db/types.js";
 import { useDocuments } from "../lib/documents/index.js";
 import { ShareModal } from "./ShareModal.js";
-import { spatialLayoutDiagram } from "../lib/spatial-layout.js";
 import { guideLayoutDiagram, resolveGuideOverlaps } from "../lib/guide-layout.js";
 import { GuideLines } from "./GuideLines.js";
 import { LabelConnectors } from "./LabelConnectors.js";
 import { GuidesContext } from "../lib/guides-context.js";
 import { ForceLayoutPanel } from "./ForceLayoutPanel.js";
 import { HelpModal } from "./HelpModal.js";
+import { PropertiesPanel } from "./PropertiesPanel.js";
 import { useAuth } from "../lib/auth-context.js";
 import { useClockFaceDrag } from "../hooks/useClockFaceDrag.js";
 import { ClockFaceDragContext } from "../lib/clock-face-context.js";
@@ -66,8 +66,13 @@ import {
   addSizePaletteEntry,
 } from "../lib/size-palette-api.js";
 import { getParentOffset } from "../lib/parent-offset.js";
+import { debugNodeMove, debugResize, debugLLMOutput } from "../lib/debug-log.js";
 
-let detachGuideCounter = 200;
+let detachGuideCounter = 0;
+function nextGuideId(prefix: string) {
+  detachGuideCounter++;
+  return `${prefix}-${Date.now()}-${detachGuideCounter}`;
+}
 
 const GUIDE_MERGE_THRESHOLD = 0.02; // 2% normalized distance
 const GUIDE_FIELDS = ["guideRow", "guideColumn", "guideRowBottom", "guideColumnRight"] as const;
@@ -198,6 +203,7 @@ export function FlowDiagram({
   const [dragMessage, setDragMessage] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
   const flowRef = useRef<HTMLDivElement>(null);
   const { dispatch: docDispatch, db } = useDocuments();
   const { isAdmin } = useAuth();
@@ -269,6 +275,11 @@ export function FlowDiagram({
       },
       getSelectedIds: () => nodes.filter((n) => n.selected).map((n) => n.id),
       getNodes: () => nodes,
+      getGuides: () => guides,
+      setGuides,
+      setNodes,
+      canvasWidth,
+      canvasHeight,
     };
   });
 
@@ -345,11 +356,12 @@ export function FlowDiagram({
     setFocusedEdgeId(null);
   }, []);
 
-  // Compute canvas dimensions for guide rendering
-  const canvasWidth = 1200;
+  // Canvas dimensions — constant during interactive use
   const imgW = diagram.imageDimensions?.width ?? 1200;
   const imgH = diagram.imageDimensions?.height ?? 800;
-  const canvasHeight = canvasWidth * (imgH / imgW);
+  const aspectRatio = imgH / imgW;
+  const canvasWidth = 1200;
+  const canvasHeight = canvasWidth * aspectRatio;
 
   // Provide guide positions to edge components via context
   const guidesCtxValue = useMemo(
@@ -567,12 +579,20 @@ export function FlowDiagram({
     const imgH = diagram.imageDimensions?.height ?? 800;
     const REFERENCE_H = REFERENCE_W * (imgH / imgW);
 
+    /** Get the absolute position of a node's parent (0,0 if no parent). */
+    const getParentOffset = (n: Node, allNodes: Node[]): { x: number; y: number } => {
+      if (!n.parentId) return { x: 0, y: 0 };
+      const parent = allNodes.find((p) => p.id === n.parentId);
+      return parent ? { x: parent.position.x, y: parent.position.y } : { x: 0, y: 0 };
+    };
+
     /** Re-center a React Flow node on its guide intersection. */
     const recenterOnGuides = (
       n: Node,
       w: number,
       h: number,
       guideMap: Map<string, GuideLine>,
+      allNodes?: Node[],
     ): Node => {
       const d = n.data as Record<string, unknown>;
       const rowGuide = d.guideRow ? guideMap.get(d.guideRow as string) : undefined;
@@ -586,11 +606,13 @@ export function FlowDiagram({
           style: { ...(n.style ?? {}), width: w, height: h },
         };
       }
-      const centerX = colGuide.position * REFERENCE_W;
-      const centerY = rowGuide.position * REFERENCE_H;
+      const absCenterX = colGuide.position * REFERENCE_W;
+      const absCenterY = rowGuide.position * REFERENCE_H;
+      // Convert absolute guide position to parent-relative if node is in a group
+      const parentOff = allNodes ? getParentOffset(n, allNodes) : { x: 0, y: 0 };
       return {
         ...n,
-        position: { x: centerX - w / 2, y: centerY - h / 2 },
+        position: { x: absCenterX - w / 2 - parentOff.x, y: absCenterY - h / 2 - parentOff.y },
         width: w,
         height: h,
         style: { ...(n.style ?? {}), width: w, height: h },
@@ -651,6 +673,11 @@ export function FlowDiagram({
       const newPixelW = Math.round(normW * REFERENCE_W);
       const newPixelH = Math.round(normH * REFERENCE_H);
 
+      // Debug: log resize before and after
+      const resizeTargetNode = nodes.find((n) => n.id === nodeId);
+      const oldW = resizeTargetNode?.width ?? 160;
+      const oldH = resizeTargetNode?.height ?? 50;
+
       saveSnapshot();
 
       if (altKey || !sizeId) {
@@ -681,6 +708,7 @@ export function FlowDiagram({
                   newPixelW,
                   newPixelH,
                   guideMap,
+                  nds,
                 )
               : n
           )
@@ -729,14 +757,14 @@ export function FlowDiagram({
             if (d?.sizeId === sizeId) {
               // This node's size class changed — update dimensions + re-center
               if (n.id !== nodeId) siblingIds.push(n.id);
-              return recenterOnGuides(n, newPixelW, newPixelH, guideMap);
+              return recenterOnGuides(n, newPixelW, newPixelH, guideMap, nds);
             }
 
             if (changed && d?.guideRow && d?.guideColumn) {
               // Guides shifted — re-center this node at its (unchanged) size
               const nodeW = n.width ?? 160;
               const nodeH = n.height ?? 50;
-              return recenterOnGuides(n, nodeW, nodeH, guideMap);
+              return recenterOnGuides(n, nodeW, nodeH, guideMap, nds);
             }
 
             return n;
@@ -757,6 +785,18 @@ export function FlowDiagram({
           spec: updatedSpec,
         });
       }
+
+      // Debug: log resize result
+      if (resizeTargetNode) {
+        debugResize(
+          resizeTargetNode,
+          { w: oldW, h: oldH },
+          { w: newPixelW, h: newPixelH },
+          nodes,
+          guides,
+          nodes.filter((n) => n.id !== nodeId && (n.data as Record<string, unknown>)?.sizeId === sizeId).map((n) => n.id),
+        );
+      }
     };
 
     window.addEventListener(RESIZE_END_EVENT, handler);
@@ -766,12 +806,16 @@ export function FlowDiagram({
   // Wrap onNodesChange to capture snapshot before deletions (Delete key)
   const wrappedOnNodesChange = useCallback(
     (changes: NodeChange<Node>[]) => {
-      if (changes.some((c) => c.type === "remove")) {
+      const removals = changes.filter((c) => c.type === "remove");
+      if (removals.length > 0) {
         saveSnapshot();
+        const removedIds = new Set(removals.map((c) => c.id));
+        const remainingNodes = nodes.filter((n) => !removedIds.has(n.id));
+        setGuides((gs) => pruneOrphanedGuides(gs, remainingNodes));
       }
       onNodesChange(changes);
     },
-    [onNodesChange, saveSnapshot]
+    [onNodesChange, saveSnapshot, nodes, setGuides]
   );
 
   // Wrap onEdgesChange to capture snapshot before deletions
@@ -813,6 +857,7 @@ export function FlowDiagram({
     [setEdges, saveSnapshot]
   );
 
+
   // Bidirectional snap: when a node is dragged, move its guide(s) and siblings
   // Alt+drag: detach node from shared guides by creating new personal guides
   const onNodeDragStop = useCallback(
@@ -828,6 +873,9 @@ export function FlowDiagram({
       const parentOffset = getParentOffset(draggedNode.parentId, nodes);
       let centerX = draggedNode.position.x + parentOffset.x + nodeW / 2;
       let centerY = draggedNode.position.y + parentOffset.y + nodeH / 2;
+
+      const modifier = event.shiftKey ? "Shift" : event.altKey ? "Alt" : undefined;
+      debugNodeMove(draggedNode, nodes, guides, modifier);
 
       // Alt+drag on grouped node: reparent to another group
       if (event.altKey && draggedNode.parentId) {
@@ -1022,8 +1070,7 @@ export function FlowDiagram({
         const shortLabel = rawLabel.split("\n").join(" ").trim();
 
         // Create new row guide
-        detachGuideCounter++;
-        const newRowId = `row-detach-${detachGuideCounter}`;
+        const newRowId = nextGuideId("row-detach");
         const newRowGuide: GuideLine = {
           id: newRowId,
           index: guides.filter((g) => g.direction === "horizontal").length,
@@ -1033,8 +1080,7 @@ export function FlowDiagram({
         };
 
         // Create new column guide
-        detachGuideCounter++;
-        const newColId = `col-detach-${detachGuideCounter}`;
+        const newColId = nextGuideId("col-detach");
         const newColGuide: GuideLine = {
           id: newColId,
           index: guides.filter((g) => g.direction === "vertical").length,
@@ -1104,8 +1150,15 @@ export function FlowDiagram({
       }
 
       // Normal drag behavior: move guides and siblings
-      if (guides.length === 0) return;
-      if (!rowId && !colId) return;
+      if (guides.length === 0 && draggedNode.type !== "groupNode") return;
+      if (!rowId && !colId && draggedNode.type !== "groupNode") return;
+
+      // If a group was dragged, reconcile guides for all children
+      if (draggedNode.type === "groupNode") {
+        saveSnapshot();
+        reconcileGuidesAfterGroupDrag(draggedNode);
+        return;
+      }
 
       // Update guides to match the dragged node's new center
       setGuides((gs) =>
@@ -1167,6 +1220,101 @@ export function FlowDiagram({
     [guides, nodes, canvasWidth, canvasHeight, setGuides, setNodes, saveSnapshot]
   );
 
+  /**
+   * After a group is dragged, reconcile guides for all its children.
+   * For each child: if its guide is shared with nodes outside this group,
+   * create a new personal guide. Otherwise, move the existing guide.
+   */
+  const reconcileGuidesAfterGroupDrag = useCallback(
+    (groupNode: Node) => {
+      // Simple approach: move all guides used by this group's children
+      // to match children's new absolute positions. External siblings follow.
+      setNodes((latestNodes) => {
+        const childIds = new Set(
+          latestNodes.filter((n) => n.parentId === groupNode.id).map((n) => n.id)
+        );
+        if (childIds.size === 0) return latestNodes;
+
+        const latestGroup = latestNodes.find((n) => n.id === groupNode.id) ?? groupNode;
+        const groupX = latestGroup.position.x;
+        const groupY = latestGroup.position.y;
+
+        // Compute new guide positions from children's absolute centers
+        // Use first child on each guide (all children on same guide share the same center axis)
+        const guideNewPositions = new Map<string, number>();
+
+        for (const child of latestNodes) {
+          if (!childIds.has(child.id)) continue;
+          const d = child.data as Record<string, unknown>;
+          const cW = child.width ?? child.measured?.width ?? 160;
+          const cH = child.height ?? child.measured?.height ?? 50;
+          const absCenterX = child.position.x + groupX + cW / 2;
+          const absCenterY = child.position.y + groupY + cH / 2;
+
+          const rowGid = d?.guideRow as string | undefined;
+          const colGid = d?.guideColumn as string | undefined;
+
+          if (rowGid && !guideNewPositions.has(rowGid)) {
+            guideNewPositions.set(rowGid, absCenterY / canvasHeight);
+          }
+          if (colGid && !guideNewPositions.has(colGid)) {
+            guideNewPositions.set(colGid, absCenterX / canvasWidth);
+          }
+        }
+
+        // Move guides and prune orphans
+        setGuides((gs) => {
+          const moved = gs.map((g) => {
+            const newPos = guideNewPositions.get(g.id);
+            if (newPos !== undefined) return { ...g, position: newPos };
+            return g;
+          });
+          // Prune guides not referenced by any node
+          const guideFields2 = ["guideRow", "guideColumn", "guideRowBottom", "guideColumnRight"] as const;
+          const referencedIds = new Set<string>();
+          for (const n of latestNodes) {
+            const d = n.data as Record<string, unknown>;
+            for (const f of guideFields2) {
+              const v = d?.[f] as string | undefined;
+              if (v) referencedIds.add(v);
+            }
+          }
+          return moved.filter((g) => referencedIds.has(g.id));
+        });
+
+        // Move external siblings on the same guides to stay centered
+        return latestNodes.map((n) => {
+          if (childIds.has(n.id) || n.id === groupNode.id) return n;
+
+          const nd = n.data as Record<string, unknown>;
+          const nRowId = nd?.guideRow as string | undefined;
+          const nColId = nd?.guideColumn as string | undefined;
+          const rowMoved = nRowId && guideNewPositions.has(nRowId);
+          const colMoved = nColId && guideNewPositions.has(nColId);
+          if (!rowMoved && !colMoved) return n;
+
+          const nW = n.width ?? n.measured?.width ?? 160;
+          const nH = n.height ?? n.measured?.height ?? 50;
+          let pOX = 0, pOY = 0;
+          if (n.parentId) {
+            const p = latestNodes.find((pp) => pp.id === n.parentId);
+            if (p) { pOX = p.position.x; pOY = p.position.y; }
+          }
+
+          let newX = n.position.x, newY = n.position.y;
+          if (rowMoved) newY = guideNewPositions.get(nRowId!)! * canvasHeight - nH / 2 - pOY;
+          if (colMoved) newX = guideNewPositions.get(nColId!)! * canvasWidth - nW / 2 - pOX;
+
+          if (newX !== n.position.x || newY !== n.position.y) {
+            return { ...n, position: { x: newX, y: newY } };
+          }
+          return n;
+        });
+      });
+    },
+    [canvasWidth, canvasHeight, setGuides, setNodes]
+  );
+
   const handleChat = useCallback(
     async (message: string) => {
       const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string;
@@ -1220,7 +1368,7 @@ export function FlowDiagram({
 
         // Step 2: Valid request — proceed to expensive model
         const currentSpec = flowToSpec(
-          nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides,
+          nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides, specRef.current.description,
         );
         const { spec: newSpec, summary, usage } = await refineDiagramWithLLM(
           currentSpec,
@@ -1242,33 +1390,36 @@ export function FlowDiagram({
         if (!newDiagram) throw new Error("LLM returned empty diagrams array");
 
         // Layout the new diagram to get React Flow nodes/edges
-        const hasSpatialData =
-          newDiagram.layoutMode === "spatial" &&
-          newDiagram.nodes.some((n) => n.spatial);
         const hasGuideData =
           (newDiagram.guides?.length ?? 0) > 0 &&
           newDiagram.nodes.some((n) => n.guideRow || n.guideColumn);
 
         let layoutResult: { nodes: Node[]; edges: Edge[] };
-        if (hasSpatialData) {
-          layoutResult = spatialLayoutDiagram(newDiagram, undefined, newSpec.shapePalette);
-        } else if (hasGuideData) {
+        if (hasGuideData) {
           layoutResult = guideLayoutDiagram(newDiagram, newSpec.shapePalette, newSpec.sizePalette);
         } else {
-          layoutResult = spatialLayoutDiagram(newDiagram, undefined, newSpec.shapePalette);
+          layoutResult = guideLayoutDiagram(newDiagram, newSpec.shapePalette, newSpec.sizePalette);
         }
+
+        debugLLMOutput(nodes, layoutResult.nodes, newDiagram.guides ?? []);
 
         saveSnapshot();
         setNodes(layoutResult.nodes);
         setEdges(layoutResult.edges);
-        if (newDiagram.guides) setGuides(newDiagram.guides);
+        if (newDiagram.guides) setGuides(pruneOrphanedGuides(newDiagram.guides, layoutResult.nodes));
 
         // Sync the new spec to the documents context so subsequent
         // refinements (and auto-saves) use the updated palettes/sizes/etc.
         // skipSeedRef prevents the diagram prop change from re-triggering layout.
-        specRef.current = newSpec;
+        // Always restore the original description — the LLM operates on diagram
+        // structure and should never overwrite user-authored metadata.
+        const originalDescription = specRef.current.description;
+        const syncedSpec = originalDescription
+          ? { ...newSpec, description: originalDescription }
+          : newSpec;
+        specRef.current = syncedSpec;
         skipSeedRef.current = true;
-        docDispatch({ type: "UPDATE_SPEC", id: documentIdRef.current, spec: newSpec });
+        docDispatch({ type: "UPDATE_SPEC", id: documentIdRef.current, spec: syncedSpec });
 
         if (summary) {
           setChatHistory((prev) => [...prev, {
@@ -1339,7 +1490,7 @@ export function FlowDiagram({
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
   const handleExport = useCallback(() => {
-    const spec = flowToSpec(nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides);
+    const spec = flowToSpec(nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides, specRef.current.description);
     const json = JSON.stringify(spec, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -1353,7 +1504,7 @@ export function FlowDiagram({
   const [templateSaveState, setTemplateSaveState] = useState<"idle" | "confirm" | "saving" | "done">("idle");
 
   const handleSaveAsTemplate = useCallback(async () => {
-    const currentSpec = flowToSpec(nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides);
+    const currentSpec = flowToSpec(nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides, specRef.current.description);
     const title = diagram.title ?? "Untitled";
 
     try {
@@ -1548,8 +1699,12 @@ export function FlowDiagram({
     return <div className="loading-spinner">Computing layout...</div>;
   }
 
+  const selectedNode = nodes.find((n) => n.selected) ?? null;
+  const selectedEdge = edges.find((e) => e.selected) ?? null;
+
   return (
-    <div ref={flowRef} style={{ width: "100%", height: "100%", position: "relative" }}>
+    <div ref={flowRef} style={{ width: "100%", height: "100%", display: "flex", position: "relative" }}>
+    <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
       <GuidesContext.Provider value={guidesCtxValue}>
       <ClockFaceDragContext.Provider value={{ startDrag: clockFaceStartDrag }}>
       <ReactFlow
@@ -1724,6 +1879,14 @@ export function FlowDiagram({
             </button>
           )}
           <button
+            className={`load-btn${showPropertiesPanel ? " load-btn--active" : ""}`}
+            onClick={() => setShowPropertiesPanel(!showPropertiesPanel)}
+            style={{ marginRight: 4 }}
+            title="Toggle properties panel"
+          >
+            Properties
+          </button>
+          <button
             className="load-btn"
             onClick={() => setShowHelpModal(true)}
             title="Help & keyboard shortcuts"
@@ -1801,6 +1964,7 @@ export function FlowDiagram({
           edges={edges}
           setNodes={setNodes}
           setEdges={setEdges}
+          setGuides={setGuides}
           onClose={closeContextMenu}
           saveSnapshot={saveSnapshot}
           diagram={diagram}
@@ -1844,6 +2008,74 @@ export function FlowDiagram({
       {showHelpModal && (
         <HelpModal onClose={() => setShowHelpModal(false)} />
       )}
+    </div>
+
+    {showPropertiesPanel && (
+      <PropertiesPanel
+        selectedNode={selectedNode}
+        selectedEdge={selectedEdge}
+        nodes={nodes}
+        guides={guides}
+        specDescription={specRef.current.description ?? ""}
+        palette={palette}
+        shapePalette={shapePalette}
+        sizePalette={sizePalette}
+        semanticTypes={semanticTypes}
+        onPatchNode={(nodeId, patch) => {
+          setNodes((nds) => nds.map((n) => {
+            if (n.id !== nodeId) return n;
+            const newData = { ...n.data, ...patch };
+            // When shapeId changes, derive the correct React Flow node type
+            const isGroup = n.type === "groupNode";
+            const newType = isGroup ? "groupNode" : newData.shapeId ? "shapeNode" : "colorBox";
+            return { ...n, type: newType, data: newData };
+          }));
+        }}
+        onPatchEdge={(edgeId, patch) => {
+          setEdges((eds) => eds.map((e) => e.id === edgeId ? { ...e, data: { ...(e.data ?? {}), ...patch } } : e));
+        }}
+        onPatchGuide={(guideId, position) => {
+          saveSnapshot();
+          setGuides((gs) =>
+            gs.map((g) => g.id === guideId ? { ...g, position, pinned: true } : g)
+          );
+          // Re-center nodes on the moved guide
+          const guide = guides.find((g) => g.id === guideId);
+          if (guide) {
+            const field = guide.direction === "horizontal" ? "guideRow" : "guideColumn";
+            const canvasDim = guide.direction === "horizontal" ? canvasHeight : canvasWidth;
+            const newCanvasPos = position * canvasDim;
+            setNodes((nds) =>
+              nds.map((n) => {
+                const d = n.data as Record<string, unknown>;
+                if (d?.[field] !== guideId) return n;
+                const w = n.width ?? 160;
+                const h = n.height ?? 50;
+                let pOX = 0, pOY = 0;
+                if (n.parentId) {
+                  const par = nds.find((p) => p.id === n.parentId);
+                  if (par) { pOX = par.position.x; pOY = par.position.y; }
+                }
+                if (guide.direction === "horizontal") {
+                  return { ...n, position: { ...n.position, y: newCanvasPos - h / 2 - pOY } };
+                } else {
+                  return { ...n, position: { ...n.position, x: newCanvasPos - w / 2 - pOX } };
+                }
+              })
+            );
+          }
+        }}
+        onSelectNode={(nodeId) => {
+          setNodes((nds) =>
+            nds.map((n) => ({ ...n, selected: n.id === nodeId }))
+          );
+          setEdges((eds) =>
+            eds.map((e) => ({ ...e, selected: false }))
+          );
+        }}
+        onClose={() => setShowPropertiesPanel(false)}
+      />
+    )}
     </div>
   );
 }
