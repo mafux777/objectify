@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { DiagramSpecSchema, type DiagramSpec } from "@objectify/schema";
-import { SYSTEM_PROMPT, SPATIAL_SYSTEM_PROMPT } from "./prompt.js";
+import { SYSTEM_PROMPT } from "./prompt.js";
 
 function getImageDimensions(buffer: Buffer): { width: number; height: number } {
   // PNG: width at bytes 16-19, height at bytes 20-23 (big-endian)
@@ -37,7 +37,6 @@ export async function analyzeDiagram(
   imagePath: string,
   apiKey: string,
   model: string,
-  spatial: boolean
 ): Promise<DiagramSpec> {
   const resolved = path.resolve(imagePath);
   if (!fs.existsSync(resolved)) {
@@ -50,15 +49,12 @@ export async function analyzeDiagram(
   const ext = path.extname(imagePath).toLowerCase();
   const mediaType = getMediaType(ext);
 
-  const mode = spatial ? "spatial" : "semantic";
   console.log(
-    `Analyzing ${path.basename(imagePath)} (${dimensions.width}x${dimensions.height}) in ${mode} mode with ${model}...`
+    `Analyzing ${path.basename(imagePath)} (${dimensions.width}x${dimensions.height}) with ${model}...`
   );
 
-  const systemPrompt = spatial ? SPATIAL_SYSTEM_PROMPT : SYSTEM_PROMPT;
-  const userText = spatial
-    ? `Analyze this diagram image and produce the structured JSON specification with full spatial data. The image dimensions are ${dimensions.width}x${dimensions.height} pixels. Set imageDimensions to {"width": ${dimensions.width}, "height": ${dimensions.height}} on each diagram. Be thorough — capture every box, container, arrow, and label visible in the image with precise bounding boxes.`
-    : "Analyze this diagram image and produce the structured JSON specification. Be thorough — capture every box, container, arrow, and label visible in the image.";
+  const systemPrompt = SYSTEM_PROMPT;
+  const userText = "Analyze this diagram image and produce the structured JSON specification. Be thorough — capture every box, container, arrow, and label visible in the image.";
 
   const startTime = Date.now();
 
@@ -140,14 +136,9 @@ export async function analyzeDiagram(
 
   const result = DiagramSpecSchema.parse(parsed);
 
-  const nodesWithSpatial = result.diagrams.reduce(
-    (s, d) => s + d.nodes.filter((n) => n.spatial).length,
-    0
-  );
   console.log(
     `Extracted ${result.diagrams.length} diagram(s), ` +
       `${result.diagrams.reduce((s, d) => s + d.nodes.length, 0)} nodes` +
-      (spatial ? ` (${nodesWithSpatial} with spatial data)` : "") +
       `, ${result.diagrams.reduce((s, d) => s + d.edges.length, 0)} edges`
   );
 

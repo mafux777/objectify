@@ -11,9 +11,9 @@ Objectify lets you **create diagrams from a text prompt**, **convert existing im
 - **Create from prompt** — Describe a diagram in plain text and let AI generate it
 - **Import from image** — Upload a PNG/JPEG and AI extracts nodes, edges, colors, and layout
 - **Chat with your diagram** — Ask AI to add nodes, restyle, restructure, or explain what it sees
-- **Spatial mode** — Preserves original layout positions and bounding boxes from images
 - **Interactive editor** — Pan, zoom, drag, and edit diagrams in the browser
-- **Auto-layout** — ELK.js-based automatic layout when spatial data isn't needed
+- **Guide-based layout** — Precise positioning using alignment guides extracted from images
+- **Auto-layout** — ELK.js-based automatic layout when guides aren't present
 - **Nested groups** — Supports container nodes with children
 - **Color palette extraction** — Captures colors from the source image
 
@@ -46,9 +46,6 @@ cp .env.example .env
 # Basic extraction (semantic mode)
 npx objectify diagram.png
 
-# Spatial mode (preserves positions from image)
-npx objectify diagram.png --spatial
-
 # Custom output directory
 npx objectify diagram.png -o ./my-output
 
@@ -75,7 +72,7 @@ Open http://localhost:5173, then:
 
 ## Diagram Spec Format
 
-The schema supports both semantic (v1.0) and spatial (v2.0) specifications:
+The schema supports guide-based layout specifications:
 
 ```json
 {
@@ -89,7 +86,7 @@ The schema supports both semantic (v1.0) and spatial (v2.0) specifications:
       "id": "main",
       "title": "System Architecture",
       "direction": "RIGHT",
-      "layoutMode": "spatial",
+      "layoutMode": "auto",
       "imageDimensions": { "width": 1200, "height": 800 },
       "nodes": [
         {
@@ -97,7 +94,8 @@ The schema supports both semantic (v1.0) and spatial (v2.0) specifications:
           "label": "API Gateway",
           "type": "box",
           "style": { "backgroundColor": "#2196F3", "textColor": "#FFFFFF" },
-          "spatial": { "x": 0.1, "y": 0.2, "width": 0.15, "height": 0.1 }
+          "guideRow": "row-0",
+          "guideColumn": "col-0"
         }
       ],
       "edges": [

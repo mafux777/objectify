@@ -30,7 +30,6 @@ Rules:
 - Node labels use clock-position notation for placement. Valid positions: "center", "12:00", "1:30", "3:00", "4:30", "6:00", "7:30", "9:00", "10:30". Do NOT use "top-left", "bottom-right" etc.
 - Guides of the same direction must have DISTINCT position values
 - Each (guideRow, guideColumn) pair must be unique across nodes
-- Node spatial coordinates are normalized 0-1 (x, y, width, height relative to image dimensions)
 - Guide positions are normalized 0-1
 - If the user asks something that doesn't make sense for the diagram, return the spec unchanged and explain why in the summary
 

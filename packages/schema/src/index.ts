@@ -6,7 +6,6 @@ export {
   type DiagramEdge,
   type NodeStyle,
   type EdgeStyle,
-  type NodeSpatial,
   type NodeFont,
   type AnchorSide,
   type ImageDimensions,

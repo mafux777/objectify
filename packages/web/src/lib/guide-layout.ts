@@ -63,6 +63,13 @@ export function resolveGuideOverlaps(
   canvasWidth: number,
   canvasHeight: number,
 ): GuideLine[] {
+  // Exclude container nodes and their children from overlap detection.
+  // Containers inherently overlap with their children, and child positions are
+  // relative to the container — including them causes false overlaps that push
+  // guides to wrong positions during resize.
+  const parentIds = new Set(nodes.filter((n) => n.parentId).map((n) => n.parentId!));
+  const overlapNodes = nodes.filter((n) => !n.parentId && !parentIds.has(n.id));
+
   const adjusted = guides.map((g) => ({ ...g }));
   const guideById = new Map(adjusted.map((g) => [g.id, g]));
 
@@ -74,7 +81,7 @@ export function resolveGuideOverlaps(
 
   for (const row of rows) {
     // Collect nodes on this row, sorted by column position
-    const rowNodes = nodes
+    const rowNodes = overlapNodes
       .filter((n) => n.guideRow === row.id && n.guideColumn)
       .map((n) => ({
         node: n,
@@ -135,7 +142,7 @@ export function resolveGuideOverlaps(
     .sort((a, b) => a.position - b.position);
 
   for (const col of cols) {
-    const colNodes = nodes
+    const colNodes = overlapNodes
       .filter((n) => n.guideColumn === col.id && n.guideRow)
       .map((n) => ({
         node: n,
@@ -259,7 +266,7 @@ export function guideLayoutDiagram(
     const sizeEntry = node.sizeId && sizeMap ? sizeMap.get(node.sizeId) : undefined;
     return {
       w: sizeEntry ? Math.round(sizeEntry.width * REFERENCE_CANVAS_WIDTH) : DEFAULT_NODE_WIDTH,
-      h: sizeEntry ? Math.round(sizeEntry.height * REFERENCE_CANVAS_HEIGHT) : DEFAULT_NODE_HEIGHT,
+      h: sizeEntry ? Math.round(sizeEntry.height * canvasHeight) : DEFAULT_NODE_HEIGHT,
     };
   }
 
@@ -556,6 +563,7 @@ function buildFlowNode(
       ...(node.guideColumnRight ? { guideColumnRight: node.guideColumnRight } : {}),
       ...(node.zLevel ? { zLevel: node.zLevel } : {}),
       ...(node.description ? { description: node.description } : {}),
+      ...(node.url ? { url: node.url } : {}),
     },
     ...(node.parentId
       ? { parentId: node.parentId, extent: "parent" as const }

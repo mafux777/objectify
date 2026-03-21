@@ -30,14 +30,10 @@ const program = new Command()
     "OpenRouter model to use",
     "anthropic/claude-sonnet-4.6"
   )
-  .option(
-    "-s, --spatial",
-    "Extract spatial positions, fonts, and anchor points (v2.0 spec)"
-  )
   .action(
     async (
       imagePath: string,
-      options: { output?: string; model: string; spatial?: boolean }
+      options: { output?: string; model: string }
     ) => {
       const apiKey = process.env.OPENROUTER_API_KEY;
       if (!apiKey) {
@@ -52,8 +48,7 @@ const program = new Command()
         const spec = await analyzeDiagram(
           imagePath,
           apiKey,
-          options.model,
-          options.spatial ?? false
+          options.model
         );
 
         let outputDir: string;

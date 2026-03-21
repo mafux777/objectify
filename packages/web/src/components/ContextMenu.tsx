@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { MarkerType, type Node, type Edge } from "@xyflow/react";
-import type { SingleDiagram } from "@objectify/schema";
+import type { GuideLine, SingleDiagram } from "@objectify/schema";
+import { pruneOrphanedGuides } from "../lib/flow-to-spec.js";
 import { specMarkerToFlow } from "../lib/spec-to-flow.js";
 
 export type ContextMenuState =
@@ -14,6 +15,7 @@ interface ContextMenuProps {
   edges: Edge[];
   setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>;
+  setGuides: React.Dispatch<React.SetStateAction<GuideLine[]>>;
   onClose: () => void;
   saveSnapshot: () => void;
   diagram: SingleDiagram;
@@ -56,6 +58,7 @@ export function ContextMenu({
   edges,
   setNodes,
   setEdges,
+  setGuides,
   onClose,
   saveSnapshot,
   diagram,
@@ -64,13 +67,15 @@ export function ContextMenu({
   const deleteNode = useCallback(
     (nodeId: string) => {
       saveSnapshot();
-      setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+      const remainingNodes = nodes.filter((n) => n.id !== nodeId);
+      setNodes(remainingNodes);
       setEdges((eds) =>
         eds.filter((e) => e.source !== nodeId && e.target !== nodeId)
       );
+      setGuides((gs) => pruneOrphanedGuides(gs, remainingNodes));
       onClose();
     },
-    [setNodes, setEdges, onClose, saveSnapshot]
+    [nodes, setNodes, setEdges, setGuides, onClose, saveSnapshot]
   );
 
   const duplicateNode = useCallback(

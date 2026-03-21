@@ -78,39 +78,11 @@ export function flowToDiagram(
       node.label = labels[0]?.text ?? node.label;
     }
 
-    // Preserve spatial data: convert absolute pixel positions back to
-    // normalised 0-1 coordinates if the original diagram was spatial.
-    if (originalDiagram.layoutMode === "spatial" && originalDiagram.imageDimensions) {
-      const imgW = originalDiagram.imageDimensions.width;
-      const imgH = originalDiagram.imageDimensions.height;
-
-      // We used canvasWidth = 1200 in spatial-layout.ts
-      const canvasWidth = 1200;
-      const aspectRatio = imgH / imgW;
-      const canvasHeight = canvasWidth * aspectRatio;
-
-      // If node has a parent, its position is relative to parent.
-      // We need absolute position for normalisation.
-      let absX = n.position.x;
-      let absY = n.position.y;
-
-      if (n.parentId) {
-        const parent = nodes.find((p) => p.id === n.parentId);
-        if (parent) {
-          absX += parent.position.x;
-          absY += parent.position.y;
-        }
-      }
-
-      const w = (n.width ?? n.measured?.width ?? 160);
-      const h = (n.height ?? n.measured?.height ?? 50);
-
-      node.spatial = {
-        x: clamp01(absX / canvasWidth),
-        y: clamp01(absY / canvasHeight),
-        width: clamp01(w / canvasWidth),
-        height: clamp01(h / canvasHeight),
-      };
+    if (data.description) {
+      node.description = data.description as string;
+    }
+    if (data.url) {
+      node.url = data.url as string;
     }
 
     return node;
@@ -180,6 +152,9 @@ export function flowToDiagram(
       if (edgeData.targetMarker) {
         edge.targetMarker = edgeData.targetMarker as DiagramEdge["targetMarker"];
       }
+      if (edgeData.description) {
+        edge.description = edgeData.description as string;
+      }
     }
 
     return edge;
@@ -221,7 +196,8 @@ export function flowToSpec(
   shapePalette?: ShapePaletteEntry[],
   sizePalette?: SizePaletteEntry[],
   semanticTypes?: SemanticTypeEntry[],
-  guides?: GuideLine[]
+  guides?: GuideLine[],
+  originalDescription?: string
 ): DiagramSpec {
   const diagram = flowToDiagram(nodes, edges, originalDiagram, guides);
 
@@ -247,9 +223,7 @@ export function flowToSpec(
           ? "4.0"
           : hasGuides
             ? "3.0"
-            : originalDiagram.layoutMode === "spatial"
-              ? "2.0"
-              : "1.0";
+            : "1.0";
 
   return {
     version: version as "1.0" | "2.0" | "3.0" | "4.0" | "5.0" | "6.0" | "7.0",
@@ -257,9 +231,26 @@ export function flowToSpec(
     ...(shapePalette && shapePalette.length > 0 ? { shapePalette } : {}),
     ...(sizePalette && sizePalette.length > 0 ? { sizePalette } : {}),
     ...(semanticTypes && semanticTypes.length > 0 ? { semanticTypes } : {}),
-    description: "Exported from Objectify interactive editor.",
+    description: originalDescription ?? "Exported from Objectify interactive editor.",
     diagrams: [diagram],
   };
+}
+
+/**
+ * Remove guides that are no longer referenced by any node.
+ * Should be called after node deletions and after LLM refinements.
+ */
+export function pruneOrphanedGuides(guides: GuideLine[], nodes: Node[]): GuideLine[] {
+  const guideFields = ["guideRow", "guideColumn", "guideRowBottom", "guideColumnRight"] as const;
+  const referencedIds = new Set<string>();
+  for (const node of nodes) {
+    const nd = node.data as Record<string, unknown>;
+    for (const field of guideFields) {
+      const val = nd?.[field] as string | undefined;
+      if (val) referencedIds.add(val);
+    }
+  }
+  return guides.filter((g) => referencedIds.has(g.id));
 }
 
 // --- helpers ---
@@ -327,8 +318,4 @@ function normalizeGuidePositions(guides: GuideLine[]): GuideLine[] {
   }
 
   return [...normalizeGroup(horizontal), ...normalizeGroup(vertical)];
-}
-
-function clamp01(v: number): number {
-  return Math.max(0, Math.min(1, v));
 }

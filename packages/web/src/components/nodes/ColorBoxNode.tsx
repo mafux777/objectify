@@ -11,6 +11,7 @@ type ColorBoxData = {
   style: NodeStyle;
   font?: NodeFont;
   description?: string;
+  url?: string;
 };
 
 export function ColorBoxNode({
@@ -18,7 +19,7 @@ export function ColorBoxNode({
   data,
   selected,
 }: NodeProps & { data: ColorBoxData }) {
-  const { label, labels, style, font, description } = data;
+  const { label, labels, style, font, description, url } = data;
 
   // Primary center label text (from labels[0] if center, else legacy label).
   // If labels[] exists but has no center entry, all text is shown externally — don't duplicate.
@@ -44,6 +45,19 @@ export function ColorBoxNode({
       />
 
       <NodeHandles />
+
+      {url && (
+        <a
+          className="node-url-btn"
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`Open: ${url}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          🌐
+        </a>
+      )}
 
       <div
         title={description}

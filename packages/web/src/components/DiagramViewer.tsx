@@ -8,7 +8,6 @@ interface DiagramViewerProps {
 
 export function DiagramViewer({ document }: DiagramViewerProps) {
   const [activeTab, setActiveTab] = useState(0);
-  const [showDescription, setShowDescription] = useState(true);
   const { spec } = document;
 
   return (
@@ -24,25 +23,11 @@ export function DiagramViewer({ document }: DiagramViewerProps) {
               {d.title}
             </button>
           ))}
-          <button
-            style={{ marginLeft: "auto" }}
-            className={showDescription ? "active" : ""}
-            onClick={() => setShowDescription(!showDescription)}
-          >
-            Description
-          </button>
         </div>
       )}
       {spec.diagrams.length === 1 && (
         <div className="tab-bar">
           <button className="active">{spec.diagrams[0].title}</button>
-          <button
-            style={{ marginLeft: "auto" }}
-            className={showDescription ? "active" : ""}
-            onClick={() => setShowDescription(!showDescription)}
-          >
-            Description
-          </button>
         </div>
       )}
       <div className="diagram-container">
@@ -58,12 +43,6 @@ export function DiagramViewer({ document }: DiagramViewerProps) {
             semanticTypes={spec.semanticTypes}
           />
         </div>
-        {showDescription && (
-          <div className="description-panel">
-            <h3>Description</h3>
-            <p>{spec.description}</p>
-          </div>
-        )}
       </div>
     </>
   );

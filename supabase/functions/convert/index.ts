@@ -152,7 +152,7 @@ serve(async (req: Request) => {
           },
           {
             type: "text",
-            text: "Analyze this diagram image and produce the structured JSON specification with full spatial data. Be thorough — capture every box, container, arrow, and label visible in the image with precise bounding boxes.",
+            text: "Analyze this diagram image and produce the structured JSON specification with guide-based layout. Be thorough — capture every box, container, arrow, and label visible in the image.",
           },
         ],
       },
@@ -312,25 +312,7 @@ Scoring guide:
 - 1-2: Clearly not a diagram (photo, screenshot, chart, text)`;
 
 // Inlined from llm-image-analyze.ts — the full system prompt
-const IMAGE_ANALYSIS_PROMPT = `You are a diagram analysis expert performing PIXEL-LEVEL reverse engineering. Your task is to completely dissect a diagram image — extracting every visual element with its precise position, size, color, and font properties.
-
-## Spatial Extraction Instructions
-
-For EVERY node (box/rectangle), estimate its bounding box in NORMALIZED coordinates (0 to 1), where (0,0) is the top-left corner of the image and (1,1) is the bottom-right.
-
-Provide a "spatial" object on each node:
-- x: left edge of the box (0 = image left edge, 1 = image right edge)
-- y: top edge of the box (0 = image top edge, 1 = image bottom edge)
-- width: box width as fraction of image width
-- height: box height as fraction of image height
-
-**Technique for accuracy:**
-- Mentally divide the image into a 10x10 grid (each cell = 0.1)
-- Estimate which grid cell each corner of each box falls in
-- Convert to decimal (e.g., a box starting at column 2, row 3 = x:0.2, y:0.3)
-- Verify: a box at the right edge should have x + width close to 1.0
-- Verify: boxes that appear side-by-side should have similar y values and non-overlapping x ranges
-- Verify: group/container bounds MUST fully contain all their children's bounds
+const IMAGE_ANALYSIS_PROMPT = `You are a diagram analysis expert performing PIXEL-LEVEL reverse engineering. Your task is to completely dissect a diagram image — extracting every visual element with its color, and font properties, and position it using a guide-based layout grid.
 
 ## Arrow Anchor Points
 
@@ -359,11 +341,10 @@ The output MUST be a single JSON object with this structure:
 
 Each diagram object MUST have "nodes", "edges", and "guides" arrays.
 Each node MUST have a nested "style" object with backgroundColor, textColor, borderColor, borderStyle.
-Each node MUST have a "spatial" object with x, y, width, height (all 0-1).
+Each node MUST have "guideRow" and "guideColumn" referencing guide IDs for positioning.
 Each edge MUST have a nested "style" object with lineStyle, color, routingType, strokeWidth.
 
 ## Critical Rules
-- All spatial coordinates MUST be between 0 and 1
-- Group nodes' spatial bounds MUST fully contain all their children
+- All guide positions MUST be between 0 and 1
 - Edge source and target must reference valid node IDs
 - Do not invent nodes or edges that are not visible in the image`;

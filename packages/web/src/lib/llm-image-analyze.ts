@@ -8,26 +8,8 @@ import {
   buildRetryMessages,
 } from "./llm-shared.js";
 
-// Adapted from packages/cli/src/prompt.ts SPATIAL_SYSTEM_PROMPT
-const IMAGE_ANALYSIS_PROMPT = `You are a diagram analysis expert performing PIXEL-LEVEL reverse engineering. Your task is to completely dissect a diagram image — extracting every visual element with its precise position, size, color, and font properties.
-
-## Spatial Extraction Instructions
-
-For EVERY node (box/rectangle), estimate its bounding box in NORMALIZED coordinates (0 to 1), where (0,0) is the top-left corner of the image and (1,1) is the bottom-right.
-
-Provide a "spatial" object on each node:
-- x: left edge of the box (0 = image left edge, 1 = image right edge)
-- y: top edge of the box (0 = image top edge, 1 = image bottom edge)
-- width: box width as fraction of image width
-- height: box height as fraction of image height
-
-**Technique for accuracy:**
-- Mentally divide the image into a 10x10 grid (each cell = 0.1)
-- Estimate which grid cell each corner of each box falls in
-- Convert to decimal (e.g., a box starting at column 2, row 3 = x:0.2, y:0.3)
-- Verify: a box at the right edge should have x + width close to 1.0
-- Verify: boxes that appear side-by-side should have similar y values and non-overlapping x ranges
-- Verify: group/container bounds MUST fully contain all their children's bounds
+// Image analysis prompt — uses guide-based layout
+const IMAGE_ANALYSIS_PROMPT = `You are a diagram analysis expert performing PIXEL-LEVEL reverse engineering. Your task is to completely dissect a diagram image — extracting every visual element with its color, and font properties, and position it using a guide-based layout grid.
 
 ## Arrow Anchor Points
 
@@ -104,7 +86,7 @@ Identify distinct size classes for nodes:
 3. When merging similar sizes, ALWAYS favor the LARGER dimensions to ensure the longest label fits.
 4. Build a palette of at most 20 size classes. For each: "id" (kebab-case), "width" (0-1), "height" (0-1), "name" (optional).
 5. Set "sizeId" on each non-group node. Group nodes do NOT need a sizeId.
-6. IMPORTANT for spatial mode: The size class width/height values should match the actual spatial bounding box dimensions.
+6. IMPORTANT: The size class width/height values should reflect the relative proportions of nodes in the image.
 7. Include in the top-level "sizePalette" field.
 
 ## Semantic Type Inference
@@ -183,7 +165,7 @@ Each diagram object MUST have this structure:
   "id": "...",
   "title": "<human-readable title for this diagram>",
   "direction": "RIGHT" or "DOWN",
-  "layoutMode": "spatial",
+  "layoutMode": "auto",
   "imageDimensions": { "width": ..., "height": ... },
   "nodes": [...],
   "edges": [...],
@@ -203,7 +185,6 @@ Each node MUST have a nested "style" object (NOT flat color fields):
     "borderColor": "#HEX",
     "borderStyle": "solid" or "dashed" or "dotted"
   },
-  "spatial": { "x": ..., "y": ..., "width": ..., "height": ... },
   "font": { ... },
   "shapeId": "...",
   "sizeId": "...",
@@ -236,10 +217,7 @@ Each edge MUST have a nested "style" object (NOT flat style fields):
 \`\`\`
 
 ## Critical Rules
-- All spatial coordinates MUST be between 0 and 1
-- x + width MUST be <= 1.0 for every node
-- y + height MUST be <= 1.0 for every node
-- Group nodes' spatial bounds MUST fully contain all their children
+- All guide positions MUST be between 0 and 1
 - Every node that visually contains other nodes MUST have type "group"
 - Every node inside a container MUST set parentId to the container's ID
 - Group nodes must appear BEFORE their children in the nodes array
@@ -276,7 +254,7 @@ export async function analyzeDiagramImage(
   model = "anthropic/claude-sonnet-4-6",
   onProgress?: LLMProgressCallback,
 ): Promise<DiagramSpec> {
-  const userText = `Analyze this diagram image and produce the structured JSON specification with full spatial data. The image dimensions are ${width}x${height} pixels. Set imageDimensions to {"width": ${width}, "height": ${height}} on each diagram. Be thorough — capture every box, container, arrow, and label visible in the image with precise bounding boxes.`;
+  const userText = `Analyze this diagram image and produce the structured JSON specification with guide-based layout. The image dimensions are ${width}x${height} pixels. Set imageDimensions to {"width": ${width}, "height": ${height}} on each diagram. Be thorough — capture every box, container, arrow, and label visible in the image.`;
 
   const messages: ChatMessage[] = [
     { role: "system", content: IMAGE_ANALYSIS_PROMPT },

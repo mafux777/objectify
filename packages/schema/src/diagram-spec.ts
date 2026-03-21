@@ -48,28 +48,7 @@ const NodeStyleSchema = z.object({
     .describe("Element opacity from 0 (fully transparent) to 1 (fully opaque)"),
 });
 
-const NodeSpatialSchema = z.object({
-  x: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe("Normalized X of top-left corner (0 = left edge, 1 = right edge)"),
-  y: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe("Normalized Y of top-left corner (0 = top edge, 1 = bottom edge)"),
-  width: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe("Normalized width as fraction of image width"),
-  height: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe("Normalized height as fraction of image height"),
-});
+
 
 const NodeFontSchema = z.object({
   fontSize: z
@@ -152,11 +131,9 @@ const NodeSchema = z.object({
         "'background' (decorative backdrops), 'base' (default), 'raised' (slight emphasis), " +
         "'foreground' (prominent), 'overlay' (annotations/callouts)."
     ),
-  spatial: NodeSpatialSchema.optional().describe(
-    "Bounding box in normalized 0-1 coordinates relative to image dimensions. Present in v2.0 spatial specs."
-  ),
+
   font: NodeFontSchema.optional().describe(
-    "Estimated font properties. Present in v2.0 spatial specs."
+    "Estimated font properties."
   ),
   shapeId: z
     .string()
@@ -228,6 +205,13 @@ const NodeSchema = z.object({
       "Multi-label array. labels[0] is the primary label (default: center). " +
         "Additional labels are positioned at clock positions around the node. " +
         "When present, supersedes the legacy 'label' + 'labelPosition' fields."
+    ),
+  url: z
+    .string()
+    .optional()
+    .describe(
+      "Optional URL associated with this node. When set, a globe icon appears on the node " +
+        "that the user can click to open the URL in a new tab."
     ),
 });
 
@@ -615,14 +599,14 @@ const SingleDiagramSchema = z.object({
       "Primary flow direction of the diagram. Use RIGHT for horizontal flows, DOWN for vertical/hierarchical flows."
     ),
   layoutMode: z
-    .enum(["auto", "spatial"])
+    .enum(["auto"])
     .default("auto")
     .describe(
-      "'spatial' uses extracted positions from the image; 'auto' uses ELK.js auto-layout"
+      "'auto' uses guide-based layout when guides are present, otherwise ELK.js auto-layout"
     ),
   imageDimensions: ImageDimensionsSchema.optional().describe(
     "Original image dimensions in pixels. Used to set the canvas aspect ratio for " +
-      "spatial and guide-based layout modes, ensuring faithful proportions."
+      "guide-based layout mode, ensuring faithful proportions."
   ),
   nodes: z.array(NodeSchema).describe("All boxes and container groups in this diagram"),
   edges: z.array(EdgeSchema).describe("All arrows connecting nodes in this diagram"),
@@ -703,7 +687,7 @@ const SingleDiagramSchema = z.object({
 });
 
 export const DiagramSpecSchema = z.object({
-  version: z.enum(["1.0", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0"]).describe("Schema version. 2.0 includes spatial data. 3.0 adds guide lines and label positioning. 4.0 adds multi-label support. 5.0 adds container group shapes (cloud, cylinder) and ball-socket edge endpoint markers. 6.0 adds step routing type and strokeWidth. 7.0 adds smooth-repelled routing type for guide-based layouts. 8.0 adds per-object description fields on nodes, edges, and diagrams."),
+  version: z.enum(["1.0", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0"]).describe("Schema version. 3.0 adds guide lines and label positioning. 4.0 adds multi-label support. 5.0 adds container group shapes (cloud, cylinder) and ball-socket edge endpoint markers. 6.0 adds step routing type and strokeWidth. 7.0 adds smooth-repelled routing type for guide-based layouts. 8.0 adds per-object description fields on nodes, edges, and diagrams."),
   palette: ColorPaletteSchema.optional().describe(
     "Color palette sampled from the source image. All node/edge colors should reference " +
       "hex values from this palette. Optional for backward compatibility with older specs."
@@ -737,7 +721,6 @@ export type DiagramNode = z.infer<typeof NodeSchema>;
 export type DiagramEdge = z.infer<typeof EdgeSchema>;
 export type NodeStyle = z.infer<typeof NodeStyleSchema>;
 export type EdgeStyle = z.infer<typeof EdgeStyleSchema>;
-export type NodeSpatial = z.infer<typeof NodeSpatialSchema>;
 export type NodeFont = z.infer<typeof NodeFontSchema>;
 export type AnchorSide = z.infer<typeof AnchorSideSchema>;
 export type ImageDimensions = z.infer<typeof ImageDimensionsSchema>;

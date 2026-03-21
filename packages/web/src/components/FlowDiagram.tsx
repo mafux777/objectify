@@ -38,20 +38,20 @@ import { ContextMenu, type ContextMenuState } from "./ContextMenu.js";
 import { CommandBar } from "./CommandBar.js";
 import { Legend } from "./Legend.js";
 import { toPng } from "html-to-image";
-import { flowToDiagram, flowToSpec } from "../lib/flow-to-spec.js";
+import { flowToDiagram, flowToSpec, pruneOrphanedGuides } from "../lib/flow-to-spec.js";
 import { refineDiagramWithLLM } from "../lib/llm-refine.js";
 import { validateChatInput } from "../lib/llm-validate.js";
 import { type TokenUsage, addTokenUsage } from "../lib/llm-shared.js";
 import type { ChatMessage } from "../lib/db/types.js";
 import { useDocuments } from "../lib/documents/index.js";
 import { ShareModal } from "./ShareModal.js";
-import { spatialLayoutDiagram } from "../lib/spatial-layout.js";
 import { guideLayoutDiagram, resolveGuideOverlaps } from "../lib/guide-layout.js";
 import { GuideLines } from "./GuideLines.js";
 import { LabelConnectors } from "./LabelConnectors.js";
 import { GuidesContext } from "../lib/guides-context.js";
 import { ForceLayoutPanel } from "./ForceLayoutPanel.js";
 import { HelpModal } from "./HelpModal.js";
+import { PropertiesPanel } from "./PropertiesPanel.js";
 import { useAuth } from "../lib/auth-context.js";
 import { useClockFaceDrag } from "../hooks/useClockFaceDrag.js";
 import { ClockFaceDragContext } from "../lib/clock-face-context.js";
@@ -118,6 +118,7 @@ export function FlowDiagram({
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showPropertiesPanel, setShowPropertiesPanel] = useState(true);
   const flowRef = useRef<HTMLDivElement>(null);
   const { dispatch: docDispatch, db } = useDocuments();
   const { isAdmin } = useAuth();
@@ -686,12 +687,16 @@ export function FlowDiagram({
   // Wrap onNodesChange to capture snapshot before deletions (Delete key)
   const wrappedOnNodesChange = useCallback(
     (changes: NodeChange<Node>[]) => {
-      if (changes.some((c) => c.type === "remove")) {
+      const removals = changes.filter((c) => c.type === "remove");
+      if (removals.length > 0) {
         saveSnapshot();
+        const removedIds = new Set(removals.map((c) => c.id));
+        const remainingNodes = nodes.filter((n) => !removedIds.has(n.id));
+        setGuides((gs) => pruneOrphanedGuides(gs, remainingNodes));
       }
       onNodesChange(changes);
     },
-    [onNodesChange, saveSnapshot]
+    [onNodesChange, saveSnapshot, nodes, setGuides]
   );
 
   // Wrap onEdgesChange to capture snapshot before deletions
@@ -991,7 +996,7 @@ export function FlowDiagram({
 
         // Step 2: Valid request — proceed to expensive model
         const currentSpec = flowToSpec(
-          nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides,
+          nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides, specRef.current.description,
         );
         const { spec: newSpec, summary, usage } = await refineDiagramWithLLM(
           currentSpec,
@@ -1013,33 +1018,34 @@ export function FlowDiagram({
         if (!newDiagram) throw new Error("LLM returned empty diagrams array");
 
         // Layout the new diagram to get React Flow nodes/edges
-        const hasSpatialData =
-          newDiagram.layoutMode === "spatial" &&
-          newDiagram.nodes.some((n) => n.spatial);
         const hasGuideData =
           (newDiagram.guides?.length ?? 0) > 0 &&
           newDiagram.nodes.some((n) => n.guideRow || n.guideColumn);
 
         let layoutResult: { nodes: Node[]; edges: Edge[] };
-        if (hasSpatialData) {
-          layoutResult = spatialLayoutDiagram(newDiagram, undefined, newSpec.shapePalette);
-        } else if (hasGuideData) {
+        if (hasGuideData) {
           layoutResult = guideLayoutDiagram(newDiagram, newSpec.shapePalette, newSpec.sizePalette);
         } else {
-          layoutResult = spatialLayoutDiagram(newDiagram, undefined, newSpec.shapePalette);
+          layoutResult = guideLayoutDiagram(newDiagram, newSpec.shapePalette, newSpec.sizePalette);
         }
 
         saveSnapshot();
         setNodes(layoutResult.nodes);
         setEdges(layoutResult.edges);
-        if (newDiagram.guides) setGuides(newDiagram.guides);
+        if (newDiagram.guides) setGuides(pruneOrphanedGuides(newDiagram.guides, layoutResult.nodes));
 
         // Sync the new spec to the documents context so subsequent
         // refinements (and auto-saves) use the updated palettes/sizes/etc.
         // skipSeedRef prevents the diagram prop change from re-triggering layout.
-        specRef.current = newSpec;
+        // Always restore the original description — the LLM operates on diagram
+        // structure and should never overwrite user-authored metadata.
+        const originalDescription = specRef.current.description;
+        const syncedSpec = originalDescription
+          ? { ...newSpec, description: originalDescription }
+          : newSpec;
+        specRef.current = syncedSpec;
         skipSeedRef.current = true;
-        docDispatch({ type: "UPDATE_SPEC", id: documentIdRef.current, spec: newSpec });
+        docDispatch({ type: "UPDATE_SPEC", id: documentIdRef.current, spec: syncedSpec });
 
         if (summary) {
           setChatHistory((prev) => [...prev, {
@@ -1110,7 +1116,7 @@ export function FlowDiagram({
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
   const handleExport = useCallback(() => {
-    const spec = flowToSpec(nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides);
+    const spec = flowToSpec(nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides, specRef.current.description);
     const json = JSON.stringify(spec, null, 2);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -1124,7 +1130,7 @@ export function FlowDiagram({
   const [templateSaveState, setTemplateSaveState] = useState<"idle" | "confirm" | "saving" | "done">("idle");
 
   const handleSaveAsTemplate = useCallback(async () => {
-    const currentSpec = flowToSpec(nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides);
+    const currentSpec = flowToSpec(nodes, edges, diagram, palette, shapePalette, sizePalette, semanticTypes, guides, specRef.current.description);
     const title = diagram.title ?? "Untitled";
 
     try {
@@ -1275,8 +1281,12 @@ export function FlowDiagram({
     return <div className="loading-spinner">Computing layout...</div>;
   }
 
+  const selectedNode = nodes.find((n) => n.selected) ?? null;
+  const selectedEdge = edges.find((e) => e.selected) ?? null;
+
   return (
-    <div ref={flowRef} style={{ width: "100%", height: "100%", position: "relative" }}>
+    <div ref={flowRef} style={{ width: "100%", height: "100%", display: "flex", position: "relative" }}>
+    <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
       <GuidesContext.Provider value={guidesCtxValue}>
       <ClockFaceDragContext.Provider value={{ startDrag: clockFaceStartDrag }}>
       <ReactFlow
@@ -1451,6 +1461,14 @@ export function FlowDiagram({
             </button>
           )}
           <button
+            className={`load-btn${showPropertiesPanel ? " load-btn--active" : ""}`}
+            onClick={() => setShowPropertiesPanel(!showPropertiesPanel)}
+            style={{ marginRight: 4 }}
+            title="Toggle properties panel"
+          >
+            Properties
+          </button>
+          <button
             className="load-btn"
             onClick={() => setShowHelpModal(true)}
             title="Help & keyboard shortcuts"
@@ -1528,6 +1546,7 @@ export function FlowDiagram({
           edges={edges}
           setNodes={setNodes}
           setEdges={setEdges}
+          setGuides={setGuides}
           onClose={closeContextMenu}
           saveSnapshot={saveSnapshot}
           diagram={diagram}
@@ -1565,6 +1584,34 @@ export function FlowDiagram({
       {showHelpModal && (
         <HelpModal onClose={() => setShowHelpModal(false)} />
       )}
+    </div>
+
+    {showPropertiesPanel && (
+      <PropertiesPanel
+        selectedNode={selectedNode}
+        selectedEdge={selectedEdge}
+        nodes={nodes}
+        specDescription={specRef.current.description ?? ""}
+        palette={palette}
+        shapePalette={shapePalette}
+        sizePalette={sizePalette}
+        semanticTypes={semanticTypes}
+        onPatchNode={(nodeId, patch) => {
+          setNodes((nds) => nds.map((n) => {
+            if (n.id !== nodeId) return n;
+            const newData = { ...n.data, ...patch };
+            // When shapeId changes, derive the correct React Flow node type
+            const isGroup = n.type === "groupNode";
+            const newType = isGroup ? "groupNode" : newData.shapeId ? "shapeNode" : "colorBox";
+            return { ...n, type: newType, data: newData };
+          }));
+        }}
+        onPatchEdge={(edgeId, patch) => {
+          setEdges((eds) => eds.map((e) => e.id === edgeId ? { ...e, data: { ...(e.data ?? {}), ...patch } } : e));
+        }}
+        onClose={() => setShowPropertiesPanel(false)}
+      />
+    )}
     </div>
   );
 }
