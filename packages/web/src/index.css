@@ -218,6 +218,12 @@ body,
   font-family: monospace;
 }
 
+.properties-panel__textarea {
+  resize: vertical;
+  min-height: 28px;
+  line-height: 1.4;
+}
+
 .properties-panel__input:focus {
   border-color: #1976d2;
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.15);

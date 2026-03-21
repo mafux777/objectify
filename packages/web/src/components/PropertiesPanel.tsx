@@ -308,9 +308,16 @@ export function PropertiesPanel({
 
             <div className="properties-panel__field">
               <label className="properties-panel__label">Label</label>
-              <span className="properties-panel__value">
-                {(nodeData?.label as string) ?? selectedNode.id}
-              </span>
+              <textarea
+                className="properties-panel__input properties-panel__textarea"
+                defaultValue={(nodeData?.label as string) ?? selectedNode.id}
+                key={`node-label-${selectedNode.id}`}
+                rows={Math.min(4, ((nodeData?.label as string) ?? "").split("\n").length || 1)}
+                onBlur={(e) => onPatchNode(selectedNode.id, { label: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.blur(); }
+                }}
+              />
             </div>
 
             {nodeData?.description && (
