@@ -22,6 +22,7 @@ interface PropertiesPanelProps {
   onPatchNode: (nodeId: string, patch: Record<string, unknown>) => void;
   onPatchEdge: (edgeId: string, patch: Record<string, unknown>) => void;
   onPatchGuide: (guideId: string, position: number) => void;
+  onPatchGuideLabel: (guideId: string, label: string) => void;
   onSelectNode: (nodeId: string) => void;
   onSelectGuide: (guideId: string) => void;
   onClose: () => void;
@@ -116,6 +117,7 @@ export function PropertiesPanel({
   onPatchNode,
   onPatchEdge,
   onPatchGuide,
+  onPatchGuideLabel,
   onSelectNode,
   onSelectGuide,
   onClose,
@@ -130,6 +132,27 @@ export function PropertiesPanel({
   useEffect(() => {
     setUrlValue(committedUrl);
   }, [selectedNode?.id, committedUrl]);
+
+  // Local guide label state — synced to selected guide; committed on blur.
+  const committedGuideLabel = selectedGuide?.label ?? "";
+  const [guideLabelValue, setGuideLabelValue] = useState<string>(committedGuideLabel);
+  const [guideLabelError, setGuideLabelError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setGuideLabelValue(committedGuideLabel);
+    setGuideLabelError(null);
+  }, [selectedGuide?.id, committedGuideLabel]);
+
+  const commitGuideLabel = () => {
+    if (!selectedGuide) return;
+    const trimmed = guideLabelValue.trim();
+    if (!trimmed) { setGuideLabelError("Label cannot be empty"); return; }
+    // Uniqueness check
+    const duplicate = guides.find((g) => g.id !== selectedGuide.id && g.label === trimmed);
+    if (duplicate) { setGuideLabelError(`"${trimmed}" is already used`); return; }
+    setGuideLabelError(null);
+    onPatchGuideLabel(selectedGuide.id, trimmed);
+  };
 
   const commitUrl = () => {
     if (!selectedNode) return;
@@ -218,7 +241,17 @@ export function PropertiesPanel({
 
             <div className="properties-panel__field">
               <label className="properties-panel__label">Label</label>
-              <span className="properties-panel__value">{selectedGuide.label ?? selectedGuide.id}</span>
+              <input
+                className={`properties-panel__input${guideLabelError ? " properties-panel__input--error" : ""}`}
+                type="text"
+                value={guideLabelValue}
+                onChange={(e) => { setGuideLabelValue(e.target.value); setGuideLabelError(null); }}
+                onBlur={commitGuideLabel}
+                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+              />
+              {guideLabelError && (
+                <span className="properties-panel__error">{guideLabelError}</span>
+              )}
             </div>
 
             <div className="properties-panel__field">

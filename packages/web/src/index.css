@@ -223,6 +223,17 @@ body,
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.15);
 }
 
+.properties-panel__input--error {
+  border-color: #d32f2f;
+}
+
+.properties-panel__error {
+  display: block;
+  font-size: 11px;
+  color: #d32f2f;
+  margin-top: 2px;
+}
+
 .properties-panel__globe-btn {
   background: none;
   border: 1px solid #d0d0d0;

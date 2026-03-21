@@ -74,6 +74,22 @@ function nextGuideId(prefix: string) {
   return `${prefix}-${Date.now()}-${detachGuideCounter}`;
 }
 
+/** Generate a short unique guide label from a node label and existing guides. */
+function shortGuideLabel(rawNodeLabel: string, direction: "horizontal" | "vertical", existingLabels: Set<string>): string {
+  // Take first word, max 6 chars, capitalize
+  const firstWord = rawNodeLabel.split(/[\n\s]+/)[0] ?? "G";
+  const base = firstWord.substring(0, 6);
+  const suffix = direction === "horizontal" ? "R" : "C";
+  let candidate = `${base}-${suffix}`;
+  if (!existingLabels.has(candidate)) return candidate;
+  // Append counter for uniqueness
+  for (let i = 2; i < 100; i++) {
+    candidate = `${base}-${suffix}${i}`;
+    if (!existingLabels.has(candidate)) return candidate;
+  }
+  return candidate;
+}
+
 const GUIDE_MERGE_THRESHOLD = 0.02; // 2% normalized distance
 const GUIDE_FIELDS = ["guideRow", "guideColumn", "guideRowBottom", "guideColumnRight"] as const;
 
@@ -1069,9 +1085,8 @@ export function FlowDiagram({
 
       // Alt+drag: detach from shared guides and create new personal guides
       if (event.altKey) {
-        // Derive a short label from the node's label (first line, spaces instead of newlines)
         const rawLabel = (data?.label as string) ?? "Node";
-        const shortLabel = rawLabel.split("\n").join(" ").trim();
+        const existingLabels = new Set(guides.map((g) => g.label).filter(Boolean) as string[]);
 
         // Create new row guide
         const newRowId = nextGuideId("row-detach");
@@ -1080,8 +1095,9 @@ export function FlowDiagram({
           index: guides.filter((g) => g.direction === "horizontal").length,
           direction: "horizontal",
           position: centerY / canvasHeight,
-          label: `${shortLabel} Row`,
+          label: shortGuideLabel(rawLabel, "horizontal", existingLabels),
         };
+        existingLabels.add(newRowGuide.label!);
 
         // Create new column guide
         const newColId = nextGuideId("col-detach");
@@ -1090,7 +1106,7 @@ export function FlowDiagram({
           index: guides.filter((g) => g.direction === "vertical").length,
           direction: "vertical",
           position: centerX / canvasWidth,
-          label: `${shortLabel} Col`,
+          label: shortGuideLabel(rawLabel, "vertical", existingLabels),
         };
 
         // Add new guides and remove old ones if they become orphaned
@@ -2079,6 +2095,12 @@ export function FlowDiagram({
               })
             );
           }
+        }}
+        onPatchGuideLabel={(guideId, label) => {
+          saveSnapshot();
+          setGuides((gs) =>
+            gs.map((g) => g.id === guideId ? { ...g, label } : g)
+          );
         }}
         onSelectNode={(nodeId) => {
           setSelectedGuideId(null);
